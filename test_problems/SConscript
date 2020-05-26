@@ -37,7 +37,7 @@ PASSED_FILES = {}
 class Test(object):
     _validArgs = set(['arguments', 'options', 'artifacts', 'comparisons',
                       'tolerance', 'threshold', 'ignoreLines', 'extensions',
-                      'dependencies'])
+                      'dependencies', 'extra_clean_files'])
 
     def __init__(self, testName, subdir, programName, blessedName, **kwargs):
         assert set(kwargs.keys()) <= self._validArgs, kwargs.keys()
@@ -55,6 +55,7 @@ class Test(object):
         self.comparisons = kwargs.get('comparisons') or ()
         self.tolerance = kwargs.get('tolerance') or 1e-5 # error tolerance for CSV comparison
         self.threshold = kwargs.get('threshold') or 1e-14 # error threshold for CSV comparison
+        self.extra_clean_files = list(kwargs.get('extra_clean_files', []))  # Extra files to be cleaned up
 
         # ignore lines starting with specified strings when comparing output files
         self.ignoreLines = kwargs.get('ignoreLines') or []
@@ -110,6 +111,7 @@ class Test(object):
             outName = 'test_output.txt'
 
         files = kwargs.get('files') or []
+        files += self.extra_clean_files
         files += [self.passedFile, outName]
         files += list(self.artifacts)
         files += [comp[1] for comp in self.comparisons]
@@ -150,7 +152,8 @@ dhGraph_name = dhGraph[0].name
 Test('DH_graph_dilute', 'cathermo/DH_graph_1',
      dhGraph, 'DH_NaCl_dilute_blessed.csv',
      artifacts=['DH_graph_1.log', dhGraph_name],
-     arguments='DH_NaCl_dilute.xml')
+     arguments='DH_NaCl_dilute.xml',
+     extra_clean_files=['DH_graph_1.o'])
 Test('DH_graph_acommon', 'cathermo/DH_graph_1',
      dhGraph, 'DH_NaCl_acommon_blessed.csv',
      artifacts=['DH_graph_1.log', dhGraph_name],
@@ -203,7 +206,8 @@ CompileAndTest('WaterPDSS', 'cathermo/testWaterPDSS',
 CompileAndTest('WaterSSTP', 'cathermo/testWaterTP',
                'testWaterSSTP', 'output_blessed.txt')
 CompileAndTest('ISSPTester2', 'cathermo/VPissp',
-               'ISSPTester2', 'output_blessed.txt')
+               'ISSPTester2', 'output_blessed.txt',
+               extra_clean_files=['ISSPTester.o'])
 CompileAndTest('ChemEquil_ionizedGas',
                'ChemEquil_ionizedGas', 'ionizedGasEquil',
                'output_blessed.txt',
@@ -217,7 +221,11 @@ CompileAndTest('cxx_ex', 'cxx_ex', 'cxx_examples', 'output_blessed.txt',
                tolerance=3e-3,
                threshold=1e-7,
                artifacts=['eq1.dat', 'kin1.dat', 'kin2.dat', 'kin3.csv',
-                          'kin3.dat', 'tr1.dat', 'tr2.dat'])
+                          'kin3.dat', 'tr1.dat', 'tr2.dat'],
+               extra_clean_files=["equil_example1.o", "examples.o",
+                                  "kinetics_example1.o", "kinetics_example3.o",
+                                  "rxnpath_example1.o", "transport_example1.o",
+                                  "transport_example2.o"])
 
 diamond = localenv.Program('diamondSurf/runDiamond',
                            'diamondSurf/runDiamond.cpp',
@@ -226,9 +234,11 @@ diamond_name = diamond[0].name
 Test('diamondSurf-xml', 'diamondSurf', diamond, 'runDiamond_blessed.out',
      options='diamond_blessed.xml', artifacts=diamond_name)
 Test('diamondSurf-cti', 'diamondSurf', diamond, 'runDiamond_blessed.out',
-     options='diamond.cti', artifacts=diamond_name)
+     options='diamond.cti', artifacts=diamond_name,
+     extra_clean_files=['runDiamond.o'])
 CompileAndTest('dustyGasTransport', 'dustyGasTransport', 'dustyGasTransport',
-               'output_blessed.txt')
+               'output_blessed.txt',
+               extra_clean_files=['dustyGasTransportTest.o'])
 CompileAndTest('mixGasTransport',
                'mixGasTransport', 'mixGasTransport', 'output_blessed.txt')
 CompileAndTest('multiGasTransport',
@@ -259,11 +269,13 @@ vcs_LiSi = localenv.Program('VCSnonideal/LatticeSolid_LiSi/latsol',
                             LIBS=cantera_libs)
 vcs_LiSi_name = vcs_LiSi[0].name
 Test('VCS-LiSi', 'VCSnonideal/LatticeSolid_LiSi', vcs_LiSi, 'output_blessed.txt',
-               artifacts=['vcs_equilibrate_res.csv', vcs_LiSi_name])
+               artifacts=['vcs_equilibrate_res.csv', vcs_LiSi_name],
+               extra_clean_files=['latsol.o'])
 Test('VCS-LiSi-verbose', 'VCSnonideal/LatticeSolid_LiSi', vcs_LiSi, 'verbose_blessed.txt',
                options='8',
                artifacts=['vcs_equilibrate_res.csv', vcs_LiSi_name])
-CompileAndTest('VPsilane_test', 'VPsilane_test', 'VPsilane_test', 'output_blessed.txt')
+CompileAndTest('VPsilane_test', 'VPsilane_test', 'VPsilane_test', 'output_blessed.txt',
+               extra_clean_files=['silane_equil.o'])
 
 CompileAndTest('clib', 'clib_test', 'clib_test', 'output_blessed.txt',
                extensions=['^clib_test.c'], libs=['cantera_shared'])
