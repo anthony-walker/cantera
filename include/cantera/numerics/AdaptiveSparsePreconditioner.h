@@ -6,8 +6,8 @@
  * @Last modified time: 2020-04-16T15:33:18-07:00
  */
 
-#ifndef ADAPTIVEPRECONDITIONER_H
-#define ADAPTIVEPRECONDITIONER_H
+#ifndef ADAPTIVESPARSEPRECONDITIONER_H
+#define ADAPTIVESPARSEPRECONDITIONER_H
 #endif
 
 //Cantera imports
@@ -22,6 +22,10 @@
 #include "cantera/ext/Eigen/Sparse"
 #endif
 
+namespace Cantera //Making ASP apart of Cantera namespace
+{
+
+
 template<typename _Scalar, int _Options, typename _StorageIndex> void AdaptivelyPrecondition(Eigen::SparseMatrix<_Scalar,_Options,_StorageIndex> *sparse_matrix)
 {
   /*
@@ -31,4 +35,8 @@ template<typename _Scalar, int _Options, typename _StorageIndex> void Adaptively
   for (int i = 0; i < sparse_matrix->cols(); i++) {
     sparse_matrix->insert(i,i) = i;
   }
+}
+
+
+
 }
