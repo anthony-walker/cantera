@@ -6,12 +6,21 @@
  * @Last modified time: 2020-04-16T15:33:18-07:00
  */
 
-
 //Cantera imports
-#include "cantera/numerics/AdaptiveSparsePreconditioner.h"
 #include "cantera/thermo.h"
 #include "cantera/kinetics.h"
 #include "cantera/transport.h"
+//Adaptive imports
+#include "cantera/numerics/AdaptiveSparsePreconditioner.h"
+#include "cantera/numerics/SparseMatrix.h"
+//Sundials imports
+#include "sunmatrix/sunmatrix_sparse.h"
+//Eigen Imports
+#if CT_USE_SYSTEM_EIGEN
+#include <Eigen/Sparse>
+#else
+#include "cantera/ext/Eigen/Sparse"
+#endif
 
 template<class MATTYPE> void Cantera::AdaptivelyPrecondition(SparseMatrix<MATTYPE> *sparseMatrix)
 {
