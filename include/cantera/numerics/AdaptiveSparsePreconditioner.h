@@ -24,9 +24,9 @@ typedef SUNMatrix SundialsSparseMatrix;
 namespace Cantera //Making ASP apart of Cantera namespace
 {
 
-template<class MATTYPE> void AdaptivelyPrecondition(SparseMatrix<MATTYPE> *sparseMatrix);
+template<class MATTYPE> void AdaptivelyPrecondition(MATTYPE *preconditioner);
 
-template<class MATTYPE> void TemperatureSpeciesDerivative(SparseMatrix<MATTYPE> *sparseMatrix);
+template<class MATTYPE> void TemperatureSpeciesDerivative(MATTYPE *preconditioner);
 
 }
 

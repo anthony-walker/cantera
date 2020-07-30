@@ -22,14 +22,16 @@
 #include "cantera/ext/Eigen/Sparse"
 #endif
 
-template<class MATTYPE> void Cantera::AdaptivelyPrecondition(SparseMatrix<MATTYPE> *sparseMatrix)
+template<class MATTYPE> void AdaptivelyPrecondition(MATTYPE *preconditioner)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
   */
 }
 
-template<class MATTYPE> void Cantera::TemperatureSpeciesDerivative(SparseMatrix<MATTYPE> *sparseMatrix)
+
+
+template<class MATTYPE> void TemperatureSpeciesDerivative(MATTYPE *preconditioner)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.

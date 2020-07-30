@@ -24,97 +24,84 @@ template<class MATTYPE> class SparseMatrix
 {
     private:
         MATTYPE *matrix; //Matrix stored by sparse matrix
-        int typeIndex; //This is used to run a certain switch case.
+        double threshold=10e-8; //default threshold value
     public:
+        ~SparseMatrix(); //destructor
         SparseMatrix(); //default constructor
         SparseMatrix(int nrows, int ncols); //overloaded
+        SparseMatrix(int nrows, int ncols, int maxNonZero); //overloaded
         SparseMatrix(MATTYPE *sparseMatrix); //overloaded
         SparseMatrix(SparseMatrix *OtherSparseMat); //copy constructor
         double getElement(int row, int col); //get element
-        int getTypeIndex(); // returns type index
+        MATTYPE getMatrix();
+        double getThreshold();
         void setElement(int row, int col, double element);//set element
-        void setMatrix(MATTYPE *SparseMatrix);
+        void setMatrix(MATTYPE *sparseMatrix);
+        void setThreshold(double threshold);
     };
 
 /*
     TEMPLATE FUNCTIONS 
 */
 
+//Destructor
+template<class MATTYPE> SparseMatrix<MATTYPE>::~SparseMatrix()
+{
+    delete this->matrix;
+}
+
 //Default Constructor
 template<class MATTYPE> SparseMatrix<MATTYPE>::SparseMatrix()
 {
-    //Matrix is not allocated
-    if (std::is_same<MATTYPE,SUNMatrix>::value)
-    {   
-        this->typeIndex = 0; // Type id is zero for sunmatrix
-    }
-    else if (std::is_same<MATTYPE,EigenSparseMatrix>::value)
-    {
-        this->typeIndex = 1; // Type id is zero for Eigen sparse matrix
-    }
-    else //Throw error if type isn't defined properly
-    {
-        throw std::invalid_argument( "The type supplied to the template class is not supported." );
-    }
-}
-
-//Overloaded Constructor
-template<class MATTYPE> SparseMatrix<MATTYPE>::SparseMatrix(int nrows, int ncols)
-{
-    if (std::is_same<MATTYPE,SUNMatrix>::value)
-    {   
-        this->typeIndex = 0; // Type id is zero for sunmatrix
-        MATTYPE temporaryMatrix = SUNSparseMatrix(nrows,ncols,nrows*ncols,CSC_MAT);
-        this->matrix = &temporaryMatrix;
-    }
-    else if (std::is_same<MATTYPE,EigenSparseMatrix>::value)
-    {
-        this->typeIndex = 1; // Type id is zero for Eigen sparse matrix
-        // MATTYPE temporaryMatrix = EigenSparseMatrix(nrows,ncols);
-        // this->matrix = &temporaryMatrix;
-    }
-    else //Throw error if type isn't defined properly
-    {
-        throw std::invalid_argument( "The type supplied to the template class is not supported." );
-    }   
+    //Do nothing
 }
 
 //Overloaded Constructor
 template<class MATTYPE> SparseMatrix<MATTYPE>::SparseMatrix(MATTYPE *sparseMatrix)
 {
-    //Matrix is not allocated
-    if (std::is_same<MATTYPE,SUNMatrix>::value)
-    {   
-        this->typeIndex = 0; // Type id is zero for sunmatrix
-    }
-    else if (std::is_same<MATTYPE,EigenSparseMatrix>::value)
-    {
-        this->typeIndex = 1; // Type id is zero for Eigen sparse matrix
-    }
-    else //Throw error if type isn't defined properly
-    {
-        throw std::invalid_argument( "The type supplied to the template class is not supported." );
-    }
     this->matrix = sparseMatrix;
 }
 
-
-//This function returns the typeIndex
-template<class MATTYPE> int SparseMatrix<MATTYPE>::getTypeIndex()
+//Threshold setter
+template<class MATTYPE> void SparseMatrix<MATTYPE>::setThreshold(double threshold)
 {
-    return this->typeIndex;
+    this->threshold = threshold;
+}
+
+//Matrix setter
+template<class MATTYPE> void SparseMatrix<MATTYPE>::setMatrix(MATTYPE *sparseMatrix)
+{
+    this->matrix = sparseMatrix;
+}
+
+//Threshold getter
+template<class MATTYPE> double SparseMatrix<MATTYPE>::getThreshold()
+{
+    return this->threshold;
+}
+
+//Matrix getter
+template<class MATTYPE> MATTYPE SparseMatrix<MATTYPE>::getMatrix()
+{
+    return this->matrix;
 }
 
 /*
     SUNDIALS SPECIALIZED FUNCTIONS 
 */
-// //Specialized Overloaded Constructor - SUNMATRIX
-// SparseMatrix<SundialsSparseMatrix>::SparseMatrix(int32_t nrows, int32_t ncols, int32_t maxNonzero, int storageType)
-// {   
-//     this->typeIndex = 0; // Type id is zero for sunmatrix
-//     MATTYPE temporaryMatrix = SUNSparseMatrix(nrows,ncols,maxNonzero,storageType);
-//     this->matrix = &temporaryMatrix;
-// }
+//Overloaded Constructor
+template<> SparseMatrix<SundialsSparseMatrix>::SparseMatrix(int nrows, int ncols, int maxNonZero)
+{   
+    SundialsSparseMatrix temporaryMatrix = SUNSparseMatrix(nrows,ncols,maxNonZero,CSC_MAT);
+    this->matrix = &temporaryMatrix;
+}
+
+
+//Specialized SundialsSparseMatrix SETTER
+template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element)
+{
+    
+}
 
 //Specialized SundialsSparseMatrix GETTER
 template<> double SparseMatrix<SundialsSparseMatrix>::getElement(int row, int col)
@@ -123,24 +110,15 @@ template<> double SparseMatrix<SundialsSparseMatrix>::getElement(int row, int co
     return 1.0;
 }
 
-//Specialized SundialsSparseMatrix GETTER
-template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element)
-{
-    //IMPLEMENT ME
-}
-
 /*
     EIGEN SPECIALIZED FUNCTIONS 
 */
-//Specialized Overloaded Constructor - EIGEN
-template<> SparseMatrix<EigenSparseMatrix>::SparseMatrix(EigenSparseMatrix *sparseMatrix)
-{
-    //IMPLEMENT ME
+//Overloaded Constructor
+template<> SparseMatrix<EigenSparseMatrix>::SparseMatrix(int nrows, int ncols)
+{   
+    EigenSparseMatrix temporaryMatrix = EigenSparseMatrix(nrows,ncols);
+    this->matrix = &temporaryMatrix;
 }
-
-/*
-Explicit instantiation allows the template header to be separate from the implementation.
-*/
 
 
 }
