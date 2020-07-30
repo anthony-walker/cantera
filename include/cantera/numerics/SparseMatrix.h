@@ -25,8 +25,9 @@ template<class MATTYPE> class SparseMatrix
     private:
         MATTYPE *matrix; //Matrix stored by sparse matrix
         double threshold=10e-8; //default threshold value
+        int nrows;
+        int ncols;
     public:
-        ~SparseMatrix(); //destructor
         SparseMatrix(); //default constructor
         SparseMatrix(int nrows, int ncols); //overloaded
         SparseMatrix(int nrows, int ncols, int maxNonZero); //overloaded
@@ -43,12 +44,6 @@ template<class MATTYPE> class SparseMatrix
 /*
     TEMPLATE FUNCTIONS 
 */
-
-//Destructor
-template<class MATTYPE> SparseMatrix<MATTYPE>::~SparseMatrix()
-{
-    delete this->matrix;
-}
 
 //Default Constructor
 template<class MATTYPE> SparseMatrix<MATTYPE>::SparseMatrix()
@@ -94,13 +89,16 @@ template<> SparseMatrix<SundialsSparseMatrix>::SparseMatrix(int nrows, int ncols
 {   
     SundialsSparseMatrix temporaryMatrix = SUNSparseMatrix(nrows,ncols,maxNonZero,CSC_MAT);
     this->matrix = &temporaryMatrix;
+    this->nrows = nrows;
+    this->ncols = ncols;
 }
 
 
 //Specialized SundialsSparseMatrix SETTER
 template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element)
-{
-    
+{   
+    int a = 1;
+    std::cout << typeid(a).name() << '\n';
 }
 
 //Specialized SundialsSparseMatrix GETTER
@@ -118,6 +116,44 @@ template<> SparseMatrix<EigenSparseMatrix>::SparseMatrix(int nrows, int ncols)
 {   
     EigenSparseMatrix temporaryMatrix = EigenSparseMatrix(nrows,ncols);
     this->matrix = &temporaryMatrix;
+    this->nrows = nrows;
+    this->ncols = ncols;
+}
+
+//Specialized EigenSparseMatrix SETTER
+template<> void SparseMatrix<EigenSparseMatrix>::setElement(int row, int col, double element)
+{   
+    if (element > this->threshold)
+    {
+        this->matrix->insert(row,col) = element;
+    }
+}
+
+//Specialized EigenSparseMatrix GETTER
+template<> double SparseMatrix<EigenSparseMatrix>::getElement(int row, int col)
+{
+    int *innerIndexList = this->matrix->innerIndexPtr();
+    int *outerIndexList = this->matrix->outerIndexPtr();
+    int innerLen = sizeof(&innerIndexList)/sizeof(innerIndexList[0]);
+    int outerLen = sizeof(&outerIndexList)/sizeof(outerIndexList[0]);
+    for (int i = 0; i < innerLen; i++)
+    {
+        
+        // std::cout << innerIndexList[i] << std::endl;
+        // if (innerIndexList[i] == row)
+        // {
+        //     for (int j = 0; j < outerLen; j++)
+        //     {
+        //         if (outerIndexList[j] == col)
+        //         {
+                    
+        //         }
+        //     }
+            
+        // }
+    }
+    
+    return 1.0;
 }
 
 

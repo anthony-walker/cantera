@@ -30,6 +30,24 @@ ReactorNet::ReactorNet() :
     m_integ->setProblemType(DENSE + NOJAC);
 }
 
+
+void ReactorNet::setIntegratorType(int integratorType)
+{
+    /*
+    Use this function to set the type of integrator, options are combinations of the following:
+        const int DIAG = 1;
+        const int DENSE = 2;
+        const int NOJAC = 4;
+        const int JAC = 8;
+        const int GMRES = 16;
+        const int BAND = 32;
+        const int PRECONDITION = 64;
+    default: DENSE+NOJAC
+    */
+   this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem time
+}
+
+
 void ReactorNet::setInitialTime(double time)
 {
     m_time = time;
@@ -71,7 +89,7 @@ void ReactorNet::setSensitivityTolerances(double rtol, double atol)
 }
 
 void ReactorNet::initialize()
-{
+{   
     m_nv = 0;
     debuglog("Initializing reactor network.\n", m_verbose);
     if (m_reactors.empty()) {
@@ -115,7 +133,7 @@ void ReactorNet::initialize()
 }
 
 void ReactorNet::reinitialize()
-{
+{   
     if (m_init) {
         debuglog("Re-initializing reactor network.\n", m_verbose);
         m_integ->reinitialize(m_time, *this);

@@ -74,6 +74,17 @@ extern "C" {
         integrator->m_error_message = msg;
         integrator->m_error_message += "\n";
     }
+
+    static int adaptivePreconditioner(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data)
+    {
+        /*
+            This is a function implemented to solve the preconditioner during integration.
+        */
+       
+
+
+       return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
+    }
 }
 
 CVodesIntegrator::CVodesIntegrator() :
@@ -363,7 +374,7 @@ void CVodesIntegrator::reinitialize(double t0, FuncEval& func)
 }
 
 void CVodesIntegrator::applyOptions()
-{
+{   
     if (m_type == DENSE + NOJAC) {
         sd_size_t N = static_cast<sd_size_t>(m_neq);
         #if CT_SUNDIALS_VERSION >= 30
@@ -388,16 +399,40 @@ void CVodesIntegrator::applyOptions()
                 CVDense(m_cvode_mem, N);
             #endif
         #endif
-    } else if (m_type == DIAG) {
+    } 
+    else if (m_type == DIAG) {
         CVDiag(m_cvode_mem);
-    } else if (m_type == GMRES) {
+    } 
+    else if (m_type == GMRES) 
+    {   
         #if CT_SUNDIALS_VERSION >= 30
             m_linsol = SUNSPGMR(m_y, PREC_NONE, 0);
             CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
         #else
             CVSpgmr(m_cvode_mem, PREC_NONE, 0);
         #endif
-    } else if (m_type == BAND + NOJAC) {
+    } 
+    else if (m_type == GMRES+PRECONDITION) //Added for adaptive preconditioner
+    {   
+        m_linsol = SUNSPGMR(m_y, PREC_NONE, 0); //Change me
+        CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
+        //Setting preconditioner for CVODE
+        int flag = CVodeSetPreconditioner(m_cvode_mem,NULL,NULL);
+        //Checking returned flag
+        if (flag != CV_SUCCESS) {
+            if (flag == CV_MEM_FAIL) {
+                throw CanteraError("CVodesIntegrator::initialize",
+                                "Memory allocation failed.");
+            } else if (flag == CV_ILL_INPUT) {
+                throw CanteraError("CVodesIntegrator::initialize",
+                                "Illegal value for CVodeInit input argument.");
+            } else {
+                throw CanteraError("CVodesIntegrator::initialize",
+                                "CVodeInit failed.");
+            }
+        }
+    } 
+    else if (m_type == BAND + NOJAC) {
         sd_size_t N = static_cast<sd_size_t>(m_neq);
         long int nu = m_mupper;
         long int nl = m_mlower;
