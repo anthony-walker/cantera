@@ -44,7 +44,14 @@ void ReactorNet::setIntegratorType(int integratorType)
         const int PRECONDITION = 64;
     default: DENSE+NOJAC
     */
-   this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem time
+   if (integratorType==GMRES+PRECONDITION)
+   {
+       this->m_integ->setProblemType(integratorType,this); //Use integrator member function to set problem time
+   }
+   else
+   {
+       this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem time
+   }
 }
 
 

@@ -5,6 +5,7 @@ This is the SparseMatrix class which serves as a wrapper for Sundials and eventu
 */
 #ifndef SPARSEMATRIX_H
 #define SPARSEMATRIX_H
+//Cantera imports
 
 //Sundials imports
 #include "sunmatrix/sunmatrix_sparse.h"

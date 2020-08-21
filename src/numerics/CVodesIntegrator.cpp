@@ -6,9 +6,14 @@
 #include "cantera/numerics/CVodesIntegrator.h"
 #include "cantera/base/stringUtils.h"
 
+//Includes for adaptive preconditioner
+#include "cantera/numerics/AdaptiveSparsePreconditioner.h"
+#include "cantera/numerics/SparseMatrix.h"
+#include "sunmatrix/sunmatrix_sparse.h"
+//System includes
 #include <iostream>
 using namespace std;
-
+//Sundials includes
 #include "sundials/sundials_types.h"
 #include "sundials/sundials_math.h"
 #include "sundials/sundials_nvector.h"
@@ -73,17 +78,6 @@ extern "C" {
         CVodesIntegrator* integrator = (CVodesIntegrator*) eh_data;
         integrator->m_error_message = msg;
         integrator->m_error_message += "\n";
-    }
-
-    static int adaptivePreconditioner(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data)
-    {
-        /*
-            This is a function implemented to solve the preconditioner during integration.
-        */
-       
-
-
-       return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
     }
 }
 
@@ -184,9 +178,10 @@ void CVodesIntegrator::setSensitivityTolerances(double reltol, double abstol)
     m_abstolsens = abstol;
 }
 
-void CVodesIntegrator::setProblemType(int probtype)
+void CVodesIntegrator::setProblemType(int probtype,void* problem_data/**=NULL**/)
 {
     m_type = probtype;
+    this->problem_data=problem_data;
 }
 
 void CVodesIntegrator::setMethod(MethodType t)
@@ -414,23 +409,18 @@ void CVodesIntegrator::applyOptions()
     } 
     else if (m_type == GMRES+PRECONDITION) //Added for adaptive preconditioner
     {   
+        
+        SparseMatrix<SundialsSparseMatrix>sparseMat();
+
+        //Setting preconditioner for CVODE
+        CVodeSetUserData(m_cvode_mem,NULL); //Use this function to provide user data to the Jacobian
+        CVodeSetPreconditioner(m_cvode_mem,adaptiveMatLinSolSetup,NULL);
+
+
         m_linsol = SUNSPGMR(m_y, PREC_NONE, 0); //Change me
         CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
-        //Setting preconditioner for CVODE
-        int flag = CVodeSetPreconditioner(m_cvode_mem,NULL,NULL);
-        //Checking returned flag
-        if (flag != CV_SUCCESS) {
-            if (flag == CV_MEM_FAIL) {
-                throw CanteraError("CVodesIntegrator::initialize",
-                                "Memory allocation failed.");
-            } else if (flag == CV_ILL_INPUT) {
-                throw CanteraError("CVodesIntegrator::initialize",
-                                "Illegal value for CVodeInit input argument.");
-            } else {
-                throw CanteraError("CVodesIntegrator::initialize",
-                                "CVodeInit failed.");
-            }
-        }
+        
+
     } 
     else if (m_type == BAND + NOJAC) {
         sd_size_t N = static_cast<sd_size_t>(m_neq);

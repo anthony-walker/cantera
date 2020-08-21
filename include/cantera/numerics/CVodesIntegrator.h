@@ -34,7 +34,7 @@ public:
     virtual void setTolerances(double reltol, size_t n, double* abstol);
     virtual void setTolerances(double reltol, double abstol);
     virtual void setSensitivityTolerances(double reltol, double abstol);
-    virtual void setProblemType(int probtype);
+    virtual void setProblemType(int probtype,void* problem_data);
     virtual void initialize(double t0, FuncEval& func);
     virtual void reinitialize(double t0, FuncEval& func);
     virtual void integrate(double tout);
@@ -86,6 +86,7 @@ private:
     void* m_cvode_mem;
     void* m_linsol; //!< Sundials linear solver object
     void* m_linsol_matrix; //!< matrix used by Sundials
+    void* problem_data=NULL; //Data to be used in problem type
     FuncEval* m_func;
     double m_t0;
     double m_time; //!< The current integrator time
