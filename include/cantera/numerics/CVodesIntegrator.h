@@ -11,8 +11,6 @@
 #include "cantera/numerics/Integrator.h"
 #include "cantera/base/ctexceptions.h"
 
-#include "sundials/sundials_nvector.h"
-
 namespace Cantera
 {
 
@@ -22,6 +20,9 @@ namespace Cantera
  * @see FuncEval.h. Classes that use CVodesIntegrator:
  * ImplicitChem, ImplicitSurfChem, Reactor
  */
+
+
+
 class CVodesIntegrator : public Integrator
 {
 public:
@@ -34,7 +35,7 @@ public:
     virtual void setTolerances(double reltol, size_t n, double* abstol);
     virtual void setTolerances(double reltol, double abstol);
     virtual void setSensitivityTolerances(double reltol, double abstol);
-    virtual void setProblemType(int probtype,void* problem_data);
+    virtual void setProblemType(int probtype);
     virtual void initialize(double t0, FuncEval& func);
     virtual void reinitialize(double t0, FuncEval& func);
     virtual void integrate(double tout);
@@ -73,6 +74,7 @@ public:
 
     //! Error message information provide by CVodes
     std::string m_error_message;
+    void setPreconditioner(preconditionerSetup setup,preconditionerSolve solve);
 
 protected:
     //! Applies user-specified options to the underlying CVODES solver. Called
@@ -86,7 +88,8 @@ private:
     void* m_cvode_mem;
     void* m_linsol; //!< Sundials linear solver object
     void* m_linsol_matrix; //!< matrix used by Sundials
-    void* problem_data=NULL; //Data to be used in problem type
+    preconditionerSetup m_prec_setup; //preconditioner setup function -- for sundials
+    preconditionerSolve m_prec_solve; //preconditioner setup function -- for sundials
     FuncEval* m_func;
     double m_t0;
     double m_time; //!< The current integrator time

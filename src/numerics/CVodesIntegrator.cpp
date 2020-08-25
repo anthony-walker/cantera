@@ -2,10 +2,8 @@
 
 // This file is part of Cantera. See License.txt in the top-level directory or
 // at https://cantera.org/license.txt for license and copyright information.
-
 #include "cantera/numerics/CVodesIntegrator.h"
 #include "cantera/base/stringUtils.h"
-
 //Includes for adaptive preconditioner
 #include "cantera/numerics/AdaptiveSparsePreconditioner.h"
 #include "cantera/numerics/SparseMatrix.h"
@@ -178,10 +176,9 @@ void CVodesIntegrator::setSensitivityTolerances(double reltol, double abstol)
     m_abstolsens = abstol;
 }
 
-void CVodesIntegrator::setProblemType(int probtype,void* problem_data/**=NULL**/)
+void CVodesIntegrator::setProblemType(int probtype)
 {
     m_type = probtype;
-    this->problem_data=problem_data;
 }
 
 void CVodesIntegrator::setMethod(MethodType t)
@@ -409,18 +406,14 @@ void CVodesIntegrator::applyOptions()
     } 
     else if (m_type == GMRES+PRECONDITION) //Added for adaptive preconditioner
     {   
-        
-        SparseMatrix<SundialsSparseMatrix>sparseMat();
-
-        //Setting preconditioner for CVODE
-        CVodeSetUserData(m_cvode_mem,NULL); //Use this function to provide user data to the Jacobian
-        CVodeSetPreconditioner(m_cvode_mem,adaptiveMatLinSolSetup,NULL);
-
-
-        m_linsol = SUNSPGMR(m_y, PREC_NONE, 0); //Change me
-        CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
-        
-
+        int flag;// flag for debugging
+        //Set linear solver - this must be done before preconditioner is set preconditioner
+        m_linsol =  SUNLinSol_SPGMR(m_y, PREC_LEFT, 0); //Change me
+        flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
+        // printf("%d\n",flag);
+        //Set preconditioner
+        flag = CVodeSetPreconditioner(m_cvode_mem,this->m_prec_setup,this->m_prec_solve);
+        // printf("%d\n",flag);
     } 
     else if (m_type == BAND + NOJAC) {
         sd_size_t N = static_cast<sd_size_t>(m_neq);
@@ -593,6 +586,12 @@ string CVodesIntegrator::getErrorInfo(int N)
                 get<2>(weightedErrors[i]), get<1>(weightedErrors[i]));
     }
     return to_string(s);
+}
+
+void CVodesIntegrator::setPreconditioner(preconditionerSetup setup,preconditionerSolve solve)
+{
+    this->m_prec_setup=setup; //preconditioner setup function -- for sundials
+    this->m_prec_solve=solve; //preconditioner setup function -- for sundials
 }
 
 }

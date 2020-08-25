@@ -258,6 +258,10 @@ public:
     //! Retrieve absolute step size limits during advance
     bool getAdvanceLimits(double* limits);
 
+    //! Use this function to add preconditioner to FuncEval in user_data for cvode
+    void setNetworkPreconditioner(void* precon, preconditionerSetup setup, preconditionerSolve solve);
+    void* getNetworkPreconditioner(); //Returns the set preconditioner
+
 protected:
 
     //! Estimate a future state based on current derivatives.
@@ -298,6 +302,7 @@ protected:
     vector_fp m_ydot;
     vector_fp m_yest;
     vector_fp m_advancelimits;
+    void* m_preconditioner=NULL; //preconditioner matrix -- for sundials
 };
 }
 

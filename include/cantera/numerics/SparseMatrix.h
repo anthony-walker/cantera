@@ -3,10 +3,10 @@ Programmer: Anthony Walker
 
 This is the SparseMatrix class which serves as a wrapper for Sundials and eventually Eigen Sparse Matrices.
 */
-#ifndef SPARSEMATRIX_H
-#define SPARSEMATRIX_H
+#ifndef CANTERA_SPARSE_MATRIX_H
+#define CANTERA_SPARSE_MATRIX_H
 //Cantera imports
-
+#include "cantera/zeroD/ReactorNet.h"
 //Sundials imports
 #include "sunmatrix/sunmatrix_sparse.h"
 //Eigen Imports
@@ -21,25 +21,37 @@ typedef SUNMatrix SundialsSparseMatrix;
 
 namespace Cantera
 {
+
+
 template<class MATTYPE> class SparseMatrix
 {
     private:
         MATTYPE *matrix; //Matrix stored by sparse matrix
         double threshold=10e-8; //default threshold value
-        int nrows;
-        int ncols;
+        int nrows; //number of rows
+        int ncols; //number of columns
+        ReactorNet* network; //Reactor network pointer for access to network data
+        void* cvode_mem; //Cvode memory pointer for access to time step data
     public:
         SparseMatrix(); //default constructor
+        ~SparseMatrix();      // destructor 
         SparseMatrix(int nrows, int ncols); //overloaded
         SparseMatrix(int nrows, int ncols, int maxNonZero); //overloaded
         SparseMatrix(MATTYPE *sparseMatrix); //overloaded
         SparseMatrix(SparseMatrix *OtherSparseMat); //copy constructor
+        SparseMatrix(ReactorNet *network);
+        //Getter declaration
         double getElement(int row, int col); //get element
         MATTYPE getMatrix();
         double getThreshold();
+        ReactorNet* getNetwork();
+        void* getCvodeMemoryPtr();
+        //Setter declaration
         void setElement(int row, int col, double element);//set element
         void setMatrix(MATTYPE *sparseMatrix);
         void setThreshold(double threshold);
+        void setNetwork(ReactorNet* network);
+        void setCvodeMemoryPtr(void* cv_mem_ptr);
     };
 
 /*
@@ -48,6 +60,12 @@ template<class MATTYPE> class SparseMatrix
 
 //Default Constructor
 template<class MATTYPE> SparseMatrix<MATTYPE>::SparseMatrix()
+{
+    //Do nothing
+}
+
+//Default Destructor
+template<class MATTYPE> SparseMatrix<MATTYPE>::~SparseMatrix()
 {
     //Do nothing
 }
@@ -70,6 +88,18 @@ template<class MATTYPE> void SparseMatrix<MATTYPE>::setMatrix(MATTYPE *sparseMat
     this->matrix = sparseMatrix;
 }
 
+//Network setter
+template<class MATTYPE> void SparseMatrix<MATTYPE>::setNetwork(ReactorNet* network)
+{
+    this->network = network;
+}
+
+//Cvode memory pointer setter
+template<class MATTYPE> void SparseMatrix<MATTYPE>::setCvodeMemoryPtr(void* cv_mem_ptr)
+{
+    this->cvode_mem = cv_mem_ptr;
+}
+
 //Threshold getter
 template<class MATTYPE> double SparseMatrix<MATTYPE>::getThreshold()
 {
@@ -82,82 +112,18 @@ template<class MATTYPE> MATTYPE SparseMatrix<MATTYPE>::getMatrix()
     return this->matrix;
 }
 
-/*
-    SUNDIALS SPECIALIZED FUNCTIONS 
-*/
-//Overloaded Constructor
-template<> SparseMatrix<SundialsSparseMatrix>::SparseMatrix(int nrows, int ncols, int maxNonZero)
-{   
-    SundialsSparseMatrix temporaryMatrix = SUNSparseMatrix(nrows,ncols,maxNonZero,CSC_MAT);
-    this->matrix = &temporaryMatrix;
-    this->nrows = nrows;
-    this->ncols = ncols;
-}
-
-
-//Specialized SundialsSparseMatrix SETTER
-template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element)
-{   
-    int a = 1;
-    std::cout << typeid(a).name() << '\n';
-}
-
-//Specialized SundialsSparseMatrix GETTER
-template<> double SparseMatrix<SundialsSparseMatrix>::getElement(int row, int col)
+//Network getter
+template<class MATTYPE> ReactorNet* SparseMatrix<MATTYPE>::getNetwork()
 {
-    //IMPLEMENT ME
-    return 1.0;
+    return this->network;
 }
 
-/*
-    EIGEN SPECIALIZED FUNCTIONS 
-*/
-//Overloaded Constructor
-template<> SparseMatrix<EigenSparseMatrix>::SparseMatrix(int nrows, int ncols)
-{   
-    EigenSparseMatrix temporaryMatrix = EigenSparseMatrix(nrows,ncols);
-    this->matrix = &temporaryMatrix;
-    this->nrows = nrows;
-    this->ncols = ncols;
-}
-
-//Specialized EigenSparseMatrix SETTER
-template<> void SparseMatrix<EigenSparseMatrix>::setElement(int row, int col, double element)
-{   
-    if (element > this->threshold)
-    {
-        this->matrix->insert(row,col) = element;
-    }
-}
-
-//Specialized EigenSparseMatrix GETTER
-template<> double SparseMatrix<EigenSparseMatrix>::getElement(int row, int col)
+//Cvode memory pointer getter
+template<class MATTYPE> void* SparseMatrix<MATTYPE>::getCvodeMemoryPtr()
 {
-    int *innerIndexList = this->matrix->innerIndexPtr();
-    int *outerIndexList = this->matrix->outerIndexPtr();
-    int innerLen = sizeof(&innerIndexList)/sizeof(innerIndexList[0]);
-    int outerLen = sizeof(&outerIndexList)/sizeof(outerIndexList[0]);
-    for (int i = 0; i < innerLen; i++)
-    {
-        
-        // std::cout << innerIndexList[i] << std::endl;
-        // if (innerIndexList[i] == row)
-        // {
-        //     for (int j = 0; j < outerLen; j++)
-        //     {
-        //         if (outerIndexList[j] == col)
-        //         {
-                    
-        //         }
-        //     }
-            
-        // }
-    }
-    
-    return 1.0;
+    return this->cvode_mem;
 }
 
-
-}
+} //Namespace end bracket
 
 #endif

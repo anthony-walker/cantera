@@ -2,7 +2,6 @@
 
 // This file is part of Cantera. See License.txt in the top-level directory or
 // at https://cantera.org/license.txt for license and copyright information.
-
 #include "cantera/zeroD/ReactorNet.h"
 #include "cantera/zeroD/FlowDevice.h"
 #include "cantera/zeroD/Wall.h"
@@ -44,14 +43,8 @@ void ReactorNet::setIntegratorType(int integratorType)
         const int PRECONDITION = 64;
     default: DENSE+NOJAC
     */
-   if (integratorType==GMRES+PRECONDITION)
-   {
-       this->m_integ->setProblemType(integratorType,this); //Use integrator member function to set problem time
-   }
-   else
-   {
-       this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem time
-   }
+  
+    this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem type
 }
 
 
@@ -388,6 +381,18 @@ size_t ReactorNet::registerSensitivityParameter(
     m_sens_params.push_back(value);
     m_paramScales.push_back(scale);
     return m_sens_params.size() - 1;
+}
+
+// This function wraps set preconditioner for CvodesIntegrator
+void ReactorNet::setNetworkPreconditioner(void* precon,preconditionerSetup setup, preconditionerSolve solve)
+{
+    this->m_preconditioner=precon;
+    this->m_integ->setPreconditioner(setup,solve);
+}
+
+void* ReactorNet::getNetworkPreconditioner()
+{
+    return this->m_preconditioner;
 }
 
 }
