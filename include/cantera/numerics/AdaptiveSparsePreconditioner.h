@@ -28,9 +28,9 @@ extern "C"
     CVodeSetUserData.
 
      **/
-    static int adaptiveMatLinSolSetup(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data);
+    int adaptiveMatLinSolSetup(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data);
 
-    static int adaptiveMatLinSolSolve(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
+    int adaptiveMatLinSolSolve(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
 }
 
 

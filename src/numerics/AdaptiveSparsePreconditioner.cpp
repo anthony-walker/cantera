@@ -13,7 +13,7 @@ extern "C"
     CVodeSetUserData.
 
      **/
-    static int adaptiveMatLinSolSetup(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data)
+    int adaptiveMatLinSolSetup(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data)
     {
         /*
             This is a function implemented to setup the preconditioner during integration.
@@ -31,12 +31,12 @@ extern "C"
       else
       {
         printf("%s","Jacobian needs recomputed.\n");
-        AdaptivelyPrecondition<SundialsSparseMatrix>(preconditioner,network);
+        // AdaptivelyPrecondition<SundialsSparseMatrix>(preconditioner,network);
         return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
       }
     }
 
-    static int adaptiveMatLinSolSolve(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data) 
+    int adaptiveMatLinSolSolve(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data) 
     {
         /*
             This is a function implemented to solve with preconditioner during integration.
