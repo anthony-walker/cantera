@@ -34,19 +34,8 @@ extern "C"
 }
 
 
-template<class MATTYPE> void setupMatrixFromNetwork(SparseMatrix<MATTYPE> *preconditioner)
-{
-  /*
-    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
-  */
- 
- 
 
-
-}
-
-
-template<class MATTYPE> void AdaptivelyPrecondition(SparseMatrix<MATTYPE> *preconditioner)
+template<class MATTYPE> void AdaptivelyPrecondition(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.

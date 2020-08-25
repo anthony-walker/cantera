@@ -30,7 +30,6 @@ template<class MATTYPE> class SparseMatrix
         double threshold=10e-8; //default threshold value
         int nrows; //number of rows
         int ncols; //number of columns
-        ReactorNet* network; //Reactor network pointer for access to network data
         void* cvode_mem; //Cvode memory pointer for access to time step data
     public:
         SparseMatrix(); //default constructor
@@ -39,18 +38,15 @@ template<class MATTYPE> class SparseMatrix
         SparseMatrix(int nrows, int ncols, int maxNonZero); //overloaded
         SparseMatrix(MATTYPE *sparseMatrix); //overloaded
         SparseMatrix(SparseMatrix *OtherSparseMat); //copy constructor
-        SparseMatrix(ReactorNet *network);
         //Getter declaration
         double getElement(int row, int col); //get element
         MATTYPE getMatrix();
         double getThreshold();
-        ReactorNet* getNetwork();
         void* getCvodeMemoryPtr();
         //Setter declaration
         void setElement(int row, int col, double element);//set element
         void setMatrix(MATTYPE *sparseMatrix);
         void setThreshold(double threshold);
-        void setNetwork(ReactorNet* network);
         void setCvodeMemoryPtr(void* cv_mem_ptr);
     };
 
@@ -88,12 +84,6 @@ template<class MATTYPE> void SparseMatrix<MATTYPE>::setMatrix(MATTYPE *sparseMat
     this->matrix = sparseMatrix;
 }
 
-//Network setter
-template<class MATTYPE> void SparseMatrix<MATTYPE>::setNetwork(ReactorNet* network)
-{
-    this->network = network;
-}
-
 //Cvode memory pointer setter
 template<class MATTYPE> void SparseMatrix<MATTYPE>::setCvodeMemoryPtr(void* cv_mem_ptr)
 {
@@ -110,12 +100,6 @@ template<class MATTYPE> double SparseMatrix<MATTYPE>::getThreshold()
 template<class MATTYPE> MATTYPE SparseMatrix<MATTYPE>::getMatrix()
 {
     return this->matrix;
-}
-
-//Network getter
-template<class MATTYPE> ReactorNet* SparseMatrix<MATTYPE>::getNetwork()
-{
-    return this->network;
 }
 
 //Cvode memory pointer getter

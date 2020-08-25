@@ -15,12 +15,6 @@ template<> SparseMatrix<SundialsSparseMatrix>::SparseMatrix(int nrows, int ncols
     this->ncols = ncols;
 }
 
-template<> SparseMatrix<SundialsSparseMatrix>::SparseMatrix(ReactorNet* network)
-{   
-    // SundialsSparseMatrix temporaryMatrix = SUNSparseMatrix(nrows,ncols,maxNonZero,CSC_MAT);
-    
-}
-
 //Specialized SundialsSparseMatrix SETTER
 template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element)
 {   

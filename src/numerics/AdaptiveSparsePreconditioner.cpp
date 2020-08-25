@@ -31,7 +31,7 @@ extern "C"
       else
       {
         printf("%s","Jacobian needs recomputed.\n");
-        AdaptivelyPrecondition<SundialsSparseMatrix>(preconditioner);
+        AdaptivelyPrecondition<SundialsSparseMatrix>(preconditioner,network);
         return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
       }
     }
