@@ -262,6 +262,11 @@ public:
     void setNetworkPreconditioner(void* precon, preconditionerSetup setup, preconditionerSolve solve);
     void* getNetworkPreconditioner(); //Returns the set preconditioner
 
+    
+    std::vector<Reactor*>* getReactorsVector();
+
+
+
 protected:
 
     //! Estimate a future state based on current derivatives.

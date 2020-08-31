@@ -395,4 +395,9 @@ void* ReactorNet::getNetworkPreconditioner()
     return this->m_preconditioner;
 }
 
+std::vector<Reactor*>* ReactorNet::getReactorsVector()
+{
+    return &(this->m_reactors);
+}
+
 }

@@ -37,6 +37,11 @@ void Reactor::setKineticsMgr(Kinetics& kin)
     }
 }
 
+Kinetics* Reactor::getKineticsMgr()
+{
+    return this->m_kin;
+}
+
 void Reactor::getState(double* y)
 {
     if (m_thermo == 0) {

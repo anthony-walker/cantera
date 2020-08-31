@@ -1,5 +1,7 @@
 #include "cantera/numerics/AdaptiveSparsePreconditioner.h"
+
 using namespace Cantera;
+
 extern "C" 
 {
     /**
@@ -13,7 +15,7 @@ extern "C"
     CVodeSetUserData.
 
      **/
-    int adaptiveMatLinSolSetup(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data)
+    int adaptiveMatLinSolSetupSundials(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data)
     {
         /*
             This is a function implemented to setup the preconditioner during integration.
@@ -31,12 +33,46 @@ extern "C"
       else
       {
         printf("%s","Jacobian needs recomputed.\n");
-        // AdaptivelyPrecondition<SundialsSparseMatrix>(preconditioner,network);
+        AdaptivelyPrecondition<SundialsSparseMatrix>(preconditioner,network);
         return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
       }
     }
 
-    int adaptiveMatLinSolSolve(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data) 
+    int adaptiveMatLinSolSolveSundials(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data) 
+    {
+        /*
+            This is a function implemented to solve with preconditioner during integration.
+        */
+       
+
+
+       return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
+    }
+
+  int adaptiveMatLinSolSetupEigen(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data)
+    {
+        /*
+            This is a function implemented to setup the preconditioner during integration.
+        */
+       ReactorNet *network = (ReactorNet*)user_data;
+       SparseMatrix<EigenSparseMatrix> *preconditioner = (SparseMatrix<EigenSparseMatrix> *)network->getNetworkPreconditioner();
+
+      if (jok)
+      {
+        /** jok = SUNTRUE means that the Jacobian data, if saved from the previous call to this function, can be reused
+         * **/
+        printf("%s","Jacobian does not need recomputed.\n");
+        return 0;
+      }
+      else
+      {
+        printf("%s","Jacobian needs recomputed.\n");
+        AdaptivelyPrecondition<EigenSparseMatrix>(preconditioner,network);
+        return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
+      }
+    }
+
+    int adaptiveMatLinSolSolveEigen(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data) 
     {
         /*
             This is a function implemented to solve with preconditioner during integration.
@@ -47,3 +83,7 @@ extern "C"
        return 0; //Success, return negative value for unrecoverable error or positive for recoverable error
     }
 }
+
+
+
+

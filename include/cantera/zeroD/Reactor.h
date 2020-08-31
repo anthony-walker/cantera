@@ -70,6 +70,8 @@ public:
     }
 
     virtual void setKineticsMgr(Kinetics& kin);
+    
+    virtual Kinetics* getKineticsMgr();
 
     virtual void setChemistry(bool cflag = true) {
         m_chem = cflag;

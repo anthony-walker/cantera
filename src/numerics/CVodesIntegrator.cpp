@@ -282,6 +282,13 @@ void CVodesIntegrator::initialize(double t0, FuncEval& func)
 
     func.getState(NV_DATA_S(m_y));
 
+    // for (size_t i = 0; i < m_neq; i++)
+    // {
+    //    std::cout<< NV_DATA_S(m_y)[i] << std::endl;
+    // }
+    
+
+
     if (m_cvode_mem) {
         CVodeFree(&m_cvode_mem);
     }

@@ -48,6 +48,8 @@ template<class MATTYPE> class SparseMatrix
         void setMatrix(MATTYPE *sparseMatrix);
         void setThreshold(double threshold);
         void setCvodeMemoryPtr(void* cv_mem_ptr);
+        //Threshold set
+        void setElement(int row,int col, double element, bool checkThreshold);
     };
 
 /*

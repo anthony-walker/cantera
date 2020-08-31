@@ -18,8 +18,15 @@ template<> SparseMatrix<SundialsSparseMatrix>::SparseMatrix(int nrows, int ncols
 //Specialized SundialsSparseMatrix SETTER
 template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element)
 {   
-    int a = 1;
-    std::cout << typeid(a).name() << '\n';
+    printf("%s","Setting by threshold\n");
+}
+
+template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element,bool checkThreshold)
+{   
+    if (element > this->threshold)
+    {
+        printf("%s","Setting by threshold\n");
+    }
 }
 
 //Specialized SundialsSparseMatrix GETTER
@@ -44,6 +51,12 @@ template<> SparseMatrix<EigenSparseMatrix>::SparseMatrix(int nrows, int ncols)
 //Specialized EigenSparseMatrix SETTER
 template<> void SparseMatrix<EigenSparseMatrix>::setElement(int row, int col, double element)
 {   
+    this->matrix->insert(row,col) = element;
+}
+
+//Specialized EigenSparseMatrix SETTER
+template<> void SparseMatrix<EigenSparseMatrix>::setElement(int row, int col, double element,bool checkThreshold)
+{   
     if (element > this->threshold)
     {
         this->matrix->insert(row,col) = element;
@@ -53,26 +66,26 @@ template<> void SparseMatrix<EigenSparseMatrix>::setElement(int row, int col, do
 //Specialized EigenSparseMatrix GETTER
 template<> double SparseMatrix<EigenSparseMatrix>::getElement(int row, int col)
 {
-    int *innerIndexList = this->matrix->innerIndexPtr();
-    int *outerIndexList = this->matrix->outerIndexPtr();
-    int innerLen = sizeof(&innerIndexList)/sizeof(innerIndexList[0]);
-    int outerLen = sizeof(&outerIndexList)/sizeof(outerIndexList[0]);
-    for (int i = 0; i < innerLen; i++)
-    {
+    // int *innerIndexList = this->matrix->innerIndexPtr();
+    // int *outerIndexList = this->matrix->outerIndexPtr();
+    // int innerLen = sizeof(&innerIndexList)/sizeof(innerIndexList[0]);
+    // int outerLen = sizeof(&outerIndexList)/sizeof(outerIndexList[0]);
+    // for (int i = 0; i < innerLen; i++)
+    // {
         
-        // std::cout << innerIndexList[i] << std::endl;
-        // if (innerIndexList[i] == row)
-        // {
-        //     for (int j = 0; j < outerLen; j++)
-        //     {
-        //         if (outerIndexList[j] == col)
-        //         {
+    //     // std::cout << innerIndexList[i] << std::endl;
+    //     // if (innerIndexList[i] == row)
+    //     // {
+    //     //     for (int j = 0; j < outerLen; j++)
+    //     //     {
+    //     //         if (outerIndexList[j] == col)
+    //     //         {
                     
-        //         }
-        //     }
+    //     //         }
+    //     //     }
             
-        // }
-    }
+    //     // }
+    // }
     
     return 1.0;
 }
