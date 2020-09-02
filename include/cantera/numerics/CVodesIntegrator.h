@@ -10,6 +10,7 @@
 
 #include "cantera/numerics/Integrator.h"
 #include "cantera/base/ctexceptions.h"
+#include "sundials/sundials_nvector.h"
 
 namespace Cantera
 {

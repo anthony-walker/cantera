@@ -259,36 +259,6 @@ void ReactorNet::eval(doublereal t, doublereal* y,
     checkFinite("ydot", ydot, m_nv);
 }
 
-void ReactorNet::eval(doublereal t, doublereal* y,
-                      doublereal* ydot, doublereal* p)
-{
-    updateState(y);
-    for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->evalEqs(t, y + m_start[n], ydot + m_start[n], p);
-    }
-    checkFinite("ydot", ydot, m_nv);
-}
-
-void ReactorNet::jacSetup(doublereal t, doublereal* y,
-                      doublereal* ydot, doublereal* params)
-{
-    updateState(y);
-    for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->reactorJacSetup(t, y + m_start[n], ydot + m_start[n], p);
-    }
-    // checkFinite("ydot", ydot, m_nv);
-}
-
-void ReactorNet::jacSolve(doublereal t, doublereal* y,
-                      doublereal* ydot, doublereal* params)
-{
-    updateState(y);
-    for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->reactorJacSolve(t, y + m_start[n], ydot + m_start[n], p);
-    }
-    // checkFinite("ydot", ydot, m_nv);
-}
-
 double ReactorNet::sensitivity(size_t k, size_t p)
 {
     if (!m_init) {
@@ -411,4 +381,97 @@ size_t ReactorNet::registerSensitivityParameter(
     m_sens_params.push_back(value);
     m_paramScales.push_back(scale);
     return m_sens_params.size() - 1;
+}
+
+// Functions added for preconditioning
+
+
+void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
+                      doublereal* ydot, doublereal* params)
+{
+    updateState(y);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        m_reactors[n]->reactorJacSetup(t, y + m_start[n], ydot + m_start[n], params);
+    }
+    // checkFinite("ydot", ydot, m_nv);
+}
+
+void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
+                      doublereal* ydot, doublereal* params)
+{
+    updateState(y);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        m_reactors[n]->reactorJacSolve(t, y + m_start[n], ydot + m_start[n], params);
+    }
+    // checkFinite("ydot", ydot, m_nv);
+}
+
+int ReactorNet::preconditioner_setup_nothrow(double t, double* y, double* ydot)
+{
+    try {
+        preconditionerSetup(t, y, ydot, m_sens_params.data());
+    } catch (CanteraError& err) {
+        if (suppressErrors()) {
+            m_errors.push_back(err.what());
+        } else {
+            writelog(err.what());
+        }
+        return 1; // possibly recoverable error
+    } catch (std::exception& err) {
+        if (suppressErrors()) {
+            m_errors.push_back(err.what());
+        } else {
+            writelog("ReactorNet::preconditioner_setup_nothrow: unhandled exception:\n");
+            writelog(err.what());
+            writelogendl();
+        }
+        return -1; // unrecoverable error
+    } catch (...) {
+        std::string msg = "ReactorNet::preconditioner_setup_nothrow: unhandled exception"
+            " of unknown type\n";
+        if (suppressErrors()) {
+            m_errors.push_back(msg);
+        } else {
+            writelog(msg);
+        }
+        return -1; // unrecoverable error
+    }
+    return 0; // successful evaluation
+}
+
+
+int ReactorNet::preconditioner_solve_nothrow(double t, double* y, double* ydot)
+{
+    try {
+        preconditionerSolve(t, y, ydot, m_sens_params.data());
+    } catch (CanteraError& err) {
+        if (suppressErrors()) {
+            m_errors.push_back(err.what());
+        } else {
+            writelog(err.what());
+        }
+        return 1; // possibly recoverable error
+    } catch (std::exception& err) {
+        if (suppressErrors()) {
+            m_errors.push_back(err.what());
+        } else {
+            writelog("ReactorNet::preconditioner_solve_nothrow: unhandled exception:\n");
+            writelog(err.what());
+            writelogendl();
+        }
+        return -1; // unrecoverable error
+    } catch (...) {
+        std::string msg = "ReactorNet::preconditioner_solve_nothrow: unhandled exception"
+            " of unknown type\n";
+        if (suppressErrors()) {
+            m_errors.push_back(msg);
+        } else {
+            writelog(msg);
+        }
+        return -1; // unrecoverable error
+    }
+    return 0; // successful evaluation
+}
+
+
 }

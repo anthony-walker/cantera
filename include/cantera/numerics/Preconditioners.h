@@ -22,34 +22,12 @@ typedef int sd_size_t;
 typedef long int sd_size_t;
 #endif
 //Other imports
-#include <queue>
 
 //Function Library for preconditioniong
 namespace Cantera //Making ASP apart of Cantera namespace
 {
-
-extern "C" 
-{
-    /**
-    If the user’s Jacobian-times-vector routine requires that any Jacobian-related data be preprocessed
-    or evaluated, then this needs to be done in a user-supplied function of type CVLsJacTimesSetupFn,
-    defined as follows:
-    t is the current value of the independent variable.
-    y is the current value of the dependent variable vector.
-    fy is the current value of the vector f(t, y).
-    user data is a pointer to user data, the same as the user data parameter passed to
-    CVodeSetUserData.
-
-     **/
-    int adaptiveMatLinSolSetupSundials(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data);
-
-    int adaptiveMatLinSolSolveSundials(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
-
-    int adaptiveMatLinSolSetupEigen(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data);
-
-    int adaptiveMatLinSolSolveEigen(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
-}
-
+  namespace AMP //AdaptiveMechanismPreconditioner
+  {
   //Non-template functions
   inline void derivativeFromComposition(std::map<std::string, double> comp,std::map<std::string,size_t> indexMap, double* omega, double* concentrations, double k_direction, double volume){ 
     //flattened index for derivatives
@@ -80,38 +58,12 @@ extern "C"
           omega[oidx] += k_direction*dRdn/volume; //Updating omega derivative as is necessary
         }
       }
-  }
-
-//Template declarations
-template<class MATTYPE> void AdaptivelyPrecondition(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
-{
-  /*
-    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
-  */
-
-  /**
-   * Derivatives occur in this order because dependent quantities are determined 
-   * during the process which other terms relay on.
-   * **/
-
-  std::vector<Reactor*>* reactors = network->getReactorsVector();
-  Reactor* currentReactor;
-  for (size_t i = 0; i < reactors->size(); i++)
-  { 
-    currentReactor=reactors->at(i);
-    for (size_t j = 0; j < currentReactor->neq(); j++)
-    {
-      std::cout << currentReactor->componentName(j) << std::endl;
-    }
-    
-    // SpeciesSpeciesDerivative(preconditioner,currentReactor,network->getGlobalReactorStart(i));
-    // SpeciesStateDerivative(preconditioner,network,network->getGlobalReactorStart(i));
-  }
-}
+    } 
+  
 
 // This function gets Species to Species derivatives for jacobian preconditioning;
-// specifically it determines the derivatives of the rate laws of all species with respect to other species.
-template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor,size_t rStart)
+// specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
+template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
 {
  //Getting kinetics object for access to reactions
   Kinetics* kinetics=reactor->getKineticsMgr();
@@ -153,8 +105,8 @@ template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *pre
     //Loop through reactants in current reaction
     reactants = currentReaction->reactants;
     products = currentReaction->products;
-    Cantera::derivativeFromComposition(reactants,indexMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume());
-    Cantera::derivativeFromComposition(products,indexMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume()); //Multiply by negative one to change direction
+    Cantera::AMP::derivativeFromComposition(reactants,indexMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume());
+    Cantera::AMP::derivativeFromComposition(products,indexMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume()); //Multiply by negative one to change direction
   }
 
   //Adding to preconditioner
@@ -164,7 +116,7 @@ template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *pre
     for (size_t j = 0; j < numberOfSpecies; j++)
     {
       idx = i+j*numberOfSpecies; //Getting flattened index
-      preconditioner->setElement(i+rStart,j+rStart,rateLawDerivatives[idx],true);//Add by threshold
+      preconditioner->setElement(i,j,rateLawDerivatives[idx],true);//Add by threshold
     }
   }
 
@@ -183,14 +135,14 @@ template<class MATTYPE> void SpeciesStateDerivative(SparseMatrix<MATTYPE> *preco
 
 }
 
-template<class MATTYPE> void SpeciesTemperatureDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
+template<class MATTYPE> void SpeciesTemperatureDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
   */ 
 }
 
-template<class MATTYPE> void TemperatureSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
+template<class MATTYPE> void TemperatureSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
@@ -199,32 +151,7 @@ template<class MATTYPE> void TemperatureSpeciesDerivative(SparseMatrix<MATTYPE> 
 
 }
 
-template<class MATTYPE> void TemperatureStateDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
-{
-  /*
-    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
-  */
-  
-
-}
-
-template<class MATTYPE> void TemperatureTemperatureDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
-{
-  /*
-    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
-  */
-}
-
-template<class MATTYPE> void StateSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
-{
-  /*
-    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
-  */
-
-
-}
-
-template<class MATTYPE> void StateStateDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
+template<class MATTYPE> void TemperatureStateDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
@@ -233,7 +160,32 @@ template<class MATTYPE> void StateStateDerivative(SparseMatrix<MATTYPE> *precond
 
 }
 
-template<class MATTYPE> void StateTemperatureDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
+template<class MATTYPE> void TemperatureTemperatureDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
+{
+  /*
+    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
+  */
+}
+
+template<class MATTYPE> void StateSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
+{
+  /*
+    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
+  */
+
+
+}
+
+template<class MATTYPE> void StateStateDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
+{
+  /*
+    This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
+  */
+  
+
+}
+
+template<class MATTYPE> void StateTemperatureDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
@@ -254,6 +206,10 @@ template<class MATTYPE> void StateTemperatureDerivative(SparseMatrix<MATTYPE> *p
   // StateStateDerivative(preconditioner,network);
   // StateTemperatureDerivative(preconditioner,network);
 
+  }
+  /*
+    End of AdaptiveMechanismPreconditioner namespace
+  */
 }
 
 #endif

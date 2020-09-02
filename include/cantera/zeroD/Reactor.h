@@ -8,6 +8,7 @@
 
 #include "ReactorBase.h"
 #include "cantera/kinetics/Kinetics.h"
+#include "cantera/numerics/SparseMatrix.h"
 
 namespace Cantera
 {
@@ -215,6 +216,9 @@ protected:
 
     //! Pointer to the homogeneous Kinetics object that handles the reactions
     Kinetics* m_kin;
+    
+    //! Pointer to preconditioner
+    SparseMatrix<SundialsSparseMatrix> m_preconditioner;
 
     doublereal m_vdot; //!< net rate of volume change from moving walls [m^3/s]
     doublereal m_Q; //!< net heat transfer through walls [W]

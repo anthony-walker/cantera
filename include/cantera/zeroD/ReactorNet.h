@@ -182,12 +182,6 @@ public:
     virtual void eval(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* p);
 
-    virtual void jacSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params);
-
-    virtual void jacSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params);
-
     virtual void getState(doublereal* y);
 
     //! Return k-th derivative at the current time
@@ -263,6 +257,30 @@ public:
 
     //! Retrieve absolute step size limits during advance
     bool getAdvanceLimits(double* limits);
+
+    //Functions added for preconditioning
+    /**
+     * Evaluate the setup processes for the Jacobian preconditioner. Called by the integrator.
+     * @param[in] t time.
+     * @param[in] y solution vector, length neq()
+     * @param[out] ydot rate of change of solution vector, length neq()
+     * @param[in] p sensitivity parameter vector, length nparams()
+     */
+    virtual void preconditionerSetup(doublereal t, doublereal* y,
+                        doublereal* ydot, doublereal* params);
+    /**
+     * Evaluate the system using a Jacobian preconditioner. Called by the integrator.
+     * @param[in] t time.
+     * @param[in] y solution vector, length neq()
+     * @param[out] ydot rate of change of solution vector, length neq()
+     * @param[in] p sensitivity parameter vector, length nparams()
+     */
+    virtual void preconditionerSolve(doublereal t, doublereal* y,
+                        doublereal* ydot, doublereal* params);
+        
+    int preconditioner_setup_nothrow(double t, double* y, double* ydot);
+
+    int preconditioner_solve_nothrow(double t, double* y, double* ydot);
 
 protected:
 

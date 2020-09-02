@@ -4,6 +4,7 @@
 // at https://cantera.org/license.txt for license and copyright information.
 #include "cantera/numerics/CVodesIntegrator.h"
 #include "cantera/base/stringUtils.h"
+#include "cantera/zeroD/ReactorNet.h"
 //System includes
 #include <iostream>
 using namespace std;
@@ -74,16 +75,16 @@ extern "C" {
         integrator->m_error_message += "\n";
     }
 
-    static int cvodes_jac_setup(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
+    static int cvodes_jac_setup(realtype t, N_Vector y, N_Vector ydot, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
     {
-        FuncEval* f = (FuncEval*) f_data;
-        return f->jac_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
+        ReactorNet* f = (ReactorNet*) f_data;
+        return f->preconditioner_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
     }
 
-    static int cvodes_jac_solve(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
+    static int cvodes_jac_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *f_data)
     {
-        FuncEval* f = (FuncEval*) f_data;
-        return f->jac_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
+        ReactorNet* f = (ReactorNet*) f_data;
+        return f->preconditioner_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
     }
 
 }
@@ -426,10 +427,8 @@ void CVodesIntegrator::applyOptions()
         //Set linear solver - this must be done before preconditioner is set preconditioner
         m_linsol =  SUNLinSol_SPGMR(m_y, PREC_LEFT, 0); //Change me
         flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
-        // printf("%d\n",flag);
         //Set preconditioner
         flag = CVodeSetPreconditioner(m_cvode_mem,cvodes_jac_setup,cvodes_jac_solve);
-        // printf("%d\n",flag);
     } 
     else if (m_type == BAND + NOJAC) {
         sd_size_t N = static_cast<sd_size_t>(m_neq);

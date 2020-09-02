@@ -1,5 +1,10 @@
+/*
+Programmer: Anthony Walker
+
+This is the SparseMatrix class which serves as a wrapper for Sundials and eventually Eigen Sparse Matrices.
+*/
 #include "cantera/numerics/SparseMatrix.h"
-#include "cantera/numerics/AdaptiveSparsePreconditioner.h"
+
 using namespace Cantera; //Need this because SparseMatrix.h is defined in the Cantera namespace
 /*
     SUNDIALS SPECIALIZED FUNCTIONS 

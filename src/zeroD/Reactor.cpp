@@ -9,6 +9,7 @@
 #include "cantera/thermo/SurfPhase.h"
 #include "cantera/zeroD/ReactorNet.h"
 #include "cantera/zeroD/ReactorSurface.h"
+#include "cantera/numerics/Preconditioners.h"
 
 #include <boost/math/tools/roots.hpp>
 
@@ -265,10 +266,17 @@ void Reactor::evalEqs(doublereal time, doublereal* y,
 }
 
 void Reactor::reactorJacSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params);
+                         doublereal* ydot, doublereal* params)
+{   
+    printf("%s\n","Made it to setup");
+    // AMP::SpeciesSpeciesDerivative(this->m_preconditioner,this);
+}
 
 void Reactor::reactorJacSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params);
+                         doublereal* ydot, doublereal* params)
+{
+
+}
 
 
 void Reactor::evalWalls(double t)
