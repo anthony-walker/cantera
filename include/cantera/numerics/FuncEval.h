@@ -38,6 +38,29 @@ public:
      */
     virtual void eval(double t, double* y, double* ydot, double* p)=0;
 
+    /**
+     * Evaluate the setup processes for the Jacobian preconditioner. Called by the integrator.
+     * @param[in] t time.
+     * @param[in] y solution vector, length neq()
+     * @param[out] ydot rate of change of solution vector, length neq()
+     * @param[in] p sensitivity parameter vector, length nparams()
+     */
+    virtual void jacSetup(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params)=0;
+    /**
+     * Evaluate the system using a Jacobian preconditioner. Called by the integrator.
+     * @param[in] t time.
+     * @param[in] y solution vector, length neq()
+     * @param[out] ydot rate of change of solution vector, length neq()
+     * @param[in] p sensitivity parameter vector, length nparams()
+     */
+    virtual void jacSolve(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params)=0;
+    
+    int jacSetup_nothrow(double t, double* y, double* ydot);
+
+    int jacSolve_nothrow(double t, double* y, double* ydot);
+
     //! Evaluate the right-hand side using return code to indicate status.
     /*!
      * Errors are indicated using the return value, rather than by throwing

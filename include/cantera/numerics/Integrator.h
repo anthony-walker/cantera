@@ -13,14 +13,9 @@
 #define CT_INTEGRATOR_H
 #include "FuncEval.h"
 #include "cantera/base/global.h"
-#include "sundials/sundials_nvector.h"
 
 namespace Cantera
 {
-//Type defs for passing preconditioner functions
-typedef int (* preconditionerSetup)(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *user_data);
-typedef int (* preconditionerSolve)(realtype t, N_Vector y, N_Vector fy, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *user_data);
-
 
 const int DIAG = 1;
 const int DENSE = 2;
@@ -229,12 +224,6 @@ public:
     virtual double sensitivity(size_t k, size_t p) {
         warn("sensitivity");
         return 0.0;
-    }
-
-    //Template function for preconditioner functions so they can be dynamically specified
-    virtual void setPreconditioner(preconditionerSetup setup,preconditionerSolve solve)
-    {
-        warn("preconditioner");
     }
 
 private:

@@ -259,6 +259,36 @@ void ReactorNet::eval(doublereal t, doublereal* y,
     checkFinite("ydot", ydot, m_nv);
 }
 
+void ReactorNet::eval(doublereal t, doublereal* y,
+                      doublereal* ydot, doublereal* p)
+{
+    updateState(y);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        m_reactors[n]->evalEqs(t, y + m_start[n], ydot + m_start[n], p);
+    }
+    checkFinite("ydot", ydot, m_nv);
+}
+
+void ReactorNet::jacSetup(doublereal t, doublereal* y,
+                      doublereal* ydot, doublereal* params)
+{
+    updateState(y);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        m_reactors[n]->reactorJacSetup(t, y + m_start[n], ydot + m_start[n], p);
+    }
+    // checkFinite("ydot", ydot, m_nv);
+}
+
+void ReactorNet::jacSolve(doublereal t, doublereal* y,
+                      doublereal* ydot, doublereal* params)
+{
+    updateState(y);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        m_reactors[n]->reactorJacSolve(t, y + m_start[n], ydot + m_start[n], p);
+    }
+    // checkFinite("ydot", ydot, m_nv);
+}
+
 double ReactorNet::sensitivity(size_t k, size_t p)
 {
     if (!m_init) {
@@ -381,23 +411,4 @@ size_t ReactorNet::registerSensitivityParameter(
     m_sens_params.push_back(value);
     m_paramScales.push_back(scale);
     return m_sens_params.size() - 1;
-}
-
-// This function wraps set preconditioner for CvodesIntegrator
-void ReactorNet::setNetworkPreconditioner(void* precon,preconditionerSetup setup, preconditionerSolve solve)
-{
-    this->m_preconditioner=precon;
-    this->m_integ->setPreconditioner(setup,solve);
-}
-
-void* ReactorNet::getNetworkPreconditioner()
-{
-    return this->m_preconditioner;
-}
-
-std::vector<Reactor*>* ReactorNet::getReactorsVector()
-{
-    return &(this->m_reactors);
-}
-
 }

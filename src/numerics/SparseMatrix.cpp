@@ -18,15 +18,21 @@ template<> SparseMatrix<SundialsSparseMatrix>::SparseMatrix(int nrows, int ncols
 //Specialized SundialsSparseMatrix SETTER
 template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element)
 {   
-    printf("%s","Setting by threshold\n");
+    
 }
 
 template<> void SparseMatrix<SundialsSparseMatrix>::setElement(int row, int col, double element,bool checkThreshold)
 {   
     if (element > this->threshold)
     {
-        printf("%s","Setting by threshold\n");
+        // printf("%s","Setting by threshold\n");
+
     }
+    // else
+    // {
+    //     printf("%s","Didn't meet threshold\n");
+    // }
+    
 }
 
 //Specialized SundialsSparseMatrix GETTER

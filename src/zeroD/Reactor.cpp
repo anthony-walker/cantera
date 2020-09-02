@@ -264,6 +264,13 @@ void Reactor::evalEqs(doublereal time, doublereal* y,
     resetSensitivity(params);
 }
 
+void Reactor::reactorJacSetup(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
+void Reactor::reactorJacSolve(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
+
 void Reactor::evalWalls(double t)
 {
     m_vdot = 0.0;

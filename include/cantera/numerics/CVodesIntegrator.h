@@ -74,7 +74,6 @@ public:
 
     //! Error message information provide by CVodes
     std::string m_error_message;
-    void setPreconditioner(preconditionerSetup setup,preconditionerSolve solve);
 
 protected:
     //! Applies user-specified options to the underlying CVODES solver. Called
@@ -88,8 +87,6 @@ private:
     void* m_cvode_mem;
     void* m_linsol; //!< Sundials linear solver object
     void* m_linsol_matrix; //!< matrix used by Sundials
-    preconditionerSetup m_prec_setup; //preconditioner setup function -- for sundials
-    preconditionerSolve m_prec_solve; //preconditioner setup function -- for sundials
     FuncEval* m_func;
     double m_t0;
     double m_time; //!< The current integrator time

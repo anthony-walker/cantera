@@ -4,10 +4,6 @@
 // at https://cantera.org/license.txt for license and copyright information.
 #include "cantera/numerics/CVodesIntegrator.h"
 #include "cantera/base/stringUtils.h"
-//Includes for adaptive preconditioner
-#include "cantera/numerics/AdaptiveSparsePreconditioner.h"
-#include "cantera/numerics/SparseMatrix.h"
-#include "sunmatrix/sunmatrix_sparse.h"
 //System includes
 #include <iostream>
 using namespace std;
@@ -77,6 +73,19 @@ extern "C" {
         integrator->m_error_message = msg;
         integrator->m_error_message += "\n";
     }
+
+    static int cvodes_jac_setup(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
+    {
+        FuncEval* f = (FuncEval*) f_data;
+        return f->jac_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
+    }
+
+    static int cvodes_jac_solve(realtype t, N_Vector y, N_Vector fy, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
+    {
+        FuncEval* f = (FuncEval*) f_data;
+        return f->jac_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
+    }
+
 }
 
 CVodesIntegrator::CVodesIntegrator() :
@@ -419,7 +428,7 @@ void CVodesIntegrator::applyOptions()
         flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
         // printf("%d\n",flag);
         //Set preconditioner
-        flag = CVodeSetPreconditioner(m_cvode_mem,this->m_prec_setup,this->m_prec_solve);
+        flag = CVodeSetPreconditioner(m_cvode_mem,cvodes_jac_setup,cvodes_jac_solve);
         // printf("%d\n",flag);
     } 
     else if (m_type == BAND + NOJAC) {
@@ -594,11 +603,4 @@ string CVodesIntegrator::getErrorInfo(int N)
     }
     return to_string(s);
 }
-
-void CVodesIntegrator::setPreconditioner(preconditionerSetup setup,preconditionerSolve solve)
-{
-    this->m_prec_setup=setup; //preconditioner setup function -- for sundials
-    this->m_prec_solve=solve; //preconditioner setup function -- for sundials
-}
-
 }

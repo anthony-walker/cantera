@@ -182,6 +182,12 @@ public:
     virtual void eval(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* p);
 
+    virtual void jacSetup(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
+    virtual void jacSolve(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
     virtual void getState(doublereal* y);
 
     //! Return k-th derivative at the current time
@@ -257,15 +263,6 @@ public:
 
     //! Retrieve absolute step size limits during advance
     bool getAdvanceLimits(double* limits);
-
-    //! Use this function to add preconditioner to FuncEval in user_data for cvode
-    void setNetworkPreconditioner(void* precon, preconditionerSetup setup, preconditionerSolve solve);
-    void* getNetworkPreconditioner(); //Returns the set preconditioner
-
-    
-    std::vector<Reactor*>* getReactorsVector();
-
-
 
 protected:
 

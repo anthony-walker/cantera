@@ -121,6 +121,12 @@ public:
     virtual void evalEqs(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
+    virtual void reactorJacSetup(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
+    virtual void reactorJacSolve(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
     virtual void syncState();
 
     //! Set the state of the reactor to correspond to the state vector *y*.

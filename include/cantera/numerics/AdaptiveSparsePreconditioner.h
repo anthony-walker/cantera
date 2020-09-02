@@ -99,13 +99,19 @@ template<class MATTYPE> void AdaptivelyPrecondition(SparseMatrix<MATTYPE> *preco
   for (size_t i = 0; i < reactors->size(); i++)
   { 
     currentReactor=reactors->at(i);
-    SpeciesSpeciesDerivative(preconditioner,currentReactor);
+    for (size_t j = 0; j < currentReactor->neq(); j++)
+    {
+      std::cout << currentReactor->componentName(j) << std::endl;
+    }
+    
+    // SpeciesSpeciesDerivative(preconditioner,currentReactor,network->getGlobalReactorStart(i));
+    // SpeciesStateDerivative(preconditioner,network,network->getGlobalReactorStart(i));
   }
 }
 
 // This function gets Species to Species derivatives for jacobian preconditioning;
 // specifically it determines the derivatives of the rate laws of all species with respect to other species.
-template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
+template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor,size_t rStart)
 {
  //Getting kinetics object for access to reactions
   Kinetics* kinetics=reactor->getKineticsMgr();
@@ -158,10 +164,10 @@ template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *pre
     for (size_t j = 0; j < numberOfSpecies; j++)
     {
       idx = i+j*numberOfSpecies; //Getting flattened index
-      preconditioner->setElement(i,j,rateLawDerivatives[idx],true);//Add by threshold
+      preconditioner->setElement(i+rStart,j+rStart,rateLawDerivatives[idx],true);//Add by threshold
     }
   }
-  
+
   //Deleting appropriate pointers
   delete[] kForward;
   delete[] kBackward;
@@ -169,7 +175,7 @@ template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *pre
   delete[] rateLawDerivatives;
 }
 
-template<class MATTYPE> void SpeciesStateDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
+template<class MATTYPE> void SpeciesStateDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network, size_t rStart)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
@@ -182,8 +188,6 @@ template<class MATTYPE> void SpeciesTemperatureDerivative(SparseMatrix<MATTYPE> 
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.
   */ 
-
-
 }
 
 template<class MATTYPE> void TemperatureSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network)
@@ -237,9 +241,7 @@ template<class MATTYPE> void StateTemperatureDerivative(SparseMatrix<MATTYPE> *p
 }
 
 // currentReactor=reactors->at(0);
-  // //Species
-  // SpeciesSpeciesDerivative(preconditioner,currentReactor);
-  // SpeciesStateDerivative(preconditioner,network);
+
   // SpeciesTemperatureDerivative(preconditioner,network);
 
   // //Temperature
