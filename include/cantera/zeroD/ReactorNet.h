@@ -277,10 +277,7 @@ public:
      */
     virtual void preconditionerSolve(doublereal t, doublereal* y,
                         doublereal* ydot, doublereal* params);
-        
-    int preconditioner_setup_nothrow(double t, double* y, double* ydot);
-
-    int preconditioner_solve_nothrow(double t, double* y, double* ydot);
+    
 
     //! Use this function to set the preconditioner type
     //! 1 -  adaptive mechanism preconditioning

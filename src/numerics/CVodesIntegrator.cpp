@@ -4,7 +4,6 @@
 // at https://cantera.org/license.txt for license and copyright information.
 #include "cantera/numerics/CVodesIntegrator.h"
 #include "cantera/base/stringUtils.h"
-#include "cantera/zeroD/ReactorNet.h"
 //System includes
 #include <iostream>
 using namespace std;
@@ -77,13 +76,13 @@ extern "C" {
 
     static int cvodes_jac_setup(realtype t, N_Vector y, N_Vector ydot, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
     {
-        ReactorNet* f = (ReactorNet*) f_data;
+        FuncEval* f = (FuncEval*) f_data;
         return f->preconditioner_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
     }
 
     static int cvodes_jac_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *f_data)
     {
-        ReactorNet* f = (ReactorNet*) f_data;
+        FuncEval* f = (FuncEval*) f_data;
         return f->preconditioner_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
     }
 

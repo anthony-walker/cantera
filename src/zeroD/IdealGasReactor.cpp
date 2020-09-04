@@ -147,9 +147,19 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
 
     case ADAPTIVE_MECHANISM_PRECONDITIONER:
         std::cout<<"IdealGasReactor"<<std::endl;
-        // Cantera::AMP::printReactorComponents(this);
+        Cantera::AMP::printReactorComponents(this);
         Cantera::AMP::SpeciesSpeciesDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
-        Cantera::AMP::SpeciesVolumeDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
+        Cantera::AMP::SpeciesVolumeDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this,1);
+        Cantera::AMP::SpeciesTemperatureDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this,1);
+        // //Temperature
+        // TemperatureSpeciesDerivative(preconditioner,network);
+        // TemperatureStateDerivative(preconditioner,network);
+        // TemperatureTemperatureDerivative(preconditioner,network);
+        
+        // //State
+        // StateSpeciesDerivative(preconditioner,network);
+        // StateStateDerivative(preconditioner,network);
+        // StateTemperatureDerivative(preconditioner,network);
         break;
 
     default:
