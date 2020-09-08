@@ -275,10 +275,7 @@ void Reactor::reactorPrecSetup(doublereal t, doublereal* y,
         break;
 
     case ADAPTIVE_MECHANISM_PRECONDITIONER:
-        std::cout<<"Reactor"<<std::endl;
-        // Cantera::AMP::printReactorComponents(this);
-        Cantera::AMP::SpeciesSpeciesDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
-        Cantera::AMP::SpeciesVolumeDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
+        throw CanteraError("Reactor::reactorPrecSetup", "ADAPTIVE_MECHANISM_PRECONDITIONER is not implemented for Reactor");
         break;
 
     default:

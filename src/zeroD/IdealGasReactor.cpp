@@ -144,13 +144,11 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
     case PRECONDITIONER_NOT_SET:
         throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
         break;
-
     case ADAPTIVE_MECHANISM_PRECONDITIONER:
         std::cout<<"IdealGasReactor"<<std::endl;
         Cantera::AMP::printReactorComponents(this);
         Cantera::AMP::SpeciesSpeciesDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
-        Cantera::AMP::SpeciesVolumeDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this,1);
-        Cantera::AMP::SpeciesTemperatureDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this,1);
+        Cantera::AMP::SpeciesTemperatureDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this,ydot,1);
         // //Temperature
         // TemperatureSpeciesDerivative(preconditioner,network);
         // TemperatureStateDerivative(preconditioner,network);
@@ -161,7 +159,6 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
         // StateStateDerivative(preconditioner,network);
         // StateTemperatureDerivative(preconditioner,network);
         break;
-
     default:
         throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
         break;

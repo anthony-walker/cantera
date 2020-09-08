@@ -62,7 +62,7 @@ extern "C" {
         FuncEval* f = (FuncEval*) f_data;
         return f->eval_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
     }
-
+    
     //! Function called by CVodes when an error is encountered instead of
     //! writing to stdout. Here, save the error message provided by CVodes so
     //! that it can be included in the subsequently raised CanteraError.
@@ -73,19 +73,29 @@ extern "C" {
         integrator->m_error_message = msg;
         integrator->m_error_message += "\n";
     }
+    
+    #if CT_SUNDIALS_VERSION>=30 //These functions only work with Sundials 3.0 or newer
+        static int cvodes_jac_setup(realtype t, N_Vector y, N_Vector ydot, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
+        {
+            if(!jok) 
+            {
+                FuncEval* f = (FuncEval*) f_data;
+                (*jcurPtr)=true; //Jacobian data was recomputed
+                return f->preconditioner_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
+            } 
+            else 
+            {
+                (*jcurPtr)=false; //indicate that Jacobian data was not recomputed
+                return 0; //No error because not recomputed
+            }        
+        }
 
-    static int cvodes_jac_setup(realtype t, N_Vector y, N_Vector ydot, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
-    {
-        FuncEval* f = (FuncEval*) f_data;
-        return f->preconditioner_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
-    }
-
-    static int cvodes_jac_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *f_data)
-    {
-        FuncEval* f = (FuncEval*) f_data;
-        return f->preconditioner_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
-    }
-
+        static int cvodes_jac_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *f_data)
+        {
+            FuncEval* f = (FuncEval*) f_data;
+            return f->preconditioner_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
+        }
+    #endif
 }
 
 CVodesIntegrator::CVodesIntegrator() :
@@ -422,12 +432,14 @@ void CVodesIntegrator::applyOptions()
     } 
     else if (m_type == GMRES+PRECONDITION) //Added for adaptive preconditioner
     {   
-        int flag;// flag for debugging
-        //Set linear solver - this must be done before preconditioner is set preconditioner
-        m_linsol =  SUNLinSol_SPGMR(m_y, PREC_LEFT, 0); //Change me
-        flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
-        //Set preconditioner
-        flag = CVodeSetPreconditioner(m_cvode_mem,cvodes_jac_setup,cvodes_jac_solve);
+        #if CT_SUNDIALS_VERSION >= 30 //Only works for version Sundials 3.0 or newer
+            int flag;// flag for debugging
+            //Set linear solver - this must be done before preconditioner is set preconditioner
+            m_linsol =  SUNLinSol_SPGMR(m_y, PREC_LEFT, 0); //Change me
+            flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
+            //Set preconditioner
+            flag = CVodeSetPreconditioner(m_cvode_mem,cvodes_jac_setup,cvodes_jac_solve);
+        #endif
     } 
     else if (m_type == BAND + NOJAC) {
         sd_size_t N = static_cast<sd_size_t>(m_neq);
