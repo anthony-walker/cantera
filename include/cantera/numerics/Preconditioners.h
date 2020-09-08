@@ -83,162 +83,59 @@ namespace Cantera //Making ASP apart of Cantera namespace
      * 
      **/
 
-    //! This function determines derivatives of Species with respect to Temperature for jacobian preconditioning with a finite difference.
-    template<class MATTYPE> void SpeciesTemperatureDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor, double* ydot, size_t row)
-    {
-      //Getting kinetics object for access to reactions
-        Kinetics* kinetics=reactor->getKineticsMgr();
-        //Important sizes to the determination of values
-        size_t numberOfEquations = reactor->neq();
-        size_t numberOfSpecies = kinetics->nTotalSpecies();
-        //Perturbation for finite difference of temperature
-        double perturbationInverse = 1/std::sqrt(UNIT_ROUNDOFF);
-        //Array pointers for data that is reused
-        //rate law molar derivatives
-        double* netProductionRates = new double[numberOfSpecies];
-        kinetics->getNetProductionRates(netProductionRates);
-        //Adding to preconditioner
-        size_t diff = numberOfEquations-numberOfSpecies;
-        double specTempDerivative;
-        for (size_t j = 0; j < numberOfSpecies; j++) //column
-        {   
-            specTempDerivative = (netProductionRates[j]-ydot[j])*perturbationInverse;
-            specTempDerivative = 1;
-            preconditioner->setElement(row,j+diff,specTempDerivative,true); //Add by threshold
-        }
-        //Deleting appropriate pointers
-        delete[] netProductionRates;
-    }
-    
-    //! This function determines derivatives of Species with respect to Pressure for jacobian preconditioning.
-    template<class MATTYPE> void SpeciesPressureDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor, size_t row)
-    {
-    //Getting kinetics object for access to reactions
-      Kinetics* kinetics=reactor->getKineticsMgr();
-      //Getting thermophase object for access to concentrations and species data
-      ThermoPhase* thermo=reactor->getThermoMgr();
-      //Compositions for reactants and products
-      Composition reactants;
-      Composition products;
-      //Important sizes to the determination of values
-      size_t numberOfReactions = kinetics->nReactions();
-      size_t numberOfEquations = reactor->neq();
-      size_t numberOfSpecies = kinetics->nTotalSpecies();
-      //Array pointers for data that is reused
-      double* kForward = new double[numberOfReactions];
-      double* kBackward = new double[numberOfReactions];
-      //Concentrations of species
-      double* concentrations = new double[numberOfEquations];
-      //rate law molar derivatives
-      double* volumeDerivatives = new double[numberOfSpecies];
-      //Getting species names
-      const std::vector<std::string> *names = &(thermo->speciesNames());
-      //Getting species concentrations
-      thermo->getConcentrations(concentrations);
-      //Getting forward rate constants for calcs
-      kinetics->getFwdRateConstants(kForward); 
-      //Getting reverse rate constants for calcs
-      kinetics->getRevRateConstants(kBackward); 
-      //shared_ptr for current reaction in finding Jacobian
-      std::shared_ptr<Reaction> currentReaction;
-      //Creating map of species indices
-      std::map<std::string,size_t> indexMap;
-      for (size_t i = 0; i < numberOfSpecies; i++)
-      {
-        indexMap[names->at(i)]=i;
-      }
-      // for (size_t r = 0; r < numberOfReactions; r++)
-      // {
-      //   currentReaction=kinetics->getReactionPtr(r);
-      //   //Loop through reactants in current reaction
-      //   reactants = currentReaction->reactants;
-      //   products = currentReaction->products;
-      //   Cantera::AMP::speciesDerivative(reactants,indexMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume());
-      //   Cantera::AMP::speciesDerivative(products,indexMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume()); //Multiply by negative one to change direction
-      // }
-
-      //Adding to preconditioner
-      size_t diff = numberOfEquations-numberOfSpecies;
-      for (size_t j = 0; j < numberOfSpecies; j++) //column
-      {
-          preconditioner->setElement(row,j+diff,volumeDerivatives[j],true);//Add by threshold
-      }
-
-      //Deleting appropriate pointers
-      delete[] kForward;
-      delete[] kBackward;
-      delete[] concentrations;
-      delete[] volumeDerivatives;
-    }
-
-    //! This function determines derivatives of Species with respect to volume for jacobian preconditioning.
-    template<class MATTYPE> void SpeciesVolumeDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor, size_t row)
-    {
-    //Getting kinetics object for access to reactions
-      Kinetics* kinetics=reactor->getKineticsMgr();
-      //Getting thermophase object for access to concentrations and species data
-      ThermoPhase* thermo=reactor->getThermoMgr();
-      //Compositions for reactants and products
-      Composition reactants;
-      Composition products;
-      //Important sizes to the determination of values
-      size_t numberOfReactions = kinetics->nReactions();
-      size_t numberOfEquations = reactor->neq();
-      size_t numberOfSpecies = kinetics->nTotalSpecies();
-      //Array pointers for data that is reused
-      double* kForward = new double[numberOfReactions];
-      double* kBackward = new double[numberOfReactions];
-      //Concentrations of species
-      double* concentrations = new double[numberOfEquations];
-      //rate law molar derivatives
-      double* volumeDerivatives = new double[numberOfSpecies];
-      //Getting species names
-      const std::vector<std::string> *names = &(thermo->speciesNames());
-      //Getting species concentrations
-      thermo->getConcentrations(concentrations);
-      //Getting forward rate constants for calcs
-      kinetics->getFwdRateConstants(kForward); 
-      //Getting reverse rate constants for calcs
-      kinetics->getRevRateConstants(kBackward); 
-      //shared_ptr for current reaction in finding Jacobian
-      std::shared_ptr<Reaction> currentReaction;
-      //Creating map of species indices
-      std::map<std::string,size_t> indexMap;
-      for (size_t i = 0; i < numberOfSpecies; i++)
-      {
-        indexMap[names->at(i)]=i;
-      }
-      // for (size_t r = 0; r < numberOfReactions; r++)
-      // {
-      //   currentReaction=kinetics->getReactionPtr(r);
-      //   //Loop through reactants in current reaction
-      //   reactants = currentReaction->reactants;
-      //   products = currentReaction->products;
-      //   Cantera::AMP::speciesDerivative(reactants,indexMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume());
-      //   Cantera::AMP::speciesDerivative(products,indexMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume()); //Multiply by negative one to change direction
-      // }
-
-      //Adding to preconditioner
-      size_t diff = numberOfEquations-numberOfSpecies;
-      for (size_t j = 0; j < numberOfSpecies; j++) //column
-      {
-          preconditioner->setElement(row,j+diff,volumeDerivatives[j],true);//Add by threshold
-      }
-
-      //Deleting appropriate pointers
-      delete[] kForward;
-      delete[] kBackward;
-      delete[] concentrations;
-      delete[] volumeDerivatives;
-    }
 
     /**
      * Completed functions
      **/
 
+    //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
+    //! @param *preconditioner A pointer to a SparseMatrix<MATTYPE> Object for preconditioning the system and storing preconditioner values
+    //! @param *reactor A pointer to the current reactor being precondition
+    //! @param *ydot A pointer to the current data of ydot passed from CVODES
+    //! @param meanSpecificHeat The mean specific heat used based on reactor type
+    //! @param index The index location of temperature in the state vector
+    template<class MATTYPE> void TemperatureDerivatives(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor, double* ydot, double meanSpecificHeat, size_t index, size_t speciesStart)
+    {
+        //Getting kinetics object for access to reactions
+        Kinetics* kinetics=reactor->getKineticsMgr();
+        //Getting thermophase object for access to concentrations and species data
+        ThermoPhase* thermo=reactor->getThermoMgr();
+        //Important sizes to the determination of values
+        size_t numberOfSpecies = kinetics->nTotalSpecies();
+        //Perturbation for finite difference of temperature
+        double perturbationInverse = 1/std::sqrt(UNIT_ROUNDOFF);
+        //Array pointers for data that is reused
+        //net production rates (omega dot)
+        double* netProductionRates = new double[numberOfSpecies];
+        kinetics->getNetProductionRates(netProductionRates);
+        //Internal energies
+        double dTdt = 0.0;
+        double* internalEnergies = new double[numberOfSpecies]; //Partial molar U
+        thermo->getPartialMolarIntEnergies(internalEnergies); //getting internal energies at state
+        //Adding to preconditioner the species derivatives
+        double specTempDerivative;
+        for (size_t j = 0; j < numberOfSpecies; j++) //column
+        {   
+            specTempDerivative = (netProductionRates[j]-ydot[j+speciesStart])*perturbationInverse; //+1 because specie index will start after temperature
+            preconditioner->setElementByThreshold(index,j+speciesStart,specTempDerivative); //Add by threshold
+            //Summing energy for temperature derivative
+            dTdt+=internalEnergies[j]*netProductionRates[j]*thermo->molecularWeight(j); //J/m^3/s
+        }
+        //Adding to preconditioner the temperature derivative
+        dTdt /= reactor->density()*meanSpecificHeat; //adjusting energy to get dTdt - K/s
+        dTdt -= ydot[index];
+        dTdt *= perturbationInverse; //Turning dTdt into d(dTdt)/dT
+        preconditioner->setElementByThreshold(index,index,dTdt); //Add by threshold
+        //Deleting appropriate pointers
+        delete[] netProductionRates;
+        delete[] internalEnergies;
+    }
+
     //! This function determines derivatives of Species with respect to species for jacobian preconditioning;
     //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
-    template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
+    //! @param *preconditioner A pointer to a SparseMatrix<MATTYPE> Object for preconditioning the system and storing preconditioner values
+    //! @param *reactor A pointer to the current reactor being precondition
+    template<class MATTYPE> void SpeciesSpeciesDerivatives(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor, size_t speciesStart)
     {
     //Getting kinetics object for access to reactions
       Kinetics* kinetics=reactor->getKineticsMgr();
@@ -249,13 +146,12 @@ namespace Cantera //Making ASP apart of Cantera namespace
       Composition products;
       //Important sizes to the determination of values
       size_t numberOfReactions = kinetics->nReactions();
-      size_t numberOfEquations = reactor->neq();
       size_t numberOfSpecies = kinetics->nTotalSpecies();
       //Array pointers for data that is reused
       double* kForward = new double[numberOfReactions];
       double* kBackward = new double[numberOfReactions];
       //Concentrations of species
-      double* concentrations = new double[numberOfEquations];
+      double* concentrations = new double[numberOfSpecies];
       //rate law molar derivatives
       double* rateLawDerivatives = new double[numberOfSpecies*numberOfSpecies];
       //Getting species names
@@ -286,13 +182,12 @@ namespace Cantera //Making ASP apart of Cantera namespace
 
       //Adding to preconditioner
       size_t idx;
-      size_t diff = numberOfEquations-numberOfSpecies;
       for (size_t j = 0; j < numberOfSpecies; j++) // column
         {
         for (size_t i = 0; i < numberOfSpecies; i++) //row
         {  
           idx = j+i*numberOfSpecies; //Getting flattened index
-          preconditioner->setElement(i+diff,j+diff,rateLawDerivatives[idx],true);//Add by threshold
+          preconditioner->setElementByThreshold(i+speciesStart,j+speciesStart,rateLawDerivatives[idx]);//Add by threshold
         }
       }
 

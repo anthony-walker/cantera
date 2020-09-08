@@ -225,7 +225,7 @@ protected:
     //! Pointer to preconditioner
     SparseMatrix<SundialsSparseMatrix> m_preconditioner;
     //! Integer controlling preconditioner type
-    int m_preconditioner_type=0;
+    int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
 
     doublereal m_vdot; //!< net rate of volume change from moving walls [m^3/s]
     doublereal m_Q; //!< net heat transfer through walls [W]

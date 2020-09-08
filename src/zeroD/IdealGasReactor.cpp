@@ -139,6 +139,11 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params)
 {   
+    //Setting up preconditioner
+    this->m_preconditioner.setDimensions(this->m_nv-2,this->m_nv-2); //setting number of dimensions for preconditioner
+    size_t speciesStart = 3; //starting index for species
+    // (this->m_preconditioner)->setDimensions();
+    //Filling preconditioner based on type
     switch (this->m_preconditioner_type)
     {
     case PRECONDITIONER_NOT_SET:
@@ -146,18 +151,10 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
         break;
     case ADAPTIVE_MECHANISM_PRECONDITIONER:
         std::cout<<"IdealGasReactor"<<std::endl;
-        Cantera::AMP::printReactorComponents(this);
-        Cantera::AMP::SpeciesSpeciesDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
-        Cantera::AMP::SpeciesTemperatureDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this,ydot,1);
-        // //Temperature
-        // TemperatureSpeciesDerivative(preconditioner,network);
-        // TemperatureStateDerivative(preconditioner,network);
-        // TemperatureTemperatureDerivative(preconditioner,network);
-        
-        // //State
-        // StateSpeciesDerivative(preconditioner,network);
-        // StateStateDerivative(preconditioner,network);
-        // StateTemperatureDerivative(preconditioner,network);
+        // Cantera::AMP::printReactorComponents(this);
+        //Species derivatives
+        Cantera::AMP::SpeciesSpeciesDerivatives<SundialsSparseMatrix>(&(this->m_preconditioner),this,speciesStart);
+        Cantera::AMP::TemperatureDerivatives<SundialsSparseMatrix>(&(this->m_preconditioner),this,ydot,(this->m_thermo)->cv_mass(),2,speciesStart); //Temperature is index location 2
         break;
     default:
         throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
