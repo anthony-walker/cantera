@@ -327,7 +327,7 @@ protected:
     vector_fp m_advancelimits;
 
     //! Pointer to preconditioner
-    SparseMatrix<SundialsSparseMatrix> m_preconditioner;
+    SundialsSparseMatrix m_preconditioner;
     //! Integer controlling preconditioner type
     int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
 };

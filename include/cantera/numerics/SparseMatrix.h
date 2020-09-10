@@ -5,6 +5,8 @@ This is the SparseMatrix class which serves as a wrapper for Sundials and eventu
 */
 #ifndef CANTERA_SPARSE_MATRIX_H
 #define CANTERA_SPARSE_MATRIX_H
+//Cantera Imports
+#include "cantera/base/ctexceptions.h"
 //Sundials imports
 #include "sunmatrix/sunmatrix_sparse.h"
 //Eigen Imports
@@ -14,119 +16,52 @@ This is the SparseMatrix class which serves as a wrapper for Sundials and eventu
 #include "cantera/ext/Eigen/Sparse"
 #endif
 
-typedef Eigen::SparseMatrix<double> EigenSparseMatrix;
-typedef SUNMatrix SundialsSparseMatrix;
+typedef Eigen::SparseMatrix<double> SparseMatrix_Eigen;
 
 namespace Cantera
 {
 
-
-template<class MATTYPE> class SparseMatrix
+class SparseMatrix
 {
-    private:
-        MATTYPE *matrix; //Matrix stored by sparse matrix
-        double threshold=10e-8; //default threshold value
-        size_t dimensions[2]; //Array pointer for storage of number of  rows and columns
-        void* cvode_mem; //Cvode memory pointer for access to time step data
-    public:
-        SparseMatrix(); //default constructor
-        ~SparseMatrix();      // destructor 
-        SparseMatrix(SparseMatrix *OtherSparseMat); //copy constructor
-        //Getter declarations
-        size_t* getDimensions();
-        double getElement(size_t row, size_t col); //get element
-        MATTYPE getMatrix();
-        double getThreshold();
-        void* getCvodeMemoryPtr();
-        //Setter declarations
-        void setDimensions(size_t nrows,size_t ncols);
-        void setElement(size_t row, size_t col, double element);//set element
-        void setMatrix(MATTYPE *sparseMatrix);
-        void setThreshold(double threshold);
-        void setCvodeMemoryPtr(void* cv_mem_ptr);
-        void setElementByThreshold(size_t row,size_t col, double element);
-        //! Use this function to construct the object for use by
-        // void buildSparseRepresentation(); 
-    };
-
-/*
-    TEMPLATE FUNCTIONS 
-*/
-
-//Default Constructor - do nothing
-template<class MATTYPE> SparseMatrix<MATTYPE>::SparseMatrix(){}
-
-//Default Destructor - do nothing
-template<class MATTYPE> SparseMatrix<MATTYPE>::~SparseMatrix(){}
-
-/*
-
-Setter functions
-
-*/
-
-//Set element by threshold
-template<class MATTYPE> void SparseMatrix<MATTYPE>::setElementByThreshold(size_t row, size_t col, double element)
-{   
-    if (element > this->threshold)
+protected:
+    double threshold=10e-8; //default 
+public:
+    SparseMatrix(/* args */){}
+    ~SparseMatrix(){}
+    //!Use this function to get the threshold value for setting elements
+    virtual double getThreshold();
+    //!Use this function to set the threshold value to compare elements against
+    virtual void setThreshold(double threshold);
+    //!Use this function to set an element by the threshold
+    virtual void setElementByThreshold(size_t row,size_t col, double element);
+    virtual void setElement(size_t row, size_t col, double element)=0;//set element
+    virtual double getElement(size_t row, size_t col)=0; //get element
+    virtual void setDimensions(size_t nrows,size_t ncols, void* otherData=NULL)
     {
-        this->setElement(row,col,element);
+        throw CanteraError("SparseMatrix::setDimensions","setDimensions is not implemented.");
     }
-}
+    
+};
 
-//Dimensions setter
-template<class MATTYPE> void SparseMatrix<MATTYPE>::setDimensions(size_t nrows, size_t ncols)
+class SundialsSparseMatrix : public SparseMatrix
 {
-    this->dimensions[0] = nrows;
-    this->dimensions[1] = ncols;
-}
-
-//Threshold setter
-template<class MATTYPE> void SparseMatrix<MATTYPE>::setThreshold(double threshold)
-{
-    this->threshold = threshold;
-}
-
-//Matrix setter
-template<class MATTYPE> void SparseMatrix<MATTYPE>::setMatrix(MATTYPE *sparseMatrix)
-{
-    this->matrix = sparseMatrix;
-}
-
-//Cvode memory pointer setter
-template<class MATTYPE> void SparseMatrix<MATTYPE>::setCvodeMemoryPtr(void* cv_mem_ptr)
-{
-    this->cvode_mem = cv_mem_ptr;
-}
-/*
-
-Getter functions
-
-*/
-
-//dimensions getter
-template<class MATTYPE> size_t* SparseMatrix<MATTYPE>::getDimensions()
-{
-    return this->dimensions;
-}
-
-//Threshold getter
-template<class MATTYPE> double SparseMatrix<MATTYPE>::getThreshold()
-{
-    return this->threshold;
-}
-
-//Matrix getter
-template<class MATTYPE> MATTYPE SparseMatrix<MATTYPE>::getMatrix()
-{
-    return this->matrix;
-}
-
-//Cvode memory pointer getter
-template<class MATTYPE> void* SparseMatrix<MATTYPE>::getCvodeMemoryPtr()
-{
-    return this->cvode_mem;
-}
+protected:
+    SUNMatrix matrix;
+    size_t dimensions[3]; //Array pointer for storage of number of  rows and columns and max non zero elements
+    size_t datactr=0; //counter for data array
+    size_t colctr=0; //counter for column ptrs
+public:
+    SundialsSparseMatrix(/* args */){}
+    ~SundialsSparseMatrix(){}
+    //Getter declarations
+    size_t* getDimensions();
+    virtual double getElement(size_t row, size_t col); //get element
+    SUNMatrix* getMatrix();
+    //Setter declarations
+    virtual void setDimensions(size_t nrows,size_t ncols, void* otherData=NULL);
+    virtual void setElement(size_t row, size_t col, double element);//set element
+    void setMatrix(SUNMatrix *sparseMatrix);
+};
 
 } //Namespace end bracket
 

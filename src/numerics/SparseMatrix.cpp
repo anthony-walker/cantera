@@ -6,40 +6,51 @@ This is the SparseMatrix class which serves as a wrapper for Sundials and eventu
 #include "cantera/numerics/SparseMatrix.h"
 
 using namespace Cantera; //Need this because SparseMatrix.h is defined in the Cantera namespace
-/*
-    SUNDIALS SPECIALIZED FUNCTIONS 
-
-    --fully specialized functions have to be placed inside of cpp or causes multiple definition error.
-*/
-
-//Specialized SundialsSparseMatrix SETTER
-template<> void SparseMatrix<SundialsSparseMatrix>::setElement(size_t row, size_t col, double element)
-{   
-    
-}
-
-//Specialized SundialsSparseMatrix GETTER
-template<> double SparseMatrix<SundialsSparseMatrix>::getElement(size_t row, size_t col)
+/**
+ * 
+ * SparseMatrix Implementation
+ * 
+ * **/
+double SparseMatrix::getThreshold()
 {
-    //IMPLEMENT ME
-    return 1.0;
+    return this->threshold;
 }
 
-
-/*
-    EIGEN SPECIALIZED FUNCTIONS 
-*/
-
-//Specialized EigenSparseMatrix SETTER
-template<> void SparseMatrix<EigenSparseMatrix>::setElement(size_t row, size_t col, double element)
-{   
-    this->matrix->insert(row,col) = element;
-}
-
-
-//Specialized EigenSparseMatrix GETTER
-template<> double SparseMatrix<EigenSparseMatrix>::getElement(size_t row, size_t col)
+void SparseMatrix::setThreshold(double threshold)
 {
-    return 1.0;
+    this->threshold = threshold;
+}
+
+void SparseMatrix::setElementByThreshold(size_t row,size_t col, double element)
+{
+    if (this->threshold<element)
+    {
+        this->setElement(row,col,element);
+    }
+}
+
+
+/**
+ * 
+ * SundialsSparseMatrix Implementation
+ * 
+ * **/
+
+void SundialsSparseMatrix::setDimensions(size_t nrows,size_t ncols, void* otherData)
+{
+    this->dimensions[0] = nrows;
+    this->dimensions[1] = ncols;
+    this->dimensions[2] = (nrows*ncols)/2 ? !(otherData):(size_t)otherData;
+    // this->matrix = SUNSparseMatrix(nrows,ncols,this->dimensions[2],CSC_MAT);
+}
+
+void SundialsSparseMatrix::setElement(size_t row,size_t col,double element)
+{
+    // SUNSparseMatrix_Data(this->matrix)[row]=element;
+}
+
+double SundialsSparseMatrix::getElement(size_t row,size_t col)
+{
+    return 1.0;//SUNSparseMatrix_Data(this->matrix)[row]; //FIXME
 }
 

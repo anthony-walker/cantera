@@ -272,7 +272,7 @@ void Reactor::evaluateEnergyEquation(doublereal time, doublereal* y,
 }
 
 void Reactor::reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner, size_t prec_type,size_t start)
+                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner, size_t prec_type,size_t start)
 {   
     switch (prec_type)
     {
@@ -291,7 +291,7 @@ void Reactor::reactorPrecSetup(doublereal t, doublereal* y,
 }
 
 void Reactor::reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner, size_t prec_type,size_t start)
+                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner, size_t prec_type,size_t start)
 {
     switch (prec_type)
     {

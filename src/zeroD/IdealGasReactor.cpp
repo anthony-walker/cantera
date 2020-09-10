@@ -152,7 +152,7 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 
     ydot[0] = dmdt;
     ydot[1] = m_vdot;
-    ydot[2] = (mcvdTdt/(m_mass * m_thermo->cv_mass())) ? m_energy : 0.0; //ydot set to zero if not m_energy //m * c_v * dT/dt
+    ydot[2] = (mcvdTdt/(m_mass * m_thermo->cv_mass())) ? m_energy : 0.0; //m * c_v * dT/dt
     resetSensitivity(params);
 }
     
@@ -209,7 +209,7 @@ void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
 
 
 void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner,size_t prec_type,size_t start)
+                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start)
 {   
     //Setting up preconditioner
     m_preconditioner->setDimensions(this->m_nv,this->m_nv); //setting number of dimensions for preconditioner
@@ -228,8 +228,8 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
         std::cout<<"IdealGasReactor"<<std::endl;
         // Cantera::AMP::printReactorComponents(this);
         //Species derivatives
-        Cantera::AMP::SpeciesSpeciesDerivatives<SundialsSparseMatrix>(m_preconditioner,this,speciesStart);
-        Cantera::AMP::TemperatureDerivatives<SundialsSparseMatrix>(m_preconditioner,this,ydot,dTdt,start+2,speciesStart); //Temperature is index location 2
+        Cantera::AMP::SpeciesSpeciesDerivatives(m_preconditioner,this,speciesStart);
+        Cantera::AMP::TemperatureDerivatives(m_preconditioner,this,ydot,dTdt,start+2,speciesStart); //Temperature is index location 2
         break;
     default:
         throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
@@ -239,7 +239,7 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
 }
 
 void IdealGasReactor::reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner,size_t prec_type,size_t start)
+                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start)
 {
 
 }
