@@ -211,8 +211,6 @@ void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
 void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start)
 {   
-    //Setting up preconditioner
-    m_preconditioner->setDimensions(this->m_nv,this->m_nv); //setting number of dimensions for preconditioner
     //Defining index variables
     size_t speciesStart = start+3; //starting index for species
     //Getting derivative of temp w.r.t time - a lot of extra evaluation here, potentially add boolean to prevent recalculation in RHS function if possible

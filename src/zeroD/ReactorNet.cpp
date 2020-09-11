@@ -391,9 +391,10 @@ void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
 {
     updateState(y);
     for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->reactorPrecSetup(t, y + m_start[n], ydot + m_start[n], params,&(this->m_preconditioner),this->m_preconditioner_type,m_start[n]);
+        m_reactors[n]->reactorPrecSetup(t, y + m_start[n], ydot + m_start[n], params,
+        this->m_preconditioner,this->m_preconditioner_type,m_start[n]);
     }
-    // checkFinite("ydot", ydot, m_nv);
+    checkFinite("ydot", ydot, m_nv);
 }
 
 void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
@@ -401,14 +402,25 @@ void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
 {
     updateState(y);
     for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->reactorPrecSolve(t, y + m_start[n], ydot + m_start[n], params,&(this->m_preconditioner),this->m_preconditioner_type,m_start[n]);
+        m_reactors[n]->reactorPrecSolve(t, y + m_start[n], ydot + m_start[n], params,this->m_preconditioner,this->m_preconditioner_type,m_start[n]);
     }
-    // checkFinite("ydot", ydot, m_nv);
+    checkFinite("ydot", ydot, m_nv);
 }
 
-void ReactorNet::setPreconditionerType(int prec_type)
-{
+void ReactorNet::initializePreconditioner(int prec_type,SparseMatrix *preconditioner)
+{   
+    if (preconditioner) //If preconditioner is not NULL then set m_preconditioner to preconditioner;
+    {
+        this->m_preconditioner=preconditioner;
+    }
+    else
+    {
+        this->m_dynamic_prec_alloc=true;
+        this->m_preconditioner = new SundialsSparseMatrix;
+        this->m_preconditioner->setDimensions(this->m_nv,this->m_nv);
+    }
     this->m_preconditioner_type=prec_type;
 }
+
 
 }

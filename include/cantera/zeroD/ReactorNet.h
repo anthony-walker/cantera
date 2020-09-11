@@ -25,7 +25,7 @@ class ReactorNet : public FuncEval
 {
 public:
     ReactorNet();
-    virtual ~ReactorNet() {};
+    virtual ~ReactorNet() {if(m_dynamic_prec_alloc){delete m_preconditioner;}};
     ReactorNet(const ReactorNet&) = delete;
     ReactorNet& operator=(const ReactorNet&) = delete;
 
@@ -283,7 +283,7 @@ public:
     //! Use this function to set the preconditioner type
     //! 1 -  adaptive mechanism preconditioning
     //! 
-    void setPreconditionerType(int prec_type);
+    void initializePreconditioner(int prec_type, SparseMatrix *preconditioner=NULL);
 
 protected:
 
@@ -327,9 +327,11 @@ protected:
     vector_fp m_advancelimits;
 
     //! Pointer to preconditioner
-    SundialsSparseMatrix m_preconditioner;
+    SparseMatrix *m_preconditioner=NULL;
     //! Integer controlling preconditioner type
     int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
+    //! Bool to prevent memory leak of preconditioner is dynamically allocated
+    bool m_dynamic_prec_alloc = false;
 };
 }
 

@@ -132,11 +132,9 @@ public:
     virtual void evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params);
 
-    virtual void reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start);
+    virtual void reactorPrecSetup(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type, size_t start);
 
-    virtual void reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner, size_t prec_type,size_t start);
+    virtual void reactorPrecSolve(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner, size_t prec_type, size_t start);
 
     //! Use this function to set the preconditioner type
     //! 1 -  adaptive mechanism preconditioning

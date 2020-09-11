@@ -25,22 +25,21 @@ class SparseMatrix
 {
 protected:
     double threshold=10e-8; //default 
+    size_t dimensions[2];
 public:
     SparseMatrix(/* args */){}
-    ~SparseMatrix(){}
+    SparseMatrix(const SparseMatrix &sparseMat){*this=sparseMat;} //Copy constructor
+    virtual ~SparseMatrix(){} //destructor
     //!Use this function to get the threshold value for setting elements
     virtual double getThreshold();
     //!Use this function to set the threshold value to compare elements against
     virtual void setThreshold(double threshold);
     //!Use this function to set an element by the threshold
     virtual void setElementByThreshold(size_t row,size_t col, double element);
-    virtual void setElement(size_t row, size_t col, double element)=0;//set element
+    virtual void setElement(size_t row, size_t col, double element)=0; //set element
     virtual double getElement(size_t row, size_t col)=0; //get element
-    virtual void setDimensions(size_t nrows,size_t ncols, void* otherData=NULL)
-    {
-        throw CanteraError("SparseMatrix::setDimensions","setDimensions is not implemented.");
-    }
-    
+    virtual void setDimensions(size_t nrows,size_t ncols, void* otherData=NULL)=0;
+    virtual size_t* getDimensions();
 };
 
 class SundialsSparseMatrix : public SparseMatrix
@@ -53,14 +52,14 @@ protected:
 public:
     SundialsSparseMatrix(/* args */){}
     ~SundialsSparseMatrix(){}
+    SundialsSparseMatrix(const SundialsSparseMatrix &sparseMat){*this=sparseMat;} //Copy constructor
     //Getter declarations
-    size_t* getDimensions();
     virtual double getElement(size_t row, size_t col); //get element
-    SUNMatrix* getMatrix();
+    virtual SUNMatrix* getMatrix();
     //Setter declarations
     virtual void setDimensions(size_t nrows,size_t ncols, void* otherData=NULL);
     virtual void setElement(size_t row, size_t col, double element);//set element
-    void setMatrix(SUNMatrix *sparseMatrix);
+    virtual void setMatrix(SUNMatrix *sparseMatrix);
 };
 
 } //Namespace end bracket

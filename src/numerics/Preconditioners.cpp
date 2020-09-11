@@ -51,7 +51,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     //! @param meanSpecificHeat The mean specific heat used based on reactor type
     //! @param index The index location of temperature in the state vector
     void TemperatureDerivatives(SparseMatrix *preconditioner,Reactor* reactor, double* ydot, double dTdt, size_t index, size_t speciesStart)
-    {
+    {   
         //Getting kinetics object for access to reactions
         Kinetics* kinetics=reactor->getKineticsMgr();
         //Important sizes to the determination of values
@@ -83,6 +83,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //! @param *reactor A pointer to the current reactor being precondition
         void SpeciesSpeciesDerivatives(SparseMatrix *preconditioner,Reactor* reactor, size_t speciesStart)
         {
+        
+        preconditioner->setElementByThreshold(0,0,1.0);
         //Getting kinetics object for access to reactions
         Kinetics* kinetics=reactor->getKineticsMgr();
         //Getting thermophase object for access to concentrations and species data
