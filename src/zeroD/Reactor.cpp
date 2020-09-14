@@ -271,7 +271,7 @@ void Reactor::evaluateEnergyEquation(doublereal time, doublereal* y,
     throw CanteraError("Reactor::evaluateEnergyEquation", "This function is not yet implemented.");
 }
 
-void Reactor::reactorPrecSetup(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner, size_t prec_type, size_t start)
+void Reactor::reactorPrecSetup(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner, size_t prec_type, size_t start)
 {   
     switch (prec_type)
     {
@@ -289,7 +289,7 @@ void Reactor::reactorPrecSetup(doublereal t, doublereal* y, doublereal* ydot, do
     }
 }
 
-void Reactor::reactorPrecSolve(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner, size_t prec_type, size_t start)
+void Reactor::reactorPrecSolve(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner, size_t prec_type, size_t start)
 {
     switch (prec_type)
     {

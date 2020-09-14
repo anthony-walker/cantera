@@ -50,10 +50,10 @@ public:
                       doublereal* ydot, doublereal* params);
 
     virtual void reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start);
+                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start);
 
     virtual void reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start);
+                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start);
 
     virtual void updateState(doublereal* y);
 

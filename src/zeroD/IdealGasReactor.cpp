@@ -6,6 +6,7 @@
 #include "cantera/zeroD/IdealGasReactor.h"
 #include "cantera/zeroD/FlowDevice.h"
 #include "cantera/zeroD/Wall.h"
+#include "cantera/numerics/PreconditioningLibrary.h"
 
 using namespace std;
 
@@ -209,7 +210,7 @@ void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
 
 
 void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start)
+                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start)
 {   
     //Defining index variables
     size_t speciesStart = start+3; //starting index for species
@@ -237,7 +238,7 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
 }
 
 void IdealGasReactor::reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, SparseMatrix *m_preconditioner,size_t prec_type,size_t start)
+                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start)
 {
 
 }

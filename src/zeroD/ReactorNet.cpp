@@ -407,7 +407,7 @@ void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
     checkFinite("ydot", ydot, m_nv);
 }
 
-void ReactorNet::initializePreconditioner(int prec_type,SparseMatrix *preconditioner)
+void ReactorNet::initializePreconditioner(int prec_type,PreconditionerBase *preconditioner)
 {   
     if (preconditioner) //If preconditioner is not NULL then set m_preconditioner to preconditioner;
     {
@@ -416,7 +416,7 @@ void ReactorNet::initializePreconditioner(int prec_type,SparseMatrix *preconditi
     else
     {
         this->m_dynamic_prec_alloc=true;
-        this->m_preconditioner = new SundialsSparseMatrix;
+        this->m_preconditioner = new Preconditioner;
         this->m_preconditioner->setDimensions(this->m_nv,this->m_nv);
     }
     this->m_preconditioner_type=prec_type;
