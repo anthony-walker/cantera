@@ -391,8 +391,7 @@ void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
 {
     updateState(y);
     for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->reactorPrecSetup(t, y + m_start[n], ydot + m_start[n], params,
-        this->m_preconditioner,this->m_preconditioner_type,m_start[n]);
+        this->m_preconditioner->setup(m_reactors[n],t, y + m_start[n], ydot + m_start[n], params ,m_start[n]);
     }
     checkFinite("ydot", ydot, m_nv);
 }
@@ -402,24 +401,28 @@ void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
 {
     updateState(y);
     for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->reactorPrecSolve(t, y + m_start[n], ydot + m_start[n], params,this->m_preconditioner,this->m_preconditioner_type,m_start[n]);
+        // m_reactors[n]->reactorPrecSolve(t, y + m_start[n], ydot + m_start[n], params,this->m_preconditioner,this->m_preconditioner_type,m_start[n]);
     }
     checkFinite("ydot", ydot, m_nv);
 }
 
-void ReactorNet::initializePreconditioner(int prec_type,PreconditionerBase *preconditioner)
+void ReactorNet::initializePreconditioner(int prec_type)
 {   
-    if (preconditioner) //If preconditioner is not NULL then set m_preconditioner to preconditioner;
-    {
-        this->m_preconditioner=preconditioner;
-    }
-    else
-    {
-        this->m_dynamic_prec_alloc=true;
-        this->m_preconditioner = new Preconditioner;
-        this->m_preconditioner->setDimensions(this->m_nv,this->m_nv);
-    }
+
     this->m_preconditioner_type=prec_type;
+
+    switch (prec_type)
+    {
+    case PRECONDITIONER_NOT_SET:
+        throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
+        break;
+    case ADAPTIVE_MECHANISM_PRECONDITIONER:
+        this->m_preconditioner = new Cantera::AMP::AdaptivePreconditioner;
+        break;
+    default:
+        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
+        break;
+    }
 }
 
 

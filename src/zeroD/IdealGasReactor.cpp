@@ -208,41 +208,6 @@ void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
     }
 }
 
-
-void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start)
-{   
-    //Defining index variables
-    size_t speciesStart = start+3; //starting index for species
-    //Getting derivative of temp w.r.t time - a lot of extra evaluation here, potentially add boolean to prevent recalculation in RHS function if possible
-    this->evaluateEnergyEquation(t,y,ydot,params); //Solving energy equation for preconditioner
-    double dTdt =this->m_dEdt/(this->m_mass*(this->m_thermo)->cv_mass()); //adjusting energy to get dTdt - K/s
-    //Filling preconditioner based on type of preconditioner
-    switch (prec_type)
-    {
-    case PRECONDITIONER_NOT_SET:
-        throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
-        break;
-    case ADAPTIVE_MECHANISM_PRECONDITIONER:
-        std::cout<<"IdealGasReactor"<<std::endl;
-        // Cantera::AMP::printReactorComponents(this);
-        //Species derivatives
-        Cantera::AMP::SpeciesSpeciesDerivatives(m_preconditioner,this,speciesStart);
-        Cantera::AMP::TemperatureDerivatives(m_preconditioner,this,ydot,dTdt,start+2,speciesStart); //Temperature is index location 2
-        break;
-    default:
-        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
-        break;
-    }
-    resetSensitivity(params); //Not quite sure if this is needed
-}
-
-void IdealGasReactor::reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start)
-{
-
-}
-
 size_t IdealGasReactor::componentIndex(const string& nm) const
 {
     size_t k = speciesIndex(nm);

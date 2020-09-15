@@ -9,7 +9,6 @@
 #include "cantera/thermo/SurfPhase.h"
 #include "cantera/zeroD/ReactorNet.h"
 #include "cantera/zeroD/ReactorSurface.h"
-#include "cantera/numerics/Preconditioners.h"
 
 #include <boost/math/tools/roots.hpp>
 
@@ -270,43 +269,6 @@ void Reactor::evaluateEnergyEquation(doublereal time, doublereal* y,
 {
     throw CanteraError("Reactor::evaluateEnergyEquation", "This function is not yet implemented.");
 }
-
-void Reactor::reactorPrecSetup(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner, size_t prec_type, size_t start)
-{   
-    switch (prec_type)
-    {
-    case PRECONDITIONER_NOT_SET:
-        throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
-        break;
-
-    case ADAPTIVE_MECHANISM_PRECONDITIONER:
-        throw CanteraError("Reactor::reactorPrecSetup", "ADAPTIVE_MECHANISM_PRECONDITIONER is not implemented for Reactor");
-        break;
-
-    default:
-        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
-        break;
-    }
-}
-
-void Reactor::reactorPrecSolve(doublereal t, doublereal* y, doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner, size_t prec_type, size_t start)
-{
-    switch (prec_type)
-    {
-    case PRECONDITIONER_NOT_SET:
-        throw CanteraError("Reactor::reactorPrecSolve", "preconditioner type not set");
-        break;
-
-    case ADAPTIVE_MECHANISM_PRECONDITIONER:
-        throw CanteraError("Reactor::reactorPrecSolve", "ADAPTIVE_MECHANISM_PRECONDITIONER is not implemented for Reactor");
-        break;
-
-    default:
-        throw CanteraError("Reactor::reactorPrecSolve", "unknown preconditioner type");
-        break;
-    }
-}
-
 
 void Reactor::evalWalls(double t)
 {

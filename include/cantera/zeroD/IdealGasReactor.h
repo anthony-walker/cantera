@@ -7,7 +7,6 @@
 #define CT_IDEALGASREACTOR_H
 
 #include "Reactor.h"
-#include "cantera/numerics/Preconditioners.h"
 
 namespace Cantera
 {
@@ -48,12 +47,6 @@ public:
 
     virtual void evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params);
-
-    virtual void reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start);
-
-    virtual void reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params, PreconditionerBase *m_preconditioner,size_t prec_type,size_t start);
 
     virtual void updateState(doublereal* y);
 

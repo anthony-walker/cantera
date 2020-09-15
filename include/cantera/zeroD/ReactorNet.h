@@ -10,7 +10,7 @@
 #include "cantera/numerics/FuncEval.h"
 #include "cantera/numerics/Integrator.h"
 #include "cantera/base/Array.h"
-
+#include "cantera/numerics/Preconditioners.h"
 
 namespace Cantera
 {
@@ -283,7 +283,7 @@ public:
     //! Use this function to set the preconditioner type
     //! 1 -  adaptive mechanism preconditioning
     //! 
-    void initializePreconditioner(int prec_type, PreconditionerBase *preconditioner=NULL);
+    void initializePreconditioner(int prec_type);
 
 protected:
 
@@ -327,7 +327,7 @@ protected:
     vector_fp m_advancelimits;
 
     //! Pointer to preconditioner
-    PreconditionerBase *m_preconditioner=NULL;
+    PreconditionerBase *m_preconditioner;
     //! Integer controlling preconditioner type
     int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
     //! Bool to prevent memory leak of preconditioner is dynamically allocated
