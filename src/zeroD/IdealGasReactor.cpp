@@ -159,11 +159,10 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
     
 
 
-void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
+double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
 { 
     m_dEdt = 0.0; // m * c_v * dT/dt
-
     evalWalls(time);
     applySensitivity(params);
     m_thermo->restoreState(m_state);
@@ -206,6 +205,8 @@ void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
     {
         this->m_dEdt = 0.0; // m * c_v * dT/dt
     }
+    resetSensitivity(params);
+    return this->m_dEdt;
 }
 
 size_t IdealGasReactor::componentIndex(const string& nm) const

@@ -264,10 +264,11 @@ void Reactor::evalEqs(doublereal time, doublereal* y,
     resetSensitivity(params);
 }
 
-void Reactor::evaluateEnergyEquation(doublereal time, doublereal* y,
+double Reactor::evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
 {
     throw CanteraError("Reactor::evaluateEnergyEquation", "This function is not yet implemented.");
+    return 1.0;
 }
 
 void Reactor::evalWalls(double t)

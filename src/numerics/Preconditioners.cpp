@@ -1,5 +1,5 @@
 #include "cantera/numerics/Preconditioners.h"
-
+#include <regex>
 
 namespace Cantera
 {
@@ -58,26 +58,6 @@ namespace Cantera
         throw CanteraError("PreconditionerBase::setup", "Reactor type:(Reactor) is not implemented for the specified preconditioner type.");
     }
 
-    void PreconditionerBase::setup(IdealGasReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("PreconditionerBase::setup", "Reactor type:(IdealGasReactor) is not implemented for the specified preconditioner type.");
-    }
-    
-    void PreconditionerBase::setup(ConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("PreconditionerBase::setup", "Reactor type:(ConstPressureReactor) is not implemented for the specified preconditioner type.");
-    }
-    
-    void PreconditionerBase::setup(FlowReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("PreconditionerBase::setup", "Reactor type:(FlowReactor) is not implemented for the specified preconditioner type.");
-    }
-
-    void PreconditionerBase::setup(IdealGasConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("PreconditionerBase::setup", "Reactor type:(IdealGasConstPressureReactor) is not implemented for the specified preconditioner type.");
-    }
-
     void PreconditionerBase::solve(double* x, double* b)
     {
         throw CanteraError("PreconditionerBase::setup", "Reactor type:(IdealGasConstPressureReactor) is not implemented for the specified preconditioner type.");
@@ -114,7 +94,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     void AdaptivePreconditioner::setElement(unsigned long row,unsigned long col,double element)
     {
-        this->matrix.coeffRef(row,col)=element;
+        // this->matrix.coeffRef(row,col)=element;
     }
 
     double AdaptivePreconditioner::getElement(unsigned long row,unsigned long col)
@@ -137,38 +117,35 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         // this->matrix.makeCompressed();
     }
 
-    void AdaptivePreconditioner::setup(IdealGasReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {   //Defining index variables
-        // unsigned long speciesStart = start+3; //starting index for species
-        // //Getting derivative of temp w.r.t time - a lot of extra evaluation here, potentially add boolean to prevent recalculation in RHS function if possible
-        // reactor->evaluateEnergyEquation(t,y,ydot,params); //Solving energy equation for preconditioner
-        // double dTdt =this->m_dEdt/(this->m_mass*(this->m_thermo)->cv_mass()); //adjusting energy to get dTdt - K/s
-        // //Filling preconditioner based on type of preconditioner
-        // // Cantera::AMP::printReactorComponents(this);
-        // //Species derivatives
-        // Cantera::AMP::SpeciesSpeciesDerivatives(this,reactor,speciesStart);
-        // Cantera::AMP::TemperatureDerivatives(this,reactor,ydot,dTdt,start+2,speciesStart); //Temperature is index location 2
-        // resetSensitivity(params); //Not quite sure if this is needed
-    }
-
     void AdaptivePreconditioner::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(Reactor) is not implemented for the specified preconditioner type.");
-    }
-
-    void AdaptivePreconditioner::setup(ConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(ConstPressureReactor) is not implemented for the specified preconditioner type.");
-    }
-    
-    void AdaptivePreconditioner::setup(FlowReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(FlowReactor) is not implemented for the specified preconditioner type.");
-    }
-
-    void AdaptivePreconditioner::setup(IdealGasConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(IdealGasConstPressureReactor) is not implemented for the specified preconditioner type.");
+    {   
+        unsigned long speciesStart = reactor->neq()-reactor->getKineticsMgr()->nTotalSpecies();
+       //Getting species on species derivatives
+       Cantera::AMP::SpeciesSpeciesDerivatives(this,reactor,speciesStart+reactorStart); 
+       //Solving energy equation for preconditioner 
+       double dEdt = reactor->evaluateEnergyEquation(t,y,ydot,params);   
+        //Solving other variables
+        for (unsigned long i = 0; i < speciesStart; i++)
+        {
+            std::string component = reactor->componentName(i);
+            if(!component.compare("temperature"))
+            {   
+                double dTdt = dEdt/(reactor->mass()*(reactor->getThermoMgr())->cv_mass()); //adjusting energy to get dTdt - K/s
+                Cantera::AMP::TemperatureDerivatives(this,reactor,ydot,dTdt,reactorStart+i,speciesStart+reactorStart); //Temperature is index location 2
+            }
+            else if (!component.compare("mass"))
+            {
+                // std::cout<<"FIX MASS "<< component <<std::endl;
+            }
+            else if (!component.compare("volume"))
+            {
+                // std::cout<<"FIX VOLUME "<< component <<std::endl;
+            }
+            else
+            {   std::string errmessage = ": Adaptive preconditioning is not implemented this variable";
+                throw CanteraError("AdaptivePreconditioner::setup", errmessage);
+            }
+        }
     }
 
     void AdaptivePreconditioner::initialize()
@@ -176,8 +153,6 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     void AdaptivePreconditioner::reset()
     {}
-
-
 
     //! Use this function to print and check reactor components
     inline void printReactorComponents(Reactor* reactor)

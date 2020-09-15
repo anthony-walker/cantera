@@ -56,18 +56,6 @@ namespace Cantera//Making ASP apart of Cantera namespace
         //!@param reactor A Reactor object pointer
         //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
         virtual void setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(IdealGasReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(ConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(FlowReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(IdealGasConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
         //!This function is called during setup for any processes that need to be completed prior to setup functions
         //! e.g. dynamic memory allocation
         virtual void initialize();
@@ -131,18 +119,6 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //!@param reactor A Reactor object pointer
         //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
         virtual void setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(IdealGasReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(ConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(FlowReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
-        //!@param reactor A Reactor object pointer
-        //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(IdealGasConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
         //!This function is called during setup for any processes that need to be completed prior to setup functions
         //! e.g. dynamic memory allocation
         virtual void initialize();

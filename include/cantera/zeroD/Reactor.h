@@ -128,7 +128,7 @@ public:
      * @param[out] ydot rate of change of solution vector, length neq()
      * @param[in] params sensitivity parameter vector, length ReactorNet::nparams()
     */
-    virtual void evaluateEnergyEquation(doublereal time, doublereal* y,
+    virtual double evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params);
 
     virtual void syncState();
