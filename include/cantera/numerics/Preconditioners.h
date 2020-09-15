@@ -68,6 +68,12 @@ namespace Cantera//Making ASP apart of Cantera namespace
         //!@param reactor A Reactor object pointer
         //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
         virtual void setup(IdealGasConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
+        //!This function is called during setup for any processes that need to be completed prior to setup functions
+        //! e.g. dynamic memory allocation
+        virtual void initialize();
+        //!This function is called during setup for any processes that need to be completed post to setup functions
+        //! e.g. dynamic memory allocation
+        virtual void reset();
 
         //Other preconditioner functions
 
@@ -85,7 +91,7 @@ namespace Cantera//Making ASP apart of Cantera namespace
         //!@param row unsigned long specifying the row location
         //!@param col unsigned long specifying the column location
         //!@param element double value to be inserted into matrix structure
-        virtual void setElement(unsigned long row, unsigned long col, double element); //set element
+        virtual void setElement(unsigned long row, unsigned long col, double element)=0; //set element
         //!Function used to get a specific element of the matrix structure
         //!@param row unsigned long specifying the row location
         //!@param col unsigned long specifying the column location
@@ -116,8 +122,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
  class AdaptivePreconditioner : public PreconditionerBase
   {
     protected:
-        //@param matrix a Eigen::SparseMatrix<double> type of structure used for storing data
-        Eigen::SparseMatrix<double> *matrix;
+        Eigen::SparseMatrix<double> matrix;
     public:
         AdaptivePreconditioner(/* args */);
         ~AdaptivePreconditioner();
@@ -138,6 +143,12 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //!@param reactor A Reactor object pointer
         //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
         virtual void setup(IdealGasConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
+        //!This function is called during setup for any processes that need to be completed prior to setup functions
+        //! e.g. dynamic memory allocation
+        virtual void initialize();
+        //!This function is called during setup for any processes that need to be completed post to setup functions
+        //! e.g. dynamic memory allocation
+        virtual void reset();
         //!Function used to get a specific element of the matrix structure
         //!@param row unsigned long specifying the row location
         //!@param col unsigned long specifying the column location

@@ -22,8 +22,14 @@ namespace Cantera
     {
         if (this->threshold<element)
         {
-            // this->setElement(row,col,element);
+            this->setElement(row,col,element);
         }
+    }
+
+    void PreconditionerBase::setDimensions(unsigned long nrows,unsigned long ncols, void* otherData)
+    {
+        this->dimensions[0] = nrows;
+        this->dimensions[1] = ncols;
     }
 
     unsigned long* PreconditionerBase::getDimensions()
@@ -31,7 +37,22 @@ namespace Cantera
         return &(this->dimensions[0]);
     }
 
+    double PreconditionerBase::getElement(unsigned long row, unsigned long col)
+    {
+        warn_user("PreconditionerBase::getElement","getElement function has not been overriden, returning 1.");
+        return 1.0;
+    }
 
+    void PreconditionerBase::initialize()
+    {
+        warn_user("PreconditionerBase::initialize","initialize function has not been overriden.");
+    }
+    
+    void PreconditionerBase::reset()
+    {
+        warn_user("PreconditionerBase::reset","reset function has not been overriden.");
+    }
+    
     void PreconditionerBase::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
     {
         throw CanteraError("PreconditionerBase::setup", "Reactor type:(Reactor) is not implemented for the specified preconditioner type.");
@@ -75,25 +96,25 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
      * **/
     AdaptivePreconditioner::AdaptivePreconditioner()
     {
-        this->matrix =  new Eigen::SparseMatrix<double>;
+        
     }
 
     AdaptivePreconditioner::~AdaptivePreconditioner()
     {
-        delete this->matrix;
+        
     }
 
     void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols, void* otherData)
     {
         this->dimensions[0] = nrows;
         this->dimensions[1] = ncols;
-        this->matrix->resize(nrows,ncols);
-        this->matrix->reserve(nrows*ncols);
+        this->matrix.resize(nrows,ncols);
+        this->matrix.reserve(nrows*ncols);
     }
 
     void AdaptivePreconditioner::setElement(unsigned long row,unsigned long col,double element)
     {
-        this->matrix->insert(row,col)=element;
+        this->matrix.coeffRef(row,col)=element;
     }
 
     double AdaptivePreconditioner::getElement(unsigned long row,unsigned long col)
@@ -103,17 +124,17 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     Eigen::SparseMatrix<double>* AdaptivePreconditioner::getMatrix()
     {
-        return this->matrix;
+        return &(this->matrix);
     }
 
     void AdaptivePreconditioner::setMatrix(Eigen::SparseMatrix<double> *sparseMat)
     {
-        this->matrix=sparseMat;
+        this->matrix=*(sparseMat);
     }
 
     void AdaptivePreconditioner::solve(double* x, double* b)
     {
-        
+        // this->matrix.makeCompressed();
     }
 
     void AdaptivePreconditioner::setup(IdealGasReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
@@ -127,8 +148,35 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         // //Species derivatives
         // Cantera::AMP::SpeciesSpeciesDerivatives(this,reactor,speciesStart);
         // Cantera::AMP::TemperatureDerivatives(this,reactor,ydot,dTdt,start+2,speciesStart); //Temperature is index location 2
-        // Cantera::resetSensitivity(params); //Not quite sure if this is needed
+        // resetSensitivity(params); //Not quite sure if this is needed
     }
+
+    void AdaptivePreconditioner::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
+    {
+        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(Reactor) is not implemented for the specified preconditioner type.");
+    }
+
+    void AdaptivePreconditioner::setup(ConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
+    {
+        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(ConstPressureReactor) is not implemented for the specified preconditioner type.");
+    }
+    
+    void AdaptivePreconditioner::setup(FlowReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
+    {
+        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(FlowReactor) is not implemented for the specified preconditioner type.");
+    }
+
+    void AdaptivePreconditioner::setup(IdealGasConstPressureReactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
+    {
+        throw CanteraError("AdaptivePreconditioner::setup", "Reactor type:(IdealGasConstPressureReactor) is not implemented for the specified preconditioner type.");
+    }
+
+    void AdaptivePreconditioner::initialize()
+    {}
+
+    void AdaptivePreconditioner::reset()
+    {}
+
 
 
     //! Use this function to print and check reactor components

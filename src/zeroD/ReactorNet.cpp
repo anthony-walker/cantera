@@ -401,7 +401,7 @@ void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
 {
     updateState(y);
     for (size_t n = 0; n < m_reactors.size(); n++) {
-        // m_reactors[n]->reactorPrecSolve(t, y + m_start[n], ydot + m_start[n], params,this->m_preconditioner,this->m_preconditioner_type,m_start[n]);
+        // this->m_preconditioner->solve(m_reactors[n],t, y + m_start[n], ydot + m_start[n], params ,m_start[n]);
     }
     checkFinite("ydot", ydot, m_nv);
 }
