@@ -127,6 +127,10 @@ void ReactorNet::initialize()
         writelog("Number of equations: {:d}\n", neq());
         writelog("Maximum time step:   {:14.6g}\n", m_maxstep);
     }
+    if (m_preconditioner_type!=PRECONDITIONER_NOT_SET)
+    {
+        m_preconditioner->initialize(this->m_nv,this->m_nv);
+    }
     m_integ->initialize(m_time, *this);
     m_integrator_init = true;
     m_init = true;
@@ -389,20 +393,19 @@ size_t ReactorNet::registerSensitivityParameter(
 void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* params)
 {
-    updateState(y);
+    updateState(y); //Update state in setup
     for (size_t n = 0; n < m_reactors.size(); n++) {
         this->m_preconditioner->setup(m_reactors[n],t, y + m_start[n], ydot + m_start[n], params ,m_start[n]);
     }
     checkFinite("ydot", ydot, m_nv);
+    
 }
 
 void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
-                      doublereal* ydot, doublereal* params)
+                      doublereal* ydot, doublereal* rhs, doublereal* output, doublereal* params)
 {
-    updateState(y);
-    for (size_t n = 0; n < m_reactors.size(); n++) {
-        // this->m_preconditioner->solve(m_reactors[n],t, y + m_start[n], ydot + m_start[n], params ,m_start[n]);
-    }
+    
+    this->m_preconditioner->solve(output,rhs);
     checkFinite("ydot", ydot, m_nv);
 }
 

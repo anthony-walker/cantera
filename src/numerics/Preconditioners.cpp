@@ -26,11 +26,17 @@ namespace Cantera
         }
     }
 
-    void PreconditionerBase::setDimensions(unsigned long nrows,unsigned long ncols, void* otherData)
+    void PreconditionerBase::setDimensions(unsigned long nrows,unsigned long ncols)
     {
         this->dimensions[0] = nrows;
         this->dimensions[1] = ncols;
     }
+
+    void PreconditionerBase::setElement(unsigned long row, unsigned long col, double element)
+    {
+        warn_user("PreconditionerBase::setElement","setElement function has not been overriden");
+    }
+
 
     unsigned long* PreconditionerBase::getDimensions()
     {
@@ -43,7 +49,7 @@ namespace Cantera
         return 1.0;
     }
 
-    void PreconditionerBase::initialize()
+    void PreconditionerBase::initialize(unsigned long nrows,unsigned long ncols)
     {
         warn_user("PreconditionerBase::initialize","initialize function has not been overriden.");
     }
@@ -74,31 +80,21 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
      * AdaptivePreconditioner implementations
      * 
      * **/
-    AdaptivePreconditioner::AdaptivePreconditioner()
-    {
-        
-    }
 
-    AdaptivePreconditioner::~AdaptivePreconditioner()
-    {
-        
-    }
-
-    void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols, void* otherData)
+    void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols)
     {
         this->dimensions[0] = nrows;
         this->dimensions[1] = ncols;
-        this->matrix.resize(nrows,ncols);
-        this->matrix.reserve(nrows*ncols);
     }
 
     void AdaptivePreconditioner::setElement(unsigned long row,unsigned long col,double element)
     {
-        // this->matrix.coeffRef(row,col)=element;
+        this->matrix.coeffRef(row,col)=element;
     }
 
     double AdaptivePreconditioner::getElement(unsigned long row,unsigned long col)
     {
+        warn_user("AdaptivePreconditioner::getElement","getElement not properly implemented yet, returning 1.0");
         return 1.0;//FIXME
     }
 
@@ -114,7 +110,42 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     void AdaptivePreconditioner::solve(double* x, double* b)
     {
-        // this->matrix.makeCompressed();
+        
+        std::cout<<"Here1"<<std::endl;
+        this->matrix.makeCompressed();
+        //Creating vectors in the form of //Ax=b
+        std::cout<<"Here2"<<std::endl;
+        typedef Eigen::Vector<double,sizeof(b)/sizeof(b[0])> systemVector;
+        systemVector bVector = Eigen::Map<systemVector>(b); //copy b to bVector
+        Eigen::VectorXd xVector;
+        //Create eigen solver object
+        std::cout<<"Here4"<<std::endl;
+        Eigen::BiCGSTAB<Eigen::SparseMatrix<double>> solver;
+        // Initialize solver object
+        std::cout<<"Here4"<<std::endl;
+        solver.compute(this->matrix);
+        if(solver.info()!=Eigen::Success) 
+        {
+            throw CanteraError("AdaptivePreconditioner::solve","Eigen decomposition was unsuccessful");
+        }
+        //Solve for xVector
+        std::cout<<"Here5"<<std::endl;
+        std::cout << bVector[0] << std::endl;
+        std::cout << xVector[0] << std::endl;
+        xVector = solver.solve(bVector);
+        if(solver.info()!=Eigen::Success) 
+        {
+            throw CanteraError("AdaptivePreconditioner::solve","Eigen solving linear system was unsuccessful");
+        }
+        //Solve fo
+        // xVector = solver.solve(bVector);
+        // //Copy x vector to x
+        std::cout<<"Here6"<<std::endl;
+        // Eigen::VectorXd::Map(x,xVector.rows()) = xVector;
+        // std::cout<<"Here7"<<std::endl;
+        // //reset preconditioner
+        // this->reset(); 
+        // std::cout<<"Here8"<<std::endl;
     }
 
     void AdaptivePreconditioner::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
@@ -135,24 +166,33 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
             }
             else if (!component.compare("mass"))
             {
-                // std::cout<<"FIX MASS "<< component <<std::endl;
+                Cantera::AMP::NoPrecondition(this,i+reactorStart,i+reactorStart); //setting mass variable element of preconditioner equal to 1
             }
             else if (!component.compare("volume"))
             {
-                // std::cout<<"FIX VOLUME "<< component <<std::endl;
+                Cantera::AMP::NoPrecondition(this,i+reactorStart,i+reactorStart); //setting mass variable element of preconditioner equal to 1
             }
             else
-            {   std::string errmessage = ": Adaptive preconditioning is not implemented this variable";
+            {   std::string errmessage = component+": Adaptive preconditioning is not implemented this variable";
                 throw CanteraError("AdaptivePreconditioner::setup", errmessage);
             }
         }
     }
 
-    void AdaptivePreconditioner::initialize()
-    {}
+    void AdaptivePreconditioner::initialize(unsigned long nrows,unsigned long ncols)
+    {
+        this->dimensions[0] = nrows;
+        this->dimensions[1] = ncols;
+        this->matrix.resize(nrows,ncols);
+        this->matrix.reserve(nrows*ncols);
+    }
 
     void AdaptivePreconditioner::reset()
-    {}
+    {
+        //Do any reset stuff here
+        this->matrix.setZero(); //Set all elements to zero
+        this->matrix.makeCompressed(); //Compress matrix
+    }
 
     //! Use this function to print and check reactor components
     inline void printReactorComponents(Reactor* reactor)
@@ -195,6 +235,14 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
             }
         }
     } 
+
+    //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
+    //!@param row the row index of the variable
+    //!@param col the column index of the variable
+    void NoPrecondition(PreconditionerBase* preconditioner,unsigned long row, unsigned long col)
+    {
+        preconditioner->setElement(row,col,1); //setting mass variable element of preconditioner equal to 1
+    }
 
     //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
     //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values

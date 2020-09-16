@@ -58,7 +58,7 @@ namespace Cantera//Making ASP apart of Cantera namespace
         virtual void setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
         //!This function is called during setup for any processes that need to be completed prior to setup functions
         //! e.g. dynamic memory allocation
-        virtual void initialize();
+        virtual void initialize(unsigned long nrows,unsigned long ncols);
         //!This function is called during setup for any processes that need to be completed post to setup functions
         //! e.g. dynamic memory allocation
         virtual void reset();
@@ -79,7 +79,7 @@ namespace Cantera//Making ASP apart of Cantera namespace
         //!@param row unsigned long specifying the row location
         //!@param col unsigned long specifying the column location
         //!@param element double value to be inserted into matrix structure
-        virtual void setElement(unsigned long row, unsigned long col, double element)=0; //set element
+        virtual void setElement(unsigned long row, unsigned long col, double element); //set element
         //!Function used to get a specific element of the matrix structure
         //!@param row unsigned long specifying the row location
         //!@param col unsigned long specifying the column location
@@ -88,7 +88,7 @@ namespace Cantera//Making ASP apart of Cantera namespace
         //!@param nrows unsigned long number of rows in the structure
         //!@param ncols unsigned long nubmer of columns in the structure
         //!@param otherData void* for passing other data necessary for subclasses to initialize the matrix structure
-        virtual void setDimensions(unsigned long nrows,unsigned long ncols, void* otherData=NULL);
+        virtual void setDimensions(unsigned long nrows,unsigned long ncols);
         //!Function to return the dimensions of the matrix structure
         virtual unsigned long* getDimensions();
         //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
@@ -112,8 +112,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     protected:
         Eigen::SparseMatrix<double> matrix;
     public:
-        AdaptivePreconditioner(/* args */);
-        ~AdaptivePreconditioner();
+        AdaptivePreconditioner(/* args */){};
+        ~AdaptivePreconditioner(){};
         AdaptivePreconditioner(const AdaptivePreconditioner &preconditioner){*this=preconditioner;} //Copy constructor
         //! This function performs the setup of the preconditioner for the specified reactor type and should be overloaded for each different reactor time
         //!@param reactor A Reactor object pointer
@@ -121,7 +121,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         virtual void setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
         //!This function is called during setup for any processes that need to be completed prior to setup functions
         //! e.g. dynamic memory allocation
-        virtual void initialize();
+        virtual void initialize(unsigned long nrows,unsigned long ncols);
         //!This function is called during setup for any processes that need to be completed post to setup functions
         //! e.g. dynamic memory allocation
         virtual void reset();
@@ -135,7 +135,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //!@param nrows unsigned long number of rows in the structure
         //!@param ncols unsigned long nubmer of columns in the structure
         //!@param otherData void* for passing other data necessary for subclasses to initialize the matrix structure
-        virtual void setDimensions(unsigned long nrows,unsigned long ncols, void* otherData=NULL);
+        virtual void setDimensions(unsigned long nrows,unsigned long ncols);
         //!Function used to set a specific element of the matrix structure
         //!@param row unsigned long specifying the row location
         //!@param col unsigned long specifying the column location
@@ -154,6 +154,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   inline void printReactorComponents(Reactor* reactor);
 
   inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,size_t> indexMap, double* omega, double* concentrations, double k_direction, double volume);
+
+  void NoPrecondition(PreconditionerBase *preconditioner,unsigned long row, unsigned long col);
 
   void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* ydot, double dTdt, size_t index, size_t speciesStart);
   

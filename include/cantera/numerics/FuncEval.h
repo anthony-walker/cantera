@@ -68,7 +68,7 @@ public:
      * @param[in] p sensitivity parameter vector, length nparams()
      */
     virtual void preconditionerSolve(doublereal t, doublereal* y,
-                        doublereal* ydot, doublereal* params);
+                      doublereal* ydot, doublereal* rhs, doublereal* output, doublereal* params);
 
     //! Evaluate the right-hand side using return code to indicate status.
     /*!
@@ -90,7 +90,7 @@ public:
      *  @returns 0 for a successful evaluation; 1 after a potentially-
      *      recoverable error; -1 after an unrecoverable error.
      */
-    int preconditioner_solve_nothrow(double t, double* y, double* ydot);
+    int preconditioner_solve_nothrow(double t, double* y, double* ydot, double* rhs, double* output);
 
 
     //! Fill in the vector *y* with the current state of the system

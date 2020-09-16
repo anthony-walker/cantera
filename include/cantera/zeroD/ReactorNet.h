@@ -277,8 +277,7 @@ public:
      * @param[in] p sensitivity parameter vector, length nparams()
      */
     virtual void preconditionerSolve(doublereal t, doublereal* y,
-                        doublereal* ydot, doublereal* params);
-    
+                      doublereal* ydot, doublereal* rhs, doublereal* output, doublereal* params);
 
     //! Use this function to set the preconditioner type
     //! 1 -  adaptive mechanism preconditioning

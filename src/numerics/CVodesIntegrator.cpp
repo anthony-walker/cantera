@@ -93,7 +93,7 @@ extern "C" {
         static int cvodes_jac_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *f_data)
         {
             FuncEval* f = (FuncEval*) f_data;
-            return f->preconditioner_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
+            return f->preconditioner_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot),NV_DATA_S(r),NV_DATA_S(z));
         }
     #endif
 }
