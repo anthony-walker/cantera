@@ -94,7 +94,7 @@ namespace Cantera//Making ASP apart of Cantera namespace
         //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
         //@param x a double pointer to the vector (array) to store inv(A)*b
         //@param b a double pointer to the vector (array) multiplied by inv(A)
-        virtual void solve(double* x, double *b);
+        virtual void solve(double* x, double *b,unsigned long size);
   };
 }
 
@@ -111,7 +111,9 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   {
     protected:
         Eigen::SparseMatrix<double> matrix;
+        unsigned long nonzeros;
     public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW 
         AdaptivePreconditioner(/* args */){};
         ~AdaptivePreconditioner(){};
         AdaptivePreconditioner(const AdaptivePreconditioner &preconditioner){*this=preconditioner;} //Copy constructor
@@ -148,8 +150,10 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
         //@param x a double pointer to the vector (array) to store inv(A)*b
         //@param b a double pointer to the vector (array) multiplied by inv(A)
-        virtual void solve(double* x, double *b);
+        virtual void solve(double* x, double *b,unsigned long size);
     };
+
+  void checkEigenError(std::string method, unsigned long info);
 
   inline void printReactorComponents(Reactor* reactor);
 

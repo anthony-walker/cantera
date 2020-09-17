@@ -64,7 +64,7 @@ namespace Cantera
         throw CanteraError("PreconditionerBase::setup", "Reactor type:(Reactor) is not implemented for the specified preconditioner type.");
     }
 
-    void PreconditionerBase::solve(double* x, double* b)
+    void PreconditionerBase::solve(double* x, double* b,unsigned long size)
     {
         throw CanteraError("PreconditionerBase::setup", "Reactor type:(IdealGasConstPressureReactor) is not implemented for the specified preconditioner type.");
     }
@@ -108,48 +108,31 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         this->matrix=*(sparseMat);
     }
 
-    void AdaptivePreconditioner::solve(double* x, double* b)
+    void AdaptivePreconditioner::solve(double* x, double* b,unsigned long size)
     {
-        
-        std::cout<<"Here1"<<std::endl;
+        //Compressing sparse matrix structure
         this->matrix.makeCompressed();
         //Creating vectors in the form of //Ax=b
-        std::cout<<"Here2"<<std::endl;
-        typedef Eigen::Vector<double,sizeof(b)/sizeof(b[0])> systemVector;
-        systemVector bVector = Eigen::Map<systemVector>(b); //copy b to bVector
+        Eigen::Map<Eigen::VectorXd> bVector(b,size);
+        // Eigen::Map<Eigen::VectorXd> xVector(x,size);
         Eigen::VectorXd xVector;
         //Create eigen solver object
-        std::cout<<"Here4"<<std::endl;
         Eigen::BiCGSTAB<Eigen::SparseMatrix<double>> solver;
         // Initialize solver object
-        std::cout<<"Here4"<<std::endl;
         solver.compute(this->matrix);
-        if(solver.info()!=Eigen::Success) 
-        {
-            throw CanteraError("AdaptivePreconditioner::solve","Eigen decomposition was unsuccessful");
-        }
+        Cantera::AMP::checkEigenError("AdaptivePreconditioner::solve (Eigen Decomposition)",solver.info());
         //Solve for xVector
-        std::cout<<"Here5"<<std::endl;
-        std::cout << bVector[0] << std::endl;
-        std::cout << xVector[0] << std::endl;
         xVector = solver.solve(bVector);
-        if(solver.info()!=Eigen::Success) 
-        {
-            throw CanteraError("AdaptivePreconditioner::solve","Eigen solving linear system was unsuccessful");
-        }
-        //Solve fo
-        // xVector = solver.solve(bVector);
-        // //Copy x vector to x
-        std::cout<<"Here6"<<std::endl;
-        // Eigen::VectorXd::Map(x,xVector.rows()) = xVector;
-        // std::cout<<"Here7"<<std::endl;
-        // //reset preconditioner
-        // this->reset(); 
-        // std::cout<<"Here8"<<std::endl;
+        Cantera::AMP::checkEigenError("AdaptivePreconditioner::solve (Eigen Solve)",solver.info());
+        //Copy x vector to x
+        Eigen::VectorXd::Map(x,xVector.rows())= xVector;
     }
 
     void AdaptivePreconditioner::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
     {   
+        //Reseting preconditioner for new setup
+        this->reset(); 
+        //Start of species data
         unsigned long speciesStart = reactor->neq()-reactor->getKineticsMgr()->nTotalSpecies();
        //Getting species on species derivatives
        Cantera::AMP::SpeciesSpeciesDerivatives(this,reactor,speciesStart+reactorStart); 
@@ -183,8 +166,10 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     {
         this->dimensions[0] = nrows;
         this->dimensions[1] = ncols;
+        this->nonzeros = this->dimensions[0]*this->dimensions[1]/2; //Reserves up to half the total spaces
         this->matrix.resize(nrows,ncols);
-        this->matrix.reserve(nrows*ncols);
+        this->matrix.reserve(this->nonzeros);
+        
     }
 
     void AdaptivePreconditioner::reset()
@@ -192,6 +177,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //Do any reset stuff here
         this->matrix.setZero(); //Set all elements to zero
         this->matrix.makeCompressed(); //Compress matrix
+        this->matrix.reserve(this->nonzeros); //Reserve space potentially needed
     }
 
     //! Use this function to print and check reactor components
@@ -204,6 +190,32 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     }
 
     //! This function determines the rate of progress derivatives given a composition of reactants or products
+    void checkEigenError(std::string method, unsigned long info)
+    {
+        if(info!=Eigen::Success) 
+        {   
+            std::string error="Failure: ";
+            if(info==Eigen::NumericalIssue)
+            {
+                error+="NumericalIssues";
+            }
+            else if(info==Eigen::NoConvergence)
+            {
+                error+="NoConvergence";
+            }
+            else if(info==Eigen::InvalidInput)
+            {
+                error+="InvalidInput";
+            }
+            else
+            {
+                error+="Unknown";
+            }
+            warn_user(method,error);
+            throw CanteraError(method,error);
+        }
+    }
+
     inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume)
     { 
         //flattened index for derivatives
