@@ -84,9 +84,9 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     AdaptivePreconditioner::AdaptivePreconditioner()
     {
         this->functionMap["temperature"] = TemperatureDerivatives;
-        this->functionMap["volume"]=VolumeDerivatives;
-        this->functionMap["pressure"]=PressureDerivatives;
-        this->functionMap["mass"]=MassDerivatives;
+        this->functionMap["volume"]=NoPrecondition;
+        this->functionMap["pressure"]=NoPrecondition;
+        this->functionMap["mass"]=NoPrecondition;
     }
 
     void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols)
@@ -139,17 +139,18 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     void AdaptivePreconditioner::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
     {   
         //rateLawDerivatives used in other functions
+        unsigned long numberOfSpecies = reactor->getKineticsMgr()->nTotalSpecies();
         double* rateLawDerivatives = new double[numberOfSpecies*numberOfSpecies];
         IndexMap idxMap = getNonSpeciesIndexMap(reactor,reactorStart);
        //Getting species on species derivatives
        Cantera::AMP::SpeciesSpeciesDerivatives(this,reactor,y,ydot,rateLawDerivatives,idxMap);    
         //Solving other variables
-        for (unsigned long i = 0; i < speciesStart; i++)
+        for (unsigned long i = 0; i < idxMap["species"]; i++)
         {
             //Getting component name
             std::string component = reactor->componentName(i);
             //Calling component function
-            this->functionMap[component](this,reactor,y,ydot,rateLawDerivatives,idxMap);
+            this->functionMap[component](this,reactor,y,ydot,rateLawDerivatives,idxMap,component);
         }
         //Deleting rateLawDerivatives array
         delete[] rateLawDerivatives;
@@ -181,7 +182,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
      * */
 
     
-    void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap)
+    void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap, std::string key)
     {   
         // //Getting kinetics object for access to reactions
         // Kinetics* kinetics=reactor->getKineticsMgr();
@@ -386,8 +387,9 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         }
     } 
 
-    void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap)
+    void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap, std::string key)
     {
-        preconditioner->setElement(row,col,1); //setting mass variable element of preconditioner equal to 1
+        unsigned long idx = indexMap[key]+indexMap["start"];
+        preconditioner->setElement(idx,idx,1); //setting mass variable element of preconditioner equal to 1
     }
 }
