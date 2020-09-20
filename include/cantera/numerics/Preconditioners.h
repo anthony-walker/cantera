@@ -39,7 +39,7 @@ namespace Cantera//Making ASP apart of Cantera namespace
   {
     protected:
         //@param threshold a double value to selectively fill the matrix structure based on this threshold
-        double threshold=10e-8; //default 
+        double threshold=10e-16; //default 
         //@param dimensions an unsigned int pointer to store dimensions
         unsigned long dimensions[2];
     public:
@@ -111,10 +111,11 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   {
     protected:
         Eigen::SparseMatrix<double> matrix;
+        FunctionMap functionMap;
         unsigned long nonzeros;
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW 
-        AdaptivePreconditioner(/* args */){};
+        AdaptivePreconditioner(/* args */);
         ~AdaptivePreconditioner(){};
         AdaptivePreconditioner(const AdaptivePreconditioner &preconditioner){*this=preconditioner;} //Copy constructor
         //! This function performs the setup of the preconditioner for the specified reactor type and should be overloaded for each different reactor time
@@ -151,19 +152,45 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //@param x a double pointer to the vector (array) to store inv(A)*b
         //@param b a double pointer to the vector (array) multiplied by inv(A)
         virtual void solve(double* x, double *b,unsigned long size);
+
     };
 
+  //!Typedef used for getting indices based on strings
+  typedef void (*AdaptiveFunction)(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap);
+  typedef std::map<std::string,unsigned long> IndexMap;
+  typedef std::map<std::string,AdaptiveFunction> FunctionMap;
+
+  //!This function returns an index map of nonspecies
+  //!@param reactor the current Reactor object
+  IndexMap getNonSpeciesIndexMap(Reactor *reactor,unsigned long start);
+
+  //! This function determines the rate of progress derivatives given a composition of reactants or products
   void checkEigenError(std::string method, unsigned long info);
 
+  //! Use this function to print and check reactor components
   inline void printReactorComponents(Reactor* reactor);
 
-  inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,size_t> indexMap, double* omega, double* concentrations, double k_direction, double volume);
+  //!This function is a subfunction of SpeciesSpeciesDerivative that gets the species derivatives
+  inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume);
 
-  void NoPrecondition(PreconditionerBase *preconditioner,unsigned long row, unsigned long col);
+  //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
+  //!@param row the row index of the variable
+  //!@param col the column index of the variable
+  void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap);
 
-  void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* ydot, double dTdt, size_t index, size_t speciesStart);
-  
-  void SpeciesSpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, size_t speciesStart);
+  //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
+    //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
+    //! @param *reactor A pointer to the current reactor being precondition
+    //! @param *ydot A pointer to the current data of ydot passed from CVODES
+    //! @param meanSpecificHeat The mean specific heat used based on reactor type
+    //! @param index The index location of temperature in the state vector
+  void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap);
+
+  //! This function determines derivatives of Species with respect to species for jacobian preconditioning;
+  //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
+  //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
+  //! @param *reactor A pointer to the current reactor being precondition
+  void SpeciesSpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap);
 
 }
 

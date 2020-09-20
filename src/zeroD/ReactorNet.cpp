@@ -30,21 +30,28 @@ ReactorNet::ReactorNet() :
 }
 
 
-void ReactorNet::setIntegratorType(int integratorType)
+void ReactorNet::setIntegratorType(int integratorType, int preconditionerType)
 {
     /*
     Use this function to set the type of integrator, options are combinations of the following:
-        const int DIAG = 1;
-        const int DENSE = 2;
-        const int NOJAC = 4;
-        const int JAC = 8;
-        const int GMRES = 16;
-        const int BAND = 32;
-        const int PRECONDITION = 64;
-    default: DENSE+NOJAC
     */
+   this->m_preconditioner_type=preconditionerType;
+   int problemTypeAddition = PRECONDITIONER_NOT_SET;
+   switch (preconditionerType)
+    {
+    case PRECONDITIONER_NOT_SET:
+        //Do nothing
+        break;
+    case ADAPTIVE_MECHANISM_PRECONDITIONER:
+        this->m_preconditioner = new Cantera::AMP::AdaptivePreconditioner;
+        problemTypeAddition=PRECONDITION;
+        break;
+    default:
+        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
+        break;
+    }
   
-    this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem type
+    this->m_integ->setProblemType(integratorType+problemTypeAddition); //Use integrator member function to set problem type
 }
 
 
@@ -393,9 +400,13 @@ size_t ReactorNet::registerSensitivityParameter(
 void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* params)
 {
-    updateState(y); //Update state in setup
+    //Update state in setup
+    updateState(y); 
+    //Reseting preconditioner for new setup
+    this->m_preconditioner->reset(); 
+    //Running preconditioner setup for all reactors
     for (size_t n = 0; n < m_reactors.size(); n++) {
-        this->m_preconditioner->setup(m_reactors[n],t, y + m_start[n], ydot + m_start[n], params ,m_start[n]);
+        this->m_preconditioner->setup(m_reactors[n],t, y, ydot, params ,m_start[n]);
     }
     checkFinite("ydot", ydot, m_nv);
     
@@ -407,25 +418,5 @@ void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
     this->m_preconditioner->solve(output,rhs,12);
     checkFinite("ydot", ydot, m_nv);
 }
-
-void ReactorNet::initializePreconditioner(int prec_type)
-{   
-
-    this->m_preconditioner_type=prec_type;
-
-    switch (prec_type)
-    {
-    case PRECONDITIONER_NOT_SET:
-        throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
-        break;
-    case ADAPTIVE_MECHANISM_PRECONDITIONER:
-        this->m_preconditioner = new Cantera::AMP::AdaptivePreconditioner;
-        break;
-    default:
-        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
-        break;
-    }
-}
-
 
 }

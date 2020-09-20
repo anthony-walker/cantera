@@ -33,8 +33,18 @@ public:
     //@{
 
     //! Set the type of integrator to be used
-    //! DENSE + NOJAC by default
-    void setIntegratorType(int integratorType);
+    //! @param integratorType type of integrator used, default: DENSE+NOJAC
+    //! @param preconditionerType type of preconditioner to be used, default: PRECONDITIONER_NOT_SET
+    //! Integrator Types:
+    //!     const int DIAG = 1;
+    //!    const int DENSE = 2;
+    //!     const int NOJAC = 4;
+    //!     const int JAC = 8;
+    //!     const int GMRES = 16;
+    //!     const int BAND = 32;
+    //! Preconditioner Types:
+    //! 1 - ADAPTIVE_MECHANISM_PRECONDITIONER
+    void setIntegratorType(int integratorType=DENSE+NOJAC,int preconditionerType=0);
 
     //! Set initial time. Default = 0.0 s. Restarts integration from this time
     //! using the current mixture state as the initial condition.
@@ -278,11 +288,6 @@ public:
      */
     virtual void preconditionerSolve(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* rhs, doublereal* output, doublereal* params);
-
-    //! Use this function to set the preconditioner type
-    //! 1 -  adaptive mechanism preconditioning
-    //! 
-    void initializePreconditioner(int prec_type);
 
 protected:
 

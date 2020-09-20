@@ -74,12 +74,20 @@ namespace Cantera
 
 namespace Cantera::AMP //Making ASP apart of Cantera namespace
 {
-
+    
     /**
      * 
      * AdaptivePreconditioner implementations
      * 
      * **/
+
+    AdaptivePreconditioner::AdaptivePreconditioner()
+    {
+        this->functionMap["temperature"] = TemperatureDerivatives;
+        this->functionMap["volume"]=VolumeDerivatives;
+        this->functionMap["pressure"]=PressureDerivatives;
+        this->functionMap["mass"]=MassDerivatives;
+    }
 
     void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols)
     {
@@ -130,36 +138,22 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     void AdaptivePreconditioner::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
     {   
-        //Reseting preconditioner for new setup
-        this->reset(); 
-        //Start of species data
-        unsigned long speciesStart = reactor->neq()-reactor->getKineticsMgr()->nTotalSpecies();
+        //rateLawDerivatives used in other functions
+        double* rateLawDerivatives = new double[numberOfSpecies*numberOfSpecies];
+        IndexMap idxMap = getNonSpeciesIndexMap(reactor,reactorStart);
        //Getting species on species derivatives
-       Cantera::AMP::SpeciesSpeciesDerivatives(this,reactor,speciesStart+reactorStart); 
-       //Solving energy equation for preconditioner 
-       double dEdt = reactor->evaluateEnergyEquation(t,y,ydot,params);   
+       Cantera::AMP::SpeciesSpeciesDerivatives(this,reactor,y,ydot,rateLawDerivatives,idxMap);    
         //Solving other variables
         for (unsigned long i = 0; i < speciesStart; i++)
         {
+            //Getting component name
             std::string component = reactor->componentName(i);
-            if(!component.compare("temperature"))
-            {   
-                double dTdt = dEdt/(reactor->mass()*(reactor->getThermoMgr())->cv_mass()); //adjusting energy to get dTdt - K/s
-                Cantera::AMP::TemperatureDerivatives(this,reactor,ydot,dTdt,reactorStart+i,speciesStart+reactorStart); //Temperature is index location 2
-            }
-            else if (!component.compare("mass"))
-            {
-                Cantera::AMP::NoPrecondition(this,i+reactorStart,i+reactorStart); //setting mass variable element of preconditioner equal to 1
-            }
-            else if (!component.compare("volume"))
-            {
-                Cantera::AMP::NoPrecondition(this,i+reactorStart,i+reactorStart); //setting mass variable element of preconditioner equal to 1
-            }
-            else
-            {   std::string errmessage = component+": Adaptive preconditioning is not implemented this variable";
-                throw CanteraError("AdaptivePreconditioner::setup", errmessage);
-            }
+            //Calling component function
+            this->functionMap[component](this,reactor,y,ydot,rateLawDerivatives,idxMap);
         }
+        //Deleting rateLawDerivatives array
+        delete[] rateLawDerivatives;
+        // std::cout<<Eigen::MatrixXd(this->matrix)<<std::endl;   
     }
 
     void AdaptivePreconditioner::initialize(unsigned long nrows,unsigned long ncols)
@@ -180,7 +174,152 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         this->matrix.reserve(this->nonzeros); //Reserve space potentially needed
     }
 
-    //! Use this function to print and check reactor components
+    /**
+     * 
+     * Non-Class member functions
+     * 
+     * */
+
+    
+    void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap)
+    {   
+        // //Getting kinetics object for access to reactions
+        // Kinetics* kinetics=reactor->getKineticsMgr();
+        // ThermoPhase* thermo=reactor->getThermoMgr();
+        // //Important sizes to the determination of values
+        // unsigned long numberOfSpecies = kinetics->nTotalSpecies();
+
+        // //Array pointers for data that is reused
+        // //net production rates (omega dot)
+        // double* netProductionRatesNext = new double[numberOfSpecies];
+        // double* netProductionRatesCurrent = new double[numberOfSpecies];
+        // double* molecularWeights = new double[numberOfSpecies];
+        // double* ydotPerturbed = new double[reactor->neq()];
+        // //Perturbation for finite difference of temperature
+        // double deltaTemp = y[index]*(std::sqrt(__DBL_EPSILON__));
+        // thermo->getMolecularWeights(molecularWeights);
+        // //Getting current state
+        // kinetics->getNetProductionRates(netProductionRatesCurrent);
+        // double intEnergyCurrent = thermo->intEnergy_mass(); //Current internal energy
+        // //Getting perturbed state
+        // thermo->setTemperature(y[index]+deltaTemp);
+        // kinetics->getNetProductionRates(netProductionRatesNext);
+        // double intEnergyNext = thermo->intEnergy_mass(); //Perturbed internal energy
+        // double inverseDensity = 1/thermo->density();
+        // printf("%0.15f, %0.15f\n",intEnergyCurrent,intEnergyNext);
+        // double energyTotal=0.0;
+        // //Getting perturbed changes w.r.t temperature
+        // for (unsigned long i = 0; i < numberOfSpecies; i++)
+        // {
+        //     ydotPerturbed[i+speciesStart]=netProductionRatesNext[i]*molecularWeights[i]*inverseDensity;
+        //     energyTotal+=intEnergyNext/y[speciesStart+i]*netProductionRatesNext[i];
+        // }
+        // ydotPerturbed[index]=-Cantera::GasConstant*(y[index]+deltaTemp)*energyTotal*inverseDensity/thermo->cv_mass();
+        // //Setting mass and volume of perturbed state to be same as current state so that they are unaffected
+        // ydotPerturbed[0] = ydot[index-2];
+        // ydotPerturbed[1] = ydot[index-1];
+
+
+        // //Adding to preconditioner the species derivatives
+        // //d(dTdt)/dn_j
+        // for (unsigned long j = 0; j < numberOfSpecies; j++) //column
+        // {   
+        //     double tempSpecDerivative = 3; //+1 because specie index will start after temperature
+        //     preconditioner->setElementByThreshold(index,j+speciesStart,tempSpecDerivative); //Add by threshold tempSpecDerivative
+        // }
+        // //d(n_j)/dT -- seems correct
+        // for (unsigned long j = 0; j < numberOfSpecies; j++) //column
+        // {   
+        //     double specTempDerivative = (netProductionRatesNext[j]-netProductionRatesCurrent[j])/deltaTemp;
+        //     preconditioner->setElementByThreshold(j+speciesStart,index,specTempDerivative); //Add by threshold specTempDerivative
+        // }
+        // //Adding to preconditioner the temperature derivative
+        // dTdt -= ydot[index];
+        // // dTdt /= perturbation; //Turning dTdt into d(dTdt)/dT
+        // //d(dTdt)/dT
+        // preconditioner->setElementByThreshold(index,index,1); //Add by threshold dTdt
+        // //Setting temperature back to correct value
+        // thermo->setTemperature(y[index]);
+        // //Deleting appropriate pointers
+        // delete[] netProductionRatesNext;
+        // delete[] netProductionRatesCurrent;
+        // delete[] ydotPerturbed;
+        }
+
+        void SpeciesSpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap)
+        {
+        // //Getting kinetics object for access to reactions
+        // Kinetics* kinetics=reactor->getKineticsMgr();
+        // //Getting thermophase object for access to concentrations and species data
+        // ThermoPhase* thermo=reactor->getThermoMgr();
+        // //Compositions for reactants and products
+        // Composition reactants;
+        // Composition products;
+        // //Important sizes to the determination of values
+        // unsigned long numberOfReactions = kinetics->nReactions();
+        // unsigned long numberOfSpecies = kinetics->nTotalSpecies();
+        // //Array pointers for data that is reused
+        // double* kForward = new double[numberOfReactions];
+        // double* kBackward = new double[numberOfReactions];
+        // //Concentrations of species
+        // double* concentrations = new double[numberOfSpecies];
+        // //Getting species names
+        // const std::vector<std::string> *names = &(thermo->speciesNames());
+        // //Getting species concentrations
+        // thermo->getConcentrations(concentrations);
+        // //Getting forward rate constants for calcs
+        // kinetics->getFwdRateConstants(kForward); 
+        // //Getting reverse rate constants for calcs
+        // kinetics->getRevRateConstants(kBackward); 
+        // //shared_ptr for current reaction in finding Jacobian
+        // std::shared_ptr<Reaction> currentReaction;
+        // //Creating map of species indices
+        // IndexMap indexMap;
+        // for (unsigned long i = 0; i < numberOfSpecies; i++)
+        // {
+        //     indexMap[names->at(i)]=i;
+        // }
+        // for (unsigned long r = 0; r < numberOfReactions; r++)
+        // {
+        //     currentReaction=kinetics->getReactionPtr(r);
+        //     //Loop through reactants in current reaction
+        //     reactants = currentReaction->reactants;
+        //     products = currentReaction->products;
+        //     Cantera::AMP::speciesDerivative(reactants,indexMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume());
+        //     Cantera::AMP::speciesDerivative(products,indexMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume()); //Multiply by negative one to change direction
+        // }
+
+        // //Adding to preconditioner
+        // //d(w)/dn_j
+        // unsigned long idx;
+        // for (unsigned long j = 0; j < numberOfSpecies; j++) // column
+        //     {
+        //     for (unsigned long i = 0; i < numberOfSpecies; i++) //row
+        //     {  
+        //     idx = j+i*numberOfSpecies; //Getting flattened index
+        //     preconditioner->setElementByThreshold(i+speciesStart,j+speciesStart,reactor->volume()*rateLawDerivatives[idx]);//Add by threshold 
+        //     }
+        // }
+
+        // //Deleting appropriate pointers
+        // delete[] kForward;
+        // delete[] kBackward;
+        // delete[] concentrations;
+    }
+
+    IndexMap getNonSpeciesIndexMap(Reactor *reactor,unsigned long start)
+    {
+        IndexMap idxMap;
+        unsigned long nonspeciesNumber = reactor->neq()-reactor->getKineticsMgr()->nTotalSpecies();
+        for (unsigned long i = 0; i < nonspeciesNumber; i++)
+        {
+            idxMap[reactor->componentName(i)] = i;
+        }
+        idxMap["species"]=nonspeciesNumber; //Start of species
+        idxMap["start"] = start;
+        return idxMap;
+    }
+    
     inline void printReactorComponents(Reactor* reactor)
     {
         for (unsigned long i = 0; i < reactor->neq(); i++)
@@ -189,7 +328,6 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         }
     }
 
-    //! This function determines the rate of progress derivatives given a composition of reactants or products
     void checkEigenError(std::string method, unsigned long info)
     {
         if(info!=Eigen::Success) 
@@ -216,7 +354,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         }
     }
 
-    inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume)
+    inline void speciesDerivative(std::map<std::string, double> comp,IndexMap indexMap, double* omega, double* concentrations, double k_direction, double volume)
     { 
         //flattened index for derivatives
         unsigned long oidx; //index for omega
@@ -248,113 +386,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         }
     } 
 
-    //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
-    //!@param row the row index of the variable
-    //!@param col the column index of the variable
-    void NoPrecondition(PreconditionerBase* preconditioner,unsigned long row, unsigned long col)
+    void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap)
     {
         preconditioner->setElement(row,col,1); //setting mass variable element of preconditioner equal to 1
-    }
-
-    //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
-    //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
-    //! @param *reactor A pointer to the current reactor being precondition
-    //! @param *ydot A pointer to the current data of ydot passed from CVODES
-    //! @param meanSpecificHeat The mean specific heat used based on reactor type
-    //! @param index The index location of temperature in the state vector
-    void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* ydot, double dTdt, unsigned long index, unsigned long speciesStart)
-    {   
-        //Getting kinetics object for access to reactions
-        Kinetics* kinetics=reactor->getKineticsMgr();
-        //Important sizes to the determination of values
-        unsigned long numberOfSpecies = kinetics->nTotalSpecies();
-        //Perturbation for finite difference of temperature
-        double perturbationInverse = 1/std::sqrt(__DBL_EPSILON__);
-        //Array pointers for data that is reused
-        //net production rates (omega dot)
-        double* netProductionRates = new double[numberOfSpecies];
-        kinetics->getNetProductionRates(netProductionRates);
-        //Adding to preconditioner the species derivatives
-        double specTempDerivative;
-        for (unsigned long j = 0; j < numberOfSpecies; j++) //column
-        {   
-            specTempDerivative = (netProductionRates[j]-ydot[j+speciesStart])*perturbationInverse; //+1 because specie index will start after temperature
-            preconditioner->setElementByThreshold(index,j+speciesStart,specTempDerivative); //Add by threshold
-        }
-        //Adding to preconditioner the temperature derivative
-        dTdt -= ydot[index];
-        dTdt *= perturbationInverse; //Turning dTdt into d(dTdt)/dT
-        preconditioner->setElementByThreshold(index,index,dTdt); //Add by threshold
-        //Deleting appropriate pointers
-        delete[] netProductionRates;
-        }
-
-        //! This function determines derivatives of Species with respect to species for jacobian preconditioning;
-        //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
-        //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
-        //! @param *reactor A pointer to the current reactor being precondition
-        void SpeciesSpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, unsigned long speciesStart)
-        {
-        
-        preconditioner->setElementByThreshold(0,0,1.0);
-        //Getting kinetics object for access to reactions
-        Kinetics* kinetics=reactor->getKineticsMgr();
-        //Getting thermophase object for access to concentrations and species data
-        ThermoPhase* thermo=reactor->getThermoMgr();
-        //Compositions for reactants and products
-        Composition reactants;
-        Composition products;
-        //Important sizes to the determination of values
-        unsigned long numberOfReactions = kinetics->nReactions();
-        unsigned long numberOfSpecies = kinetics->nTotalSpecies();
-        //Array pointers for data that is reused
-        double* kForward = new double[numberOfReactions];
-        double* kBackward = new double[numberOfReactions];
-        //Concentrations of species
-        double* concentrations = new double[numberOfSpecies];
-        //rate law molar derivatives
-        double* rateLawDerivatives = new double[numberOfSpecies*numberOfSpecies];
-        //Getting species names
-        const std::vector<std::string> *names = &(thermo->speciesNames());
-        //Getting species concentrations
-        thermo->getConcentrations(concentrations);
-        //Getting forward rate constants for calcs
-        kinetics->getFwdRateConstants(kForward); 
-        //Getting reverse rate constants for calcs
-        kinetics->getRevRateConstants(kBackward); 
-        //shared_ptr for current reaction in finding Jacobian
-        std::shared_ptr<Reaction> currentReaction;
-        //Creating map of species indices
-        std::map<std::string,unsigned long> indexMap;
-        for (unsigned long i = 0; i < numberOfSpecies; i++)
-        {
-            indexMap[names->at(i)]=i;
-        }
-        for (unsigned long r = 0; r < numberOfReactions; r++)
-        {
-            currentReaction=kinetics->getReactionPtr(r);
-            //Loop through reactants in current reaction
-            reactants = currentReaction->reactants;
-            products = currentReaction->products;
-            Cantera::AMP::speciesDerivative(reactants,indexMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume());
-            Cantera::AMP::speciesDerivative(products,indexMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume()); //Multiply by negative one to change direction
-        }
-
-        //Adding to preconditioner
-        unsigned long idx;
-        for (unsigned long j = 0; j < numberOfSpecies; j++) // column
-            {
-            for (unsigned long i = 0; i < numberOfSpecies; i++) //row
-            {  
-            idx = j+i*numberOfSpecies; //Getting flattened index
-            preconditioner->setElementByThreshold(i+speciesStart,j+speciesStart,rateLawDerivatives[idx]);//Add by threshold
-            }
-        }
-
-        //Deleting appropriate pointers
-        delete[] kForward;
-        delete[] kBackward;
-        delete[] concentrations;
-        delete[] rateLawDerivatives;
     }
 }
