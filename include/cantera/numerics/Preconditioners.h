@@ -110,8 +110,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
  //!Typedef used for getting indices based on strings
 
-  typedef std::map<std::string,unsigned long> IndexMap;
-  typedef void (*AdaptiveFunction)(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap, std::string key);
+  typedef std::map<std::string,unsigned long> StateMap;
+  typedef void (*AdaptiveFunction)(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap, std::string key);
   typedef std::map<std::string,AdaptiveFunction> FunctionMap;
 
  class AdaptivePreconditioner : public PreconditionerBase
@@ -164,7 +164,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
   //!This function returns an index map of nonspecies
   //!@param reactor the current Reactor object
-  IndexMap getNonSpeciesIndexMap(Reactor *reactor,unsigned long start);
+  StateMap getStateMap(Reactor *reactor,unsigned long start);
 
   //! This function determines the rate of progress derivatives given a composition of reactants or products
   void checkEigenError(std::string method, unsigned long info);
@@ -173,12 +173,12 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   inline void printReactorComponents(Reactor* reactor);
 
   //!This function is a subfunction of SpeciesSpeciesDerivative that gets the species derivatives
-  inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume);
+  inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume, unsigned long numberOfSpecies);
 
   //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
   //!@param row the row index of the variable
   //!@param col the column index of the variable
-  void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap, std::string key);
+  void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap, std::string key);
 
   //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
     //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
@@ -186,13 +186,13 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     //! @param *ydot A pointer to the current data of ydot passed from CVODES
     //! @param meanSpecificHeat The mean specific heat used based on reactor type
     //! @param index The index location of temperature in the state vector
-  void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap, std::string key);
+  void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap, std::string key);
 
   //! This function determines derivatives of Species with respect to species for jacobian preconditioning;
   //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
   //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
   //! @param *reactor A pointer to the current reactor being precondition
-  void SpeciesSpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,IndexMap indexMap);
+  void SpeciesSpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap);
 
 }
 
