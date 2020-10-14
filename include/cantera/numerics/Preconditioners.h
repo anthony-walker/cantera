@@ -172,8 +172,11 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   //! Use this function to print and check reactor components
   inline void printReactorComponents(Reactor* reactor);
 
-  //!This function is a subfunction of SpeciesSpeciesDerivative that gets the species derivatives
-  inline void speciesDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume, unsigned long numberOfSpecies);
+  //!This function is a subfunction of SpeciesDerivatives that gets the species w.r.t species derivatives for each reaction
+  inline void reactionDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume, unsigned long numberOfSpecies);
+
+  //!This function is a subfunction of SpeciesDerivatives that gets the temperature w.r.t species derivatives
+  inline void temperatureSpeciesDerivatives();
 
   //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
   //!@param row the row index of the variable
@@ -192,7 +195,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
   //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
   //! @param *reactor A pointer to the current reactor being precondition
-  void SpeciesSpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap);
+  void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap);
 
 }
 
