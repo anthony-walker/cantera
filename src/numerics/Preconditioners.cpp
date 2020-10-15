@@ -209,33 +209,26 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         thermo->getMolecularWeights(molecularWeights);
         //Getting current state
         kinetics->getNetProductionRates(netProductionRatesCurrent);
-        double intEnergyCurrent = thermo->intEnergy_mass(); //Current internal energy
+        // double intEnergyCurrent = thermo->intEnergy_mass(); //Current internal energy
         //Getting perturbed state
         thermo->setTemperature(y[tempIndex]+deltaTemp);
         kinetics->getNetProductionRates(netProductionRatesNext);
-        double intEnergyNext = thermo->intEnergy_mass(); //Perturbed internal energy
-        double inverseDensity = 1/thermo->density();
-        // printf("%0.15f, %0.15f\n",intEnergyCurrent,intEnergyNext);
-        double energyTotal=0.0;
-
+        // double intEnergyNext = thermo->intEnergy_mass(); //Perturbed internal energy
+        // double inverseDensity = 1/thermo->density();
+        // // printf("%0.15f, %0.15f\n",intEnergyCurrent,intEnergyNext);
+        // double energyTotal=0.0;
         /**
          * Temp Rate Derivatives w.r.t Temp
          * d T_dot/dT
          **/
-        preconditioner->setElementByThreshold(tempIndex,tempIndex,4); 
-
-
+        temperatureTemperatureDerivatives(preconditioner,netProductionRatesCurrent,netProductionRatesNext,deltaTemp,numberOfSpecies,speciesStart,tempIndex);
         /**
          * Production Rate Derivatives w.r.t Temp
          * d omega_dot_j/dT
          **/
-        deltaTemp*=reactor->volume(); //convert kmol/m^3/s to kmol/s
-        for (unsigned long j = 0; j < numberOfSpecies; j++) //column
-        {   
-            double specTempDerivative = (netProductionRatesNext[j]-netProductionRatesCurrent[j])/deltaTemp;
-            preconditioner->setElementByThreshold(j+speciesStart,tempIndex,specTempDerivative); //Add by threshold specTempDerivative
-        }
-
+        //convert kmol/m^3/s to kmol/s by multiplying volume and deltaTemp
+        speciesTemperatureDerivatives(preconditioner,netProductionRatesCurrent,netProductionRatesNext,deltaTemp*reactor->volume(),numberOfSpecies,speciesStart,tempIndex);
+        
         //Setting temperature back to correct value
         thermo->setTemperature(y[tempIndex]);
         
@@ -244,10 +237,29 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         delete[] netProductionRatesCurrent;
         delete[] molecularWeights;
         delete[] ydotPerturbed;
+    }
+        
+    inline void temperatureTemperatureDerivatives(PreconditionerBase *preconditioner, double *netProductionRatesCurrent, double *netProductionRatesNext, double deltaTemp,unsigned long numberOfSpecies,unsigned long speciesStart, unsigned long tempIndex)
+    {
+        preconditioner->setElementByThreshold(tempIndex,tempIndex,4); 
+    }
+
+
+    inline void speciesTemperatureDerivatives(PreconditionerBase *preconditioner, double *netProductionRatesCurrent, double *netProductionRatesNext, double deltaTemp,unsigned long numberOfSpecies,unsigned long speciesStart, unsigned long tempIndex)
+    {
+        for (unsigned long j = 0; j < numberOfSpecies; j++) //column
+        {   
+            preconditioner->setElementByThreshold(j+speciesStart,tempIndex,(netProductionRatesNext[j]-netProductionRatesCurrent[j])/deltaTemp); //Add by threshold specTempDerivative
         }
 
-        void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap stateMap)
-        {
+    }
+
+
+    /*
+        Species Derivatives
+    */
+    void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap stateMap)
+    {
         //Getting kinetics object for access to reactions
         Kinetics* kinetics=reactor->getKineticsMgr();
         //Getting thermophase object for access to concentrations and species data
@@ -277,10 +289,11 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
             //Loop through reactants in current reaction
             reactants = currentReaction->reactants;
             products = currentReaction->products;
-            Cantera::AMP::reactionDerivative(reactants,stateMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume(),numberOfSpecies);
-            Cantera::AMP::reactionDerivative(products,stateMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume(),numberOfSpecies); //Multiply by negative one to change direction
+            Cantera::AMP::speciesSpeciesDerivative(reactants,stateMap,rateLawDerivatives,concentrations,kForward[r],reactor->volume(),numberOfSpecies);
+            Cantera::AMP::speciesSpeciesDerivative(products,stateMap,rateLawDerivatives,concentrations,-1*kBackward[r],reactor->volume(),numberOfSpecies); //Multiply by negative one to change direction
         }
 
+        temperatureSpeciesDerivatives(preconditioner,concentrations,rateLawDerivatives,reactor->volume(),thermo,kinetics,stateMap);
         //Adding to preconditioner
         //d(w)/dn_j
         unsigned long idx;
@@ -299,6 +312,85 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         delete[] kBackward;
         delete[] concentrations;
     }
+
+    inline void temperatureSpeciesDerivatives(PreconditionerBase *preconditioner, double *concentrations, double *dwkdnj, double volume, ThermoPhase *thermo,Kinetics *kinetics, StateMap stateMap)
+    {
+        /**
+         * Temp Rate Derivatives w.r.t Species
+         * d T_dot/dnj
+         **/
+        unsigned long numberOfSpecies = thermo->nSpecies();
+        unsigned long tempIndex = stateMap["temperature"]-1;
+        unsigned long speciesStart = stateMap["species"];
+        double *enthalpy = new double[numberOfSpecies];
+        double *specificHeat = new double[numberOfSpecies];
+        double *netProductionRates = new double[numberOfSpecies];
+        thermo->getPartialMolarEnthalpies(enthalpy);
+        thermo->getPartialMolarCp(specificHeat);
+        kinetics->getNetProductionRates(netProductionRates);
+        //Getting perturbed changes w.r.t temperature
+        for (unsigned long j = 0; j < numberOfSpecies; j++) //Spans columns
+        {
+            double CkCpkSum = 0;
+            double hkwkSum = 0;
+            double hkdwkdnjSum = 0;
+            for (unsigned long k = 0; k < numberOfSpecies; k++) //Spans rows
+            {   
+                int idx = j+k*numberOfSpecies; //Getting flattened index - j to remain same and k to change. This means moving down a row.
+                hkwkSum += enthalpy[k]*netProductionRates[k];
+                hkdwkdnjSum += enthalpy[k]*dwkdnj[idx];
+                CkCpkSum += concentrations[k]*specificHeat[k];
+            }
+            //Set appropriate colume of preconditioner
+            preconditioner->setElementByThreshold(tempIndex,j+speciesStart,(-hkdwkdnjSum*CkCpkSum+specificHeat[j]/volume*hkwkSum)/(CkCpkSum*CkCpkSum));
+        }
+        delete[] enthalpy;
+        delete[] specificHeat;
+        delete[] netProductionRates;
+    }
+
+    inline void speciesSpeciesDerivative(std::map<std::string, double> comp,StateMap stateMap, double* omega, double* concentrations, double k_direction, double volume, unsigned long numberOfSpecies)
+    { 
+        //flattened index for derivatives
+        unsigned long oidx; //index for omega
+        unsigned long sidx; //index for species
+        unsigned long speciesStart = stateMap["species"]; //Adjustment based on reactor, network, and stateMap to get Omega index
+        double dRdn; //temporary value for rate derivative
+        for (std::map<std::string,double>::iterator iter1 = comp.begin(); iter1 != comp.end(); iter1++) //Independent variable -- column
+        {
+            for (std::map<std::string,double>::iterator iter2 = comp.begin(); iter2 != comp.end(); iter2++) //Dependent variable -- row
+            {
+            //Get index for current omega
+            oidx = stateMap[iter1->first]-speciesStart+(stateMap[iter2->first]-speciesStart)*numberOfSpecies;
+            dRdn=1; //Set dRdn to one so multiplication isn't zero unless a coefficient is zero
+            // Loop through species to get rate derivative
+            for (std::map<std::string,double>::iterator iter3 = comp.begin(); iter3 != comp.end(); iter3++) //Dependent variable
+            {
+                sidx = stateMap[iter3->first]-speciesStart;
+                if (iter3->first == iter1->first)
+                {
+                dRdn *= std::pow(iter3->second*concentrations[sidx],iter3->second-1); //derivative
+                }
+                else
+                {
+                dRdn *= std::pow(concentrations[sidx],iter3->second); //Not derivative
+                }
+            }
+            omega[oidx] += k_direction*dRdn/volume; //Updating omega derivative as is necessary
+            }
+        }
+    } 
+
+    void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap stateMap, std::string key)
+    {   
+        unsigned long idx = reactor->componentIndex(key)+stateMap["start"];
+        preconditioner->setElement(idx,idx,1); //setting mass variable element of preconditioner equal to 1
+    }
+
+    /*
+        Other functions used in preconditioner functions but not directly related to a state variable
+    */
+
 
     StateMap getStateMap(Reactor *reactor,unsigned long start)
     {
@@ -347,64 +439,4 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         }
     }
 
-    inline void temperatureSpeciesDerivatives()
-    {
-        // /**
-        //  * Temp Rate Derivatives w.r.t Species
-        //  * d T_dot/dnj
-        //  **/
-        // //Getting perturbed changes w.r.t temperature
-        // for (unsigned long i = 0; i < numberOfSpecies; i++)
-        // {
-        //     ydotPerturbed[i+speciesStart]=netProductionRatesNext[i]*molecularWeights[i]*inverseDensity;
-        //     energyTotal+=intEnergyNext/y[speciesStart+i]*netProductionRatesNext[i];
-        // }
-
-        // ydotPerturbed[tempIndex]=-Cantera::GasConstant*(y[tempIndex]+deltaTemp)*energyTotal*inverseDensity/thermo->cv_mass();
-        
-        // //Adding to preconditioner the species derivatives
-        // for (unsigned long j = 0; j < numberOfSpecies; j++) //column
-        // {   
-        //     double tempSpecDerivative = 3; //+1 because specie index will start after temperature
-        //     preconditioner->setElementByThreshold(tempIndex,j+speciesStart,tempSpecDerivative); //Add by threshold tempSpecDerivative
-        // }
-    }
-
-    inline void reactionDerivative(std::map<std::string, double> comp,StateMap stateMap, double* omega, double* concentrations, double k_direction, double volume, unsigned long numberOfSpecies)
-    { 
-        //flattened index for derivatives
-        unsigned long oidx; //index for omega
-        unsigned long sidx; //index for species
-        unsigned long speciesStart = stateMap["species"]; //Adjustment based on reactor, network, and stateMap to get Omega index
-        double dRdn; //temporary value for rate derivative
-        for (std::map<std::string,double>::iterator iter1 = comp.begin(); iter1 != comp.end(); iter1++) //Independent variable -- column
-        {
-            for (std::map<std::string,double>::iterator iter2 = comp.begin(); iter2 != comp.end(); iter2++) //Dependent variable -- row
-            {
-            //Get index for current omega
-            oidx = stateMap[iter1->first]-speciesStart+(stateMap[iter2->first]-speciesStart)*numberOfSpecies;
-            dRdn=1; //Set dRdn to one so multiplication isn't zero unless a coefficient is zero
-            // Loop through species to get rate derivative
-            for (std::map<std::string,double>::iterator iter3 = comp.begin(); iter3 != comp.end(); iter3++) //Dependent variable
-            {
-                sidx = stateMap[iter3->first]-speciesStart;
-                if (iter3->first == iter1->first)
-                {
-                dRdn *= std::pow(iter3->second*concentrations[sidx],iter3->second-1); //derivative
-                }
-                else
-                {
-                dRdn *= std::pow(concentrations[sidx],iter3->second); //Not derivative
-                }
-            }
-            omega[oidx] += k_direction*dRdn/volume; //Updating omega derivative as is necessary
-            }
-        }
-    } 
-
-    void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap stateMap, std::string key)
-    {   
-        unsigned long idx = reactor->componentIndex(key)+stateMap["start"];
-        preconditioner->setElement(idx,idx,1); //setting mass variable element of preconditioner equal to 1
-    }
 }

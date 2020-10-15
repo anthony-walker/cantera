@@ -415,6 +415,7 @@ void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
 void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* rhs, doublereal* output, doublereal* params)
 {
+    
     this->m_preconditioner->solve(output,rhs,12);
     checkFinite("ydot", ydot, m_nv);
 }

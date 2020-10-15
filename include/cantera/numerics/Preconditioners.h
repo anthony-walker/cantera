@@ -173,11 +173,18 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   inline void printReactorComponents(Reactor* reactor);
 
   //!This function is a subfunction of SpeciesDerivatives that gets the species w.r.t species derivatives for each reaction
-  inline void reactionDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume, unsigned long numberOfSpecies);
+  inline void speciesSpeciesDerivative(std::map<std::string, double> comp,std::map<std::string,unsigned long> indexMap, double* omega, double* concentrations, double k_direction, double volume, unsigned long numberOfSpecies);
 
   //!This function is a subfunction of SpeciesDerivatives that gets the temperature w.r.t species derivatives
-  inline void temperatureSpeciesDerivatives();
+  inline void temperatureSpeciesDerivatives(PreconditionerBase *preconditioner, double *concentrations, double *dwdnj, double volume, ThermoPhase *thermo,Kinetics *kinetics, StateMap stateMap);
+  
+  //!This function is a subfunction of TemperatureDerivatives that gets the species w.r.t temperature derivatives
+  inline void speciesTemperatureDerivatives(PreconditionerBase *preconditioner, double *netProductionRatesCurrent, double *netProductionRatesNext, double deltaTemp,unsigned long numberOfSpecies,unsigned long speciesStart, unsigned long tempIndex);
 
+  //!This function is a subfunction of TemperatureDerivatives that gets the temperature dot w.r.t temperature derivatives
+  inline void temperatureTemperatureDerivatives(PreconditionerBase *preconditioner, double *netProductionRatesCurrent, double *netProductionRatesNext, double deltaTemp,unsigned long numberOfSpecies,unsigned long speciesStart, unsigned long tempIndex);
+
+  
   //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
   //!@param row the row index of the variable
   //!@param col the column index of the variable
