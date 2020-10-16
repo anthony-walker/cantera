@@ -111,7 +111,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
  //!Typedef used for getting indices based on strings
 
   typedef std::map<std::string,unsigned long> StateMap;
-  typedef void (*AdaptiveFunction)(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap, std::string key);
+  typedef void (*AdaptiveFunction)(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap indexMap, std::string key);
   typedef std::map<std::string,AdaptiveFunction> FunctionMap;
 
  class AdaptivePreconditioner : public PreconditionerBase
@@ -182,13 +182,13 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   inline void speciesTemperatureDerivatives(PreconditionerBase *preconditioner, double *netProductionRatesCurrent, double *netProductionRatesNext, double deltaTemp,unsigned long numberOfSpecies,unsigned long speciesStart, unsigned long tempIndex);
 
   //!This function is a subfunction of TemperatureDerivatives that gets the temperature dot w.r.t temperature derivatives
-  inline void temperatureTemperatureDerivatives(PreconditionerBase *preconditioner, double *netProductionRatesCurrent, double *netProductionRatesNext, double deltaTemp,unsigned long numberOfSpecies,unsigned long speciesStart, unsigned long tempIndex);
+  inline void temperatureTemperatureDerivatives(PreconditionerBase *preconditioner, double TDotCurrent, double TDotNext, double deltaTemp, unsigned long tempIndex);
 
   
   //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
   //!@param row the row index of the variable
   //!@param col the column index of the variable
-  void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap, std::string key);
+  void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap indexMap, std::string key);
 
   //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
     //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
@@ -196,13 +196,13 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     //! @param *ydot A pointer to the current data of ydot passed from CVODES
     //! @param meanSpecificHeat The mean specific heat used based on reactor type
     //! @param index The index location of temperature in the state vector
-  void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap, std::string key);
+  void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap indexMap, std::string key);
 
   //! This function determines derivatives of Species with respect to species for jacobian preconditioning;
   //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
   //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
   //! @param *reactor A pointer to the current reactor being precondition
-  void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap indexMap);
+  void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap indexMap);
 
 }
 

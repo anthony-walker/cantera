@@ -114,7 +114,9 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     }
 
     void AdaptivePreconditioner::solve(double* x, double* b,unsigned long size)
-    {
+    {   
+        //b is currently the mass fractions that come in 
+        
         //Compressing sparse matrix structure
         this->matrix.makeCompressed();
         //Creating vectors in the form of //Ax=b
@@ -135,13 +137,11 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     void AdaptivePreconditioner::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
     {   
-        //rateLawDerivatives used in other functions
-        unsigned long numberOfSpecies = reactor->getKineticsMgr()->nTotalSpecies();
-        double* rateLawDerivatives = new double[numberOfSpecies*numberOfSpecies];
+        double *inputs[4] = {&t,y,ydot,params}; //Array of input arrays
         StateMap stateMap = getStateMap(reactor,reactorStart);
         // printReactorComponents(reactor);
        //Getting species on species derivatives
-       Cantera::AMP::SpeciesDerivatives(this,reactor,y,ydot,rateLawDerivatives,stateMap);    
+       Cantera::AMP::SpeciesDerivatives(this,reactor,inputs,stateMap);    
         //Solving other variables
         for (unsigned long i = 0; i < stateMap["species"]; i++)
         {
@@ -151,16 +151,15 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
             if ( this->functionMap.find(component) == this->functionMap.end() ) 
             {
                 // std::cout<<"No Precondition: "<<component<<std::endl;
-                NoPrecondition(this,reactor,y,ydot,rateLawDerivatives,stateMap,component);
+                NoPrecondition(this,reactor,inputs,stateMap,component);
             } 
             //Key is found call appropriate preconditioner function
             else {
                 //Calling component function
-                this->functionMap[component](this,reactor,y,ydot,rateLawDerivatives,stateMap,component);
+                this->functionMap[component](this,reactor,inputs,stateMap,component);
             }  
         }
-        //Deleting rateLawDerivatives array
-        delete[] rateLawDerivatives;
+        
         std::cout<<Eigen::MatrixXd(this->matrix)<<std::endl;   
     }
 
@@ -187,7 +186,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
      * Non-Class member functions
      * 
      * */
-    void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap stateMap, std::string key)
+    void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap stateMap, std::string key)
     {   
         //Getting kinetics object for access to reactions
         Kinetics* kinetics=reactor->getKineticsMgr();
@@ -201,27 +200,26 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //net production rates (omega dot)
         double* netProductionRatesNext = new double[numberOfSpecies];
         double* netProductionRatesCurrent = new double[numberOfSpecies];
-        double* molecularWeights = new double[numberOfSpecies];
-        double* ydotPerturbed = new double[reactor->neq()];
-        std::copy(ydot,ydot+reactor->neq(),ydotPerturbed); //Copy original y dot into perturbed so there is no change unless specifically coded
-        //Perturbation for finite difference of temperature
-        double deltaTemp = y[tempIndex]*(std::sqrt(__DBL_EPSILON__));
-        thermo->getMolecularWeights(molecularWeights);
-        //Getting current state
-        kinetics->getNetProductionRates(netProductionRatesCurrent);
-        // double intEnergyCurrent = thermo->intEnergy_mass(); //Current internal energy
+        
         //Getting perturbed state
-        thermo->setTemperature(y[tempIndex]+deltaTemp);
+        //Perturbation for finite difference of temperature
+        double deltaTemp = inputs[1][tempIndex]*(std::sqrt(__DBL_EPSILON__));
+        thermo->setTemperature(inputs[1][tempIndex]+deltaTemp);
         kinetics->getNetProductionRates(netProductionRatesNext);
-        // double intEnergyNext = thermo->intEnergy_mass(); //Perturbed internal energy
-        // double inverseDensity = 1/thermo->density();
-        // // printf("%0.15f, %0.15f\n",intEnergyCurrent,intEnergyNext);
-        // double energyTotal=0.0;
+        double TDotNext = reactor->evaluateEnergyEquation(*inputs[0],inputs[1],inputs[2],inputs[3])/(thermo->cp_mass()*reactor->mass()); //Perturbed internal energy
+
+        //Getting current state
+        thermo->setTemperature(inputs[1][tempIndex]); //Setting temperature back to correct value
+        kinetics->getNetProductionRates(netProductionRatesCurrent);
+        double TDotCurrent = reactor->evaluateEnergyEquation(*inputs[0],inputs[1],inputs[2],inputs[3])/(thermo->cp_mass()*reactor->mass()); //Current internal energy
+
+        // printf("%0.16f, %0.16f, %0.16f\n",TDotNext,TDotCurrent,deltaTemp);
         /**
          * Temp Rate Derivatives w.r.t Temp
          * d T_dot/dT
          **/
-        temperatureTemperatureDerivatives(preconditioner,netProductionRatesCurrent,netProductionRatesNext,deltaTemp,numberOfSpecies,speciesStart,tempIndex);
+        temperatureTemperatureDerivatives(preconditioner,TDotCurrent,TDotNext,deltaTemp,tempIndex);
+
         /**
          * Production Rate Derivatives w.r.t Temp
          * d omega_dot_j/dT
@@ -229,19 +227,14 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //convert kmol/m^3/s to kmol/s by multiplying volume and deltaTemp
         speciesTemperatureDerivatives(preconditioner,netProductionRatesCurrent,netProductionRatesNext,deltaTemp*reactor->volume(),numberOfSpecies,speciesStart,tempIndex);
         
-        //Setting temperature back to correct value
-        thermo->setTemperature(y[tempIndex]);
-        
         //Deleting appropriate pointers
         delete[] netProductionRatesNext;
         delete[] netProductionRatesCurrent;
-        delete[] molecularWeights;
-        delete[] ydotPerturbed;
     }
         
-    inline void temperatureTemperatureDerivatives(PreconditionerBase *preconditioner, double *netProductionRatesCurrent, double *netProductionRatesNext, double deltaTemp,unsigned long numberOfSpecies,unsigned long speciesStart, unsigned long tempIndex)
+    inline void temperatureTemperatureDerivatives(PreconditionerBase *preconditioner, double TDotCurrent, double TDotNext, double deltaTemp, unsigned long tempIndex)
     {
-        preconditioner->setElementByThreshold(tempIndex,tempIndex,4); 
+        preconditioner->setElementByThreshold(tempIndex,tempIndex,(TDotNext-TDotCurrent)/deltaTemp); 
     }
 
 
@@ -258,7 +251,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     /*
         Species Derivatives
     */
-    void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap stateMap)
+    void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs, StateMap stateMap)
     {
         //Getting kinetics object for access to reactions
         Kinetics* kinetics=reactor->getKineticsMgr();
@@ -269,8 +262,9 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         Composition products;
         //Important sizes to the determination of values
         unsigned long numberOfReactions = kinetics->nReactions();
-        unsigned long numberOfSpecies = kinetics->nTotalSpecies();
+        unsigned long numberOfSpecies = kinetics->nTotalSpecies();     
         //Array pointers for data that is reused
+        double* rateLawDerivatives = new double[numberOfSpecies*numberOfSpecies];
         double* kForward = new double[numberOfReactions];
         double* kBackward = new double[numberOfReactions];
         //Concentrations of species
@@ -311,6 +305,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         delete[] kForward;
         delete[] kBackward;
         delete[] concentrations;
+        delete[] rateLawDerivatives;
     }
 
     inline void temperatureSpeciesDerivatives(PreconditionerBase *preconditioner, double *concentrations, double *dwkdnj, double volume, ThermoPhase *thermo,Kinetics *kinetics, StateMap stateMap)
@@ -381,7 +376,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         }
     } 
 
-    void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double* y, double* ydot, double* rateLawDerivatives,StateMap stateMap, std::string key)
+    void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs, StateMap stateMap, std::string key)
     {   
         unsigned long idx = reactor->componentIndex(key)+stateMap["start"];
         preconditioner->setElement(idx,idx,1); //setting mass variable element of preconditioner equal to 1

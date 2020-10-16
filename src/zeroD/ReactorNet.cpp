@@ -415,9 +415,32 @@ void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
 void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* rhs, doublereal* output, doublereal* params)
 {
+
+    //Temporary state because preconditioner uses moles
     
+    double *tempState = new double[this->m_nv];
+    for (size_t n = 0; n < m_reactors.size(); n++) 
+    {
+        Reactor *currReactor = m_reactors.at(n); //get current reactor
+        unsigned long nStateVars = currReactor->neq()-currReactor->getThermoMgr()->nSpecies(); 
+        //Transferring unchanged parameters for each reactor
+        for (size_t i = 0; i < nStateVars; i++)
+        {   
+            unsigned long globalIndex = m_start.at(n)+i;
+            tempState[globalComponentIndex] = rhs[globalComponentIndex];
+        }
+        //Adjusting mass fraction parameters for each reactor
+        
+        
+
+
+    }
+
     this->m_preconditioner->solve(output,rhs,12);
-    checkFinite("ydot", ydot, m_nv);
+    
+    //Convert output
+
+    delete[] tempState;
 }
 
 }
