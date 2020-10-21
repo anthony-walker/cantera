@@ -204,6 +204,18 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
   //! @param *reactor A pointer to the current reactor being precondition
   void SpeciesDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap indexMap);
 
-}
+  //! This function is used to convert the system from mass fraction to mole fraction for solving the linear system with a mole based jacobian.
+  //! @param *reactor A pointer to the current reactor being converted
+  //! @param *tempState A double pointer to the temporary state used to solve the linear system
+  //! @param *rhs A double pointer provided to preconditioner solve of the initial rhs state
+  //! @param m_start An unsigned long for the global index of each species
+  void ForwardConversion(Reactor *currReactor, double *tempState, double *rhs, unsigned long m_start);
+
+  //! This function is used to convert the system from moles back to mass fraction after being solved with AMP preconditioner
+  //! @param *reactor A pointer to the current reactor being converted
+  //! @param *output A double pointer to the output vector of mole values
+  //! @param m_start An unsigned long for the global index of each species
+  void BackwardConversion(Reactor *currReactor, double *output, unsigned long m_start);
+} 
 
 #endif

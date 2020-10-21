@@ -405,7 +405,7 @@ void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
     //Reseting preconditioner for new setup
     this->m_preconditioner->reset(); 
     //Running preconditioner setup for all reactors
-    for (size_t n = 0; n < m_reactors.size(); n++) {
+    for (unsigned long n = 0; n < m_reactors.size(); n++) {
         this->m_preconditioner->setup(m_reactors[n],t, y, ydot, params ,m_start[n]);
     }
     checkFinite("ydot", ydot, m_nv);
@@ -415,31 +415,23 @@ void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
 void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* rhs, doublereal* output, doublereal* params)
 {
-
-    //Temporary state because preconditioner uses moles
-    
+    //Converting state to temporary mole state for solving linear system
     double *tempState = new double[this->m_nv];
-    for (size_t n = 0; n < m_reactors.size(); n++) 
+    for (unsigned long n = 0; n < m_reactors.size(); n++) 
     {
-        Reactor *currReactor = m_reactors.at(n); //get current reactor
-        unsigned long nStateVars = currReactor->neq()-currReactor->getThermoMgr()->nSpecies(); 
-        //Transferring unchanged parameters for each reactor
-        for (size_t i = 0; i < nStateVars; i++)
-        {   
-            unsigned long globalIndex = m_start.at(n)+i;
-            tempState[globalComponentIndex] = rhs[globalComponentIndex];
-        }
-        //Adjusting mass fraction parameters for each reactor
-        
-        
-
-
+        Cantera::AMP::ForwardConversion(m_reactors.at(n),tempState,rhs,m_start.at(n));
     }
 
-    this->m_preconditioner->solve(output,rhs,12);
-    
-    //Convert output
+    //Solve linear system for preconditioned output
+    this->m_preconditioner->solve(output,tempState,12);
 
+    //Convert output back
+    for (unsigned long n = 0; n < m_reactors.size(); n++) 
+    {
+        Cantera::AMP::BackwardConversion(m_reactors.at(n),output,m_start.at(n));
+    }
+
+    //Delete temporary mole state
     delete[] tempState;
 }
 

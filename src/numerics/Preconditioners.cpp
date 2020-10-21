@@ -376,6 +376,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         }
     } 
 
+    
+
     void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs, StateMap stateMap, std::string key)
     {   
         unsigned long idx = reactor->componentIndex(key)+stateMap["start"];
@@ -386,7 +388,45 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         Other functions used in preconditioner functions but not directly related to a state variable
     */
 
+   void ForwardConversion(Reactor *currReactor, double *tempState, double *rhs, unsigned long m_start)
+    {
+        ThermoPhase *thermo = currReactor->getThermoMgr();
+        double currMass =  currReactor->mass();
+        unsigned long nStateVars = currReactor->neq()-thermo->nSpecies(); 
+        //Transferring unchanged parameters for each reactor
+        for (unsigned long i = 0; i < nStateVars; i++)
+        {   
+            unsigned long globalIndex = m_start+i;
+            tempState[globalIndex] = rhs[globalIndex];
+        }
+        //Adjusting mass fraction parameters for each reactor to moles for AJP
+        double *molecularWeights = new double[thermo->nSpecies()];
+        thermo->getMolecularWeights(molecularWeights);
+        for (unsigned long i = 0; i < thermo->nSpecies(); i++)
+        {
+            unsigned long globalIndex = m_start+i+nStateVars;
+            tempState[globalIndex] = currMass*molecularWeights[i]*rhs[globalIndex];     
+        }
+        delete[] molecularWeights;
+    }
 
+    void BackwardConversion(Reactor *currReactor, double *output, unsigned long m_start)
+    {
+            ThermoPhase *thermo = currReactor->getThermoMgr();
+            double currMass =  currReactor->mass();
+            unsigned long nStateVars = currReactor->neq()-thermo->nSpecies(); 
+            //Do nothing to unchanged parameters
+            //Convert moles back to mass fractions
+            double *molecularWeights = new double[thermo->nSpecies()];
+            thermo->getMolecularWeights(molecularWeights);
+            for (unsigned long i = 0; i < thermo->nSpecies(); i++)
+            {
+                unsigned long globalIndex = m_start+i+nStateVars;
+                output[globalIndex] *= 1/(molecularWeights[i]*currMass);     
+            }
+            delete[] molecularWeights;
+    }
+    
     StateMap getStateMap(Reactor *reactor,unsigned long start)
     {
         StateMap stateMap;
