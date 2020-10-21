@@ -56,6 +56,9 @@ public:
     virtual size_t componentIndex(const std::string& nm) const;
     std::string componentName(size_t k);
 
+    virtual double evaluateEnergyEquation(doublereal time, doublereal* y,
+                      doublereal* ydot, doublereal* params);
+
 protected:
     vector_fp m_hk; //!< Species molar enthalpies
 };

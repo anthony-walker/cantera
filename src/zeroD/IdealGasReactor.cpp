@@ -162,7 +162,7 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
 { 
-    m_dEdt = 0.0; // m * c_v * dT/dt
+    this->m_dEdt = 0.0; // m * c_v * dT/dt
     evalWalls(time);
     applySensitivity(params);
     m_thermo->restoreState(m_state);
@@ -176,28 +176,28 @@ double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
     if (m_energy)
     {
         // compression work and external heat transfer
-        m_dEdt += - m_pressure * m_vdot - m_Q;
+        this->m_dEdt += - m_pressure * m_vdot - m_Q;
 
         for (size_t n = 0; n < m_nsp; n++) {
             // heat release from gas phase and surface reactions
-            m_dEdt -= m_wdot[n] * m_uk[n] * m_vol;
-            m_dEdt -= m_sdot[n] * m_uk[n];
+            this->m_dEdt -= m_wdot[n] * m_uk[n] * m_vol;
+            this->m_dEdt -= m_sdot[n] * m_uk[n];
         }
 
         // add terms for outlets
         for (auto outlet : m_outlet) 
         {
-            m_dEdt -= outlet->massFlowRate() * m_pressure * m_vol / m_mass; // flow work
+            this->m_dEdt -= outlet->massFlowRate() * m_pressure * m_vol / m_mass; // flow work
         }
 
         // add terms for inlets
         for (auto inlet : m_inlet) 
         {
-            m_dEdt += inlet->enthalpy_mass() * inlet->massFlowRate();
+            this->m_dEdt += inlet->enthalpy_mass() * inlet->massFlowRate();
             for (size_t n = 0; n < m_nsp; n++) {
                 // In combination with h_in*mdot_in, flow work plus thermal
                 // energy carried with the species
-                m_dEdt -= m_uk[n] / mw[n] * inlet->outletSpeciesMassFlowRate(n);
+                this->m_dEdt -= m_uk[n] / mw[n] * inlet->outletSpeciesMassFlowRate(n);
             }
         }
     }
