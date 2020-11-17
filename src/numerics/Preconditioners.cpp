@@ -226,6 +226,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
             preconditioner->setElementByThreshold(j+speciesStart,tempIndex,(netProductionRatesNext[j]-netProductionRatesCurrent[j])/deltaTemp); //Add by threshold specTempDerivative
         }
 
+
     }
 
 
