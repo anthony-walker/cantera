@@ -1,5 +1,4 @@
 #include "cantera/numerics/Preconditioners.h"
-#include <regex>
 
 namespace Cantera
 {
@@ -50,7 +49,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     AdaptivePreconditioner::AdaptivePreconditioner()
     {
-        this->functionMap["temperature"] = TemperatureDerivatives;
+        this->addToFunctionMap("temperature",TemperatureDerivatives); //Adding temperature to function map
     }
 
     void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols)
@@ -145,6 +144,23 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         this->matrix.setZero(); //Set all elements to zero
         this->matrix.makeCompressed(); //Compress matrix
         this->matrix.reserve(this->nonzeros); //Reserve space potentially needed
+    }
+
+    void AdaptivePreconditioner::addToFunctionMap(std::string component, AdaptiveFunction newFunction)
+    {
+        this->functionMap[component] = newFunction;
+    }
+
+    void AdaptivePreconditioner::removeFromFunctionMap(std::string component)
+    {
+        if ( this->functionMap.find(component) != this->functionMap.end() ) 
+        {
+            this->functionMap.erase(component);
+        }
+        else
+        {
+            warn_user("Cantera::AdaptivePreconditioner::removeFromFunctionMap",component+": key not found");
+        }
     }
 
     /**

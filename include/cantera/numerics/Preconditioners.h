@@ -166,6 +166,13 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //@param x a double pointer to the vector (array) to store inv(A)*b
         //@param b a double pointer to the vector (array) multiplied by inv(A)
         virtual void solve(double* x, double *b,unsigned long size);
+        //!Function to add extra functions to function map
+        //@param component a string type used as the map key
+        //@param newFunction AdaptiveFunction type for the function to be added
+        virtual void addToFunctionMap(std::string component, AdaptiveFunction newFunction);
+        //!Function to remove undesirable functions from function map
+        //@param component a string type used as the map key
+        virtual void removeFromFunctionMap(std::string component);
 
     };
 
