@@ -170,7 +170,6 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         this->nonzeros = this->dimensions[0]*this->dimensions[1]/2; //Reserves up to half the total spaces
         this->matrix.resize(nrows,ncols);
         this->matrix.reserve(this->nonzeros);
-        
     }
 
     void AdaptivePreconditioner::reset()
@@ -213,7 +212,6 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         kinetics->getNetProductionRates(netProductionRatesCurrent);
         double TDotCurrent = reactor->evaluateEnergyEquation(*inputs[0],inputs[1],inputs[2],inputs[3])/(thermo->cp_mass()*reactor->mass()); //Current internal energy
 
-        // printf("%0.16f, %0.16f, %0.16f\n",TDotNext,TDotCurrent,deltaTemp);
         /**
          * Temp Rate Derivatives w.r.t Temp
          * d T_dot/dT

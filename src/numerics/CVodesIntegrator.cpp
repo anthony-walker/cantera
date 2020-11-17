@@ -435,10 +435,11 @@ void CVodesIntegrator::applyOptions()
         #if CT_SUNDIALS_VERSION >= 30 //Only works for version Sundials 3.0 or newer
             int flag;// flag for debugging
             //Set linear solver - this must be done before preconditioner is set preconditioner
-            m_linsol =  SUNLinSol_SPGMR(m_y, PREC_LEFT, 0); //Change me
-            flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
+            m_linsol =  SUNLinSol_SPGMR(m_y, PREC_LEFT, 0); //make solver Scaled Preconditioned General Minimum Residual
+            // SUNLinSol_SPGMRSetPrecType();
+            flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol); //set linear solver
             //Set preconditioner
-            flag = CVodeSetPreconditioner(m_cvode_mem,cvodes_jac_setup,cvodes_jac_solve);
+            flag = CVodeSetPreconditioner(m_cvode_mem,cvodes_jac_setup,cvodes_jac_solve); //Set preconditioner functions
         #endif
     } 
     else if (m_type == BAND + NOJAC) {
