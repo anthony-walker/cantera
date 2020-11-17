@@ -30,28 +30,18 @@ ReactorNet::ReactorNet() :
 }
 
 
-void ReactorNet::setIntegratorType(int integratorType, int preconditionerType)
+void ReactorNet::setIntegratorType(int integratorType)
+{   
+    this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem type
+}
+void ReactorNet::setIntegratorType(PreconditionerBase* preconditioner, int integratorType)
 {
     /*
     Use this function to set the type of integrator, options are combinations of the following:
     */
-   this->m_preconditioner_type=preconditionerType;
-   int problemTypeAddition = PRECONDITIONER_NOT_SET;
-   switch (preconditionerType)
-    {
-    case PRECONDITIONER_NOT_SET:
-        //Do nothing
-        break;
-    case ADAPTIVE_MECHANISM_PRECONDITIONER:
-        this->m_preconditioner = new Cantera::AMP::AdaptivePreconditioner;
-        problemTypeAddition=PRECONDITION;
-        break;
-    default:
-        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
-        break;
-    }
-  
-    this->m_integ->setProblemType(integratorType+problemTypeAddition); //Use integrator member function to set problem type
+    this->m_preconditioner=preconditioner; //setting the preconditioner
+    this->m_preconditioner_type = preconditioner->getPreconditionerType();
+    this->m_integ->setProblemType(integratorType+PRECONDITION); //Use integrator member function to set problem type
 }
 
 

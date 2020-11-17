@@ -25,16 +25,28 @@ class ReactorNet : public FuncEval
 {
 public:
     ReactorNet();
-    virtual ~ReactorNet() {if(m_dynamic_prec_alloc){delete m_preconditioner;}};
+    virtual ~ReactorNet(){};
     ReactorNet(const ReactorNet&) = delete;
     ReactorNet& operator=(const ReactorNet&) = delete;
 
     //! @name Methods to set up a simulation.
     //@{
 
+
     //! Set the type of integrator to be used
     //! @param integratorType type of integrator used, default: DENSE+NOJAC
-    //! @param preconditionerType type of preconditioner to be used, default: PRECONDITIONER_NOT_SET
+    //! Integrator Types:
+    //!     const int DIAG = 1;
+    //!    const int DENSE = 2;
+    //!     const int NOJAC = 4;
+    //!     const int JAC = 8;
+    //!     const int GMRES = 16;
+    //!     const int BAND = 32;
+    void setIntegratorType(int integratorType=DENSE+NOJAC);
+
+    //! Set the type of integrator to be used
+    //! @param integratorType type of integrator used, default: GMRES
+    //! @param preconditioner a preconditioner object to be used
     //! Integrator Types:
     //!     const int DIAG = 1;
     //!    const int DENSE = 2;
@@ -44,7 +56,7 @@ public:
     //!     const int BAND = 32;
     //! Preconditioner Types:
     //! 1 - ADAPTIVE_MECHANISM_PRECONDITIONER
-    void setIntegratorType(int integratorType=DENSE+NOJAC,int preconditionerType=0);
+    void setIntegratorType(PreconditionerBase* preconditioner, int integratorType=GMRES);
 
     //! Set initial time. Default = 0.0 s. Restarts integration from this time
     //! using the current mixture state as the initial condition.
@@ -332,10 +344,9 @@ protected:
 
     //! Pointer to preconditioner
     PreconditionerBase *m_preconditioner;
-    //! Integer controlling preconditioner type
-    int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
-    //! Bool to prevent memory leak of preconditioner is dynamically allocated
-    bool m_dynamic_prec_alloc = false;
+    //! preconditioner type set
+    unsigned long m_preconditioner_type=PRECONDITIONER_NOT_SET; //default setting is that it is not on.
+
 };
 }
 

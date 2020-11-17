@@ -32,43 +32,10 @@ namespace Cantera
         this->dimensions[1] = ncols;
     }
 
-    void PreconditionerBase::setElement(unsigned long row, unsigned long col, double element)
-    {
-        warn_user("PreconditionerBase::setElement","setElement function has not been overriden");
-    }
-
-
     unsigned long* PreconditionerBase::getDimensions()
     {
         return &(this->dimensions[0]);
     }
-
-    double PreconditionerBase::getElement(unsigned long row, unsigned long col)
-    {
-        warn_user("PreconditionerBase::getElement","getElement function has not been overriden, returning 1.");
-        return 1.0;
-    }
-
-    void PreconditionerBase::initialize(unsigned long nrows,unsigned long ncols)
-    {
-        warn_user("PreconditionerBase::initialize","initialize function has not been overriden.");
-    }
-    
-    void PreconditionerBase::reset()
-    {
-        warn_user("PreconditionerBase::reset","reset function has not been overriden.");
-    }
-    
-    void PreconditionerBase::setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)
-    {
-        throw CanteraError("PreconditionerBase::setup", "Reactor type:(Reactor) is not implemented for the specified preconditioner type.");
-    }
-
-    void PreconditionerBase::solve(double* x, double* b,unsigned long size)
-    {
-        throw CanteraError("PreconditionerBase::setup", "Reactor type:(IdealGasConstPressureReactor) is not implemented for the specified preconditioner type.");
-    }
-
 }
 
 

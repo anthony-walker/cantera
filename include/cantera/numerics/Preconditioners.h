@@ -36,7 +36,9 @@ const int PRECONDITIONER_NOT_SET = 0;
 namespace Cantera//Making ASP apart of Cantera namespace
 {
   class PreconditionerBase
-  {
+  { 
+    private:
+        
     protected:
         //@param threshold a double value to selectively fill the matrix structure based on this threshold
         double threshold=10e-16; //default 
@@ -46,22 +48,38 @@ namespace Cantera//Making ASP apart of Cantera namespace
         PreconditionerBase(/* args */){}
         PreconditionerBase(const PreconditionerBase &precBase){*this=precBase;} //Copy constructor
         virtual ~PreconditionerBase(){} //destructor
-
+        virtual unsigned long getPreconditionerType(){return PRECONDITIONER_NOT_SET;};
         /*
 
           Reactor Setup & Solve Functions
 
         */
+
+       //Pure virtual functions
+
+       //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
+        //@param x a double pointer to the vector (array) to store inv(A)*b
+        //@param b a double pointer to the vector (array) multiplied by inv(A)
+        virtual void solve(double* x, double *b,unsigned long size)=0;
         //! This function performs the setup of the preconditioner for the specified reactor type and should be overloaded for each different reactor time
         //!@param reactor A Reactor object pointer
         //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
-        virtual void setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart);
+        virtual void setup(Reactor *reactor, double t, double* y, double* ydot, double* params, unsigned long reactorStart)=0;
         //!This function is called during setup for any processes that need to be completed prior to setup functions
         //! e.g. dynamic memory allocation
-        virtual void initialize(unsigned long nrows,unsigned long ncols);
+        virtual void initialize(unsigned long nrows,unsigned long ncols)=0;
         //!This function is called during setup for any processes that need to be completed post to setup functions
         //! e.g. dynamic memory allocation
-        virtual void reset();
+        virtual void reset()=0;
+        //!Function used to set a specific element of the matrix structure
+        //!@param row unsigned long specifying the row location
+        //!@param col unsigned long specifying the column location
+        //!@param element double value to be inserted into matrix structure
+        virtual void setElement(unsigned long row, unsigned long col, double element)=0; //set element
+        //!Function used to get a specific element of the matrix structure
+        //!@param row unsigned long specifying the row location
+        //!@param col unsigned long specifying the column location
+        virtual double getElement(unsigned long row, unsigned long col)=0; //get element
 
         //Other preconditioner functions
 
@@ -75,15 +93,6 @@ namespace Cantera//Making ASP apart of Cantera namespace
         //!@param col unsigned long specifying the column location
         //!@param element double value to be inserted into matrix structure
         virtual void setElementByThreshold(unsigned long row,unsigned long col, double element);
-        //!Function used to set a specific element of the matrix structure
-        //!@param row unsigned long specifying the row location
-        //!@param col unsigned long specifying the column location
-        //!@param element double value to be inserted into matrix structure
-        virtual void setElement(unsigned long row, unsigned long col, double element); //set element
-        //!Function used to get a specific element of the matrix structure
-        //!@param row unsigned long specifying the row location
-        //!@param col unsigned long specifying the column location
-        virtual double getElement(unsigned long row, unsigned long col); //get element
         //!Function used to set the dimensions of and construct the matrix structure - required for initialization and use of the class
         //!@param nrows unsigned long number of rows in the structure
         //!@param ncols unsigned long nubmer of columns in the structure
@@ -91,10 +100,7 @@ namespace Cantera//Making ASP apart of Cantera namespace
         virtual void setDimensions(unsigned long nrows,unsigned long ncols);
         //!Function to return the dimensions of the matrix structure
         virtual unsigned long* getDimensions();
-        //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
-        //@param x a double pointer to the vector (array) to store inv(A)*b
-        //@param b a double pointer to the vector (array) multiplied by inv(A)
-        virtual void solve(double* x, double *b,unsigned long size);
+        
   };
 }
 
@@ -125,6 +131,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         AdaptivePreconditioner(/* args */);
         ~AdaptivePreconditioner(){};
         AdaptivePreconditioner(const AdaptivePreconditioner &preconditioner){*this=preconditioner;} //Copy constructor
+        virtual unsigned long getPreconditionerType(){return ADAPTIVE_MECHANISM_PRECONDITIONER;};
         //! This function performs the setup of the preconditioner for the specified reactor type and should be overloaded for each different reactor time
         //!@param reactor A Reactor object pointer
         //!@param reactorStart an unsigned long providing the index location in which the state of the given reactor starts
