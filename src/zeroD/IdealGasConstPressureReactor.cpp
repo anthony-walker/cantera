@@ -130,8 +130,7 @@ void IdealGasConstPressureReactor::evalEqs(doublereal time, doublereal* y,
 double IdealGasConstPressureReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
     {
-        
-        this->m_dEdt = 0.0; // m * c_p * dT/dt
+        double m_dEdt = 0; // m * c_p * dT/dt
         applySensitivity(params);
         evalWalls(time);
         m_thermo->restoreState(m_state);
@@ -145,33 +144,33 @@ double IdealGasConstPressureReactor::evaluateEnergyEquation(doublereal time, dou
         if (m_energy)
         {
             // external heat transfer
-            this->m_dEdt -= m_Q;
+            m_dEdt -= m_Q;
 
             for (size_t n = 0; n < m_nsp; n++) {
                 // heat release from gas phase and surface reactions
-                this->m_dEdt -= m_wdot[n] * m_hk[n] * m_vol;
-                this->m_dEdt -= m_sdot[n] * m_hk[n];
+                m_dEdt -= m_wdot[n] * m_hk[n] * m_vol;
+                m_dEdt -= m_sdot[n] * m_hk[n];
             }
 
             // add terms for inlets
             for (auto inlet : m_inlet) 
             {
                 double mdot = inlet->massFlowRate();
-                this->m_dEdt += inlet->enthalpy_mass() * mdot;
+                m_dEdt += inlet->enthalpy_mass() * mdot;
                 for (size_t n = 0; n < m_nsp; n++) 
                 {
                     double mdot_spec = inlet->outletSpeciesMassFlowRate(n);
-                        this->m_dEdt -= m_hk[n] / mw[n] * mdot_spec;
+                        m_dEdt -= m_hk[n] / mw[n] * mdot_spec;
                 }
             }
         }
         else
         {
-            this->m_dEdt=0.0;
+            m_dEdt=0.0;
         }
         
         resetSensitivity(params);
-        return this->m_dEdt;
+        return m_dEdt;
     }
 
 size_t IdealGasConstPressureReactor::componentIndex(const string& nm) const

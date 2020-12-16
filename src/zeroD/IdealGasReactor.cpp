@@ -6,7 +6,6 @@
 #include "cantera/zeroD/IdealGasReactor.h"
 #include "cantera/zeroD/FlowDevice.h"
 #include "cantera/zeroD/Wall.h"
-#include "cantera/numerics/PreconditioningLibrary.h"
 
 using namespace std;
 
@@ -153,7 +152,12 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 
     ydot[0] = dmdt;
     ydot[1] = m_vdot;
-    ydot[2] = (mcvdTdt/(m_mass * m_thermo->cv_mass())) ? m_energy : 0.0; //m * c_v * dT/dt
+    if (m_energy) {
+        ydot[2] = mcvdTdt / (m_mass * m_thermo->cv_mass());
+    } else {
+        ydot[2] = 0;
+    }
+
     resetSensitivity(params);
 }
     
@@ -162,7 +166,8 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
 { 
-    this->m_dEdt = 0.0; // m * c_v * dT/dt
+
+    double m_dEdt = 0.0; // m * c_v * dT/dt
     evalWalls(time);
     applySensitivity(params);
     m_thermo->restoreState(m_state);
@@ -176,37 +181,37 @@ double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
     if (m_energy)
     {
         // compression work and external heat transfer
-        this->m_dEdt += - m_pressure * m_vdot - m_Q;
+        m_dEdt += - m_pressure * m_vdot - m_Q;
 
         for (size_t n = 0; n < m_nsp; n++) {
             // heat release from gas phase and surface reactions
-            this->m_dEdt -= m_wdot[n] * m_uk[n] * m_vol;
-            this->m_dEdt -= m_sdot[n] * m_uk[n];
+            m_dEdt -= m_wdot[n] * m_uk[n] * m_vol;
+            m_dEdt -= m_sdot[n] * m_uk[n];
         }
 
         // add terms for outlets
         for (auto outlet : m_outlet) 
         {
-            this->m_dEdt -= outlet->massFlowRate() * m_pressure * m_vol / m_mass; // flow work
+            m_dEdt -= outlet->massFlowRate() * m_pressure * m_vol / m_mass; // flow work
         }
 
         // add terms for inlets
         for (auto inlet : m_inlet) 
         {
-            this->m_dEdt += inlet->enthalpy_mass() * inlet->massFlowRate();
+            m_dEdt += inlet->enthalpy_mass() * inlet->massFlowRate();
             for (size_t n = 0; n < m_nsp; n++) {
                 // In combination with h_in*mdot_in, flow work plus thermal
                 // energy carried with the species
-                this->m_dEdt -= m_uk[n] / mw[n] * inlet->outletSpeciesMassFlowRate(n);
+                m_dEdt -= m_uk[n] / mw[n] * inlet->outletSpeciesMassFlowRate(n);
             }
         }
     }
     else
     {
-        this->m_dEdt = 0.0; // m * c_v * dT/dt
+        m_dEdt = 0.0; // m * c_v * dT/dt
     }
     resetSensitivity(params);
-    return this->m_dEdt;
+    return m_dEdt;
 }
 
 size_t IdealGasReactor::componentIndex(const string& nm) const
