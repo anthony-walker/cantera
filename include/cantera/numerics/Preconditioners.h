@@ -128,7 +128,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         unsigned long nonzeros;
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW 
-        AdaptivePreconditioner(/* args */);
+        AdaptivePreconditioner(/* args */){};
+        AdaptivePreconditioner(int rtype);
         ~AdaptivePreconditioner(){};
         AdaptivePreconditioner(const AdaptivePreconditioner &preconditioner){*this=preconditioner;} //Copy constructor
         virtual unsigned long getPreconditionerType(){return ADAPTIVE_MECHANISM_PRECONDITIONER;};

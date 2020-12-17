@@ -47,9 +47,13 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
      * 
      * **/
 
-    AdaptivePreconditioner::AdaptivePreconditioner()
-    {
+
+    AdaptivePreconditioner::AdaptivePreconditioner(int rtype)
+    {   
+        if (rtype==0)
+        {
         this->addToFunctionMap("temperature",TemperatureDerivatives); //Adding temperature to function map
+        }
     }
 
     void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols)
@@ -116,17 +120,18 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
             //If key not found in function map, no precondition
             if ( this->functionMap.find(component) == this->functionMap.end() ) 
             {
-                // std::cout<<"No Precondition: "<<component<<std::endl;
+                std::cout<<"No Precondition: "<<component<<std::endl;
                 NoPrecondition(this,reactor,inputs,stateMap,component);
             } 
             //Key is found call appropriate preconditioner function
             else {
                 //Calling component function
+                std::cout<<"Appropriate Function: "<<component<<std::endl;
                 this->functionMap[component](this,reactor,inputs,stateMap,component);
             }  
         }
         
-        std::cout<<Eigen::MatrixXd(this->matrix)<<std::endl;   
+        // std::cout<<Eigen::MatrixXd(this->matrix)<<std::endl;   
     }
 
     void AdaptivePreconditioner::initialize(unsigned long nrows,unsigned long ncols)
