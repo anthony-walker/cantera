@@ -74,20 +74,11 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
     double dmdt = 0.0; // dm/dt (gas phase)
     double mcvdTdt = 0.0; // m * c_v * dT/dt
     double* dYdt = ydot + 3;
-<<<<<<< HEAD
 
     evalWalls(time);
     applySensitivity(params);
     m_thermo->restoreState(m_state);
     m_thermo->getPartialMolarIntEnergies(&m_uk[0]);
-=======
-    /*
-    Evaluating energy equation where
-    flow devices, walls, and etc are also evaluated
-    */
-    evaluateEnergyEquation(time,y,ydot,params);
-    //Getting mass fractions and molecular weights
->>>>>>> c9b17a9b9 (Adding evaluation of energy equation as separate function so as not to repeat work)
     const vector_fp& mw = m_thermo->molecularWeights();
     const doublereal* Y = m_thermo->massFractions();
 
@@ -112,7 +103,6 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
     }
 
     // add terms for outlets
-<<<<<<< HEAD
     for (auto outlet : m_outlet) {
         double mdot = outlet->massFlowRate();
         dmdt -= mdot; // mass flow out of system
@@ -124,29 +114,14 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
         double mdot = inlet->massFlowRate();
         dmdt += mdot; // mass flow into system
         mcvdTdt += inlet->enthalpy_mass() * mdot;
-=======
-    for (size_t i = 0; i < m_outlet.size(); i++) {
-        // double mdot_out = m_outlet[i]->massFlowRate(time);
-        dmdt -= m_mdot_out[i]; // mass flow out of system
-    }
-
-    // add terms for inlets
-    for (size_t i = 0; i < m_inlet.size(); i++) {
-        // double mdot_in = m_inlet[i]->massFlowRate(time);
-        dmdt += m_mdot_in[i]; // mass flow into system
->>>>>>> c9b17a9b9 (Adding evaluation of energy equation as separate function so as not to repeat work)
         for (size_t n = 0; n < m_nsp; n++) {
             double mdot_spec = inlet->outletSpeciesMassFlowRate(n);
             // flow of species into system and dilution by other species
-<<<<<<< HEAD
             dYdt[n] += (mdot_spec - mdot * Y[n]) / m_mass;
 
             // In combination with h_in*mdot_in, flow work plus thermal
             // energy carried with the species
             mcvdTdt -= m_uk[n] / mw[n] * mdot_spec;
-=======
-            dYdt[n] += (mdot_spec - m_mdot_in[i] * Y[n]) / m_mass;
->>>>>>> c9b17a9b9 (Adding evaluation of energy equation as separate function so as not to repeat work)
         }
     }
 

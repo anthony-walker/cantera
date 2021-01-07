@@ -282,27 +282,6 @@ void Reactor::evalWalls(double t)
     }
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-void Reactor::setPreconditionerType(int prec_type)
-{
-    this->m_preconditioner_type=prec_type;
-}
-
-void Reactor::evalFlowDevices(double t)
-{
-    for (size_t i = 0; i < m_outlet.size(); i++) {
-        m_mdot_out[i] = m_outlet[i]->massFlowRate(t);
-    }
-    for (size_t i = 0; i < m_inlet.size(); i++) {
-        m_mdot_in[i] = m_inlet[i]->massFlowRate(t);
-    }
-}
-
->>>>>>> f56793d51 (Tying into reactor and idealgasreactor, need to make preconditioner functions for these cases.)
-=======
->>>>>>> 3e8c03828 (Setup network-preconditioner approach on this branch)
 double Reactor::evalSurfaces(double t, double* ydot)
 {
     const vector_fp& mw = m_thermo->molecularWeights();
