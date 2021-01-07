@@ -265,14 +265,29 @@ void Reactor::evalEqs(doublereal time, doublereal* y,
     resetSensitivity(params);
 }
 
-void Reactor::reactorJacSetup(doublereal t, doublereal* y,
+void Reactor::reactorPrecSetup(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params)
 {   
-    printf("%s\n","Made it to setup");
-    // AMP::SpeciesSpeciesDerivative(this->m_preconditioner,this);
+    switch (this->m_preconditioner_type)
+    {
+    case PRECONDITIONER_NOT_SET:
+        throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
+        break;
+
+    case ADAPTIVE_MECHANISM_PRECONDITIONER:
+        std::cout<<"Reactor"<<std::endl;
+        // Cantera::AMP::printReactorComponents(this);
+        Cantera::AMP::SpeciesSpeciesDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
+        Cantera::AMP::SpeciesVolumeDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
+        break;
+
+    default:
+        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
+        break;
+    }
 }
 
-void Reactor::reactorJacSolve(doublereal t, doublereal* y,
+void Reactor::reactorPrecSolve(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params)
 {
 
@@ -290,6 +305,24 @@ void Reactor::evalWalls(double t)
     }
 }
 
+<<<<<<< HEAD
+=======
+void Reactor::setPreconditionerType(int prec_type)
+{
+    this->m_preconditioner_type=prec_type;
+}
+
+void Reactor::evalFlowDevices(double t)
+{
+    for (size_t i = 0; i < m_outlet.size(); i++) {
+        m_mdot_out[i] = m_outlet[i]->massFlowRate(t);
+    }
+    for (size_t i = 0; i < m_inlet.size(); i++) {
+        m_mdot_in[i] = m_inlet[i]->massFlowRate(t);
+    }
+}
+
+>>>>>>> f56793d51 (Tying into reactor and idealgasreactor, need to make preconditioner functions for these cases.)
 double Reactor::evalSurfaces(double t, double* ydot)
 {
     const vector_fp& mw = m_thermo->molecularWeights();

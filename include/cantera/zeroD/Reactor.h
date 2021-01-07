@@ -122,11 +122,16 @@ public:
     virtual void evalEqs(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
-    virtual void reactorJacSetup(doublereal t, doublereal* y,
+    virtual void reactorPrecSetup(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
-    virtual void reactorJacSolve(doublereal t, doublereal* y,
+    virtual void reactorPrecSolve(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
+
+    //! Use this function to set the preconditioner type
+    //! 1 -  adaptive mechanism preconditioning
+    //! 
+    virtual void setPreconditionerType(int prec_type);
 
     virtual void syncState();
 
@@ -219,6 +224,8 @@ protected:
     
     //! Pointer to preconditioner
     SparseMatrix<SundialsSparseMatrix> m_preconditioner;
+    //! Integer controlling preconditioner type
+    int m_preconditioner_type=0;
 
     doublereal m_vdot; //!< net rate of volume change from moving walls [m^3/s]
     doublereal m_Q; //!< net heat transfer through walls [W]

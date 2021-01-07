@@ -282,6 +282,11 @@ public:
 
     int preconditioner_solve_nothrow(double t, double* y, double* ydot);
 
+    //! Use this function to set the preconditioner type
+    //! 1 -  adaptive mechanism preconditioning
+    //! 
+    void setPreconditionerTypes(int prec_type);
+
 protected:
 
     //! Estimate a future state based on current derivatives.

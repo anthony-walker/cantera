@@ -136,6 +136,34 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
     resetSensitivity(params);
 }
 
+void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params)
+{   
+    switch (this->m_preconditioner_type)
+    {
+    case PRECONDITIONER_NOT_SET:
+        throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
+        break;
+
+    case ADAPTIVE_MECHANISM_PRECONDITIONER:
+        std::cout<<"IdealGasReactor"<<std::endl;
+        // Cantera::AMP::printReactorComponents(this);
+        Cantera::AMP::SpeciesSpeciesDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
+        Cantera::AMP::SpeciesVolumeDerivative<SundialsSparseMatrix>(&(this->m_preconditioner),this);
+        break;
+
+    default:
+        throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
+        break;
+    }
+}
+
+void IdealGasReactor::reactorPrecSolve(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params)
+{
+
+}
+
 size_t IdealGasReactor::componentIndex(const string& nm) const
 {
     size_t k = speciesIndex(nm);

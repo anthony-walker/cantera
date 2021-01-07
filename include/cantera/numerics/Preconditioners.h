@@ -5,6 +5,10 @@ This is the this file contains functions to adaptively precondition the sparse m
 #ifndef ADAPTIVE_SPARSE_PRECONDITIONER_H
 #define ADAPTIVE_SPARSE_PRECONDITIONER_H
 
+const int ADAPTIVE_MECHANISM_PRECONDITIONER = 1;
+const int PRECONDITIONER_NOT_SET = 0;
+
+
 //Cantera imports
 #include "cantera/numerics/SparseMatrix.h"
 #include "cantera/thermo.h"
@@ -28,6 +32,15 @@ namespace Cantera //Making ASP apart of Cantera namespace
 {
   namespace AMP //AdaptiveMechanismPreconditioner
   {
+
+  inline void printReactorComponents(Reactor* reactor)
+  {
+    for (size_t i = 0; i < reactor->neq(); i++)
+    {
+      std::cout<<reactor->componentName(i)<<std::endl;
+    }
+  }
+
   //Non-template functions
   inline void derivativeFromComposition(std::map<std::string, double> comp,std::map<std::string,size_t> indexMap, double* omega, double* concentrations, double k_direction, double volume){ 
     //flattened index for derivatives
@@ -127,7 +140,7 @@ template<class MATTYPE> void SpeciesSpeciesDerivative(SparseMatrix<MATTYPE> *pre
   delete[] rateLawDerivatives;
 }
 
-template<class MATTYPE> void SpeciesStateDerivative(SparseMatrix<MATTYPE> *preconditioner,ReactorNet* network, size_t rStart)
+template<class MATTYPE> void SpeciesVolumeDerivative(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor)
 {
   /*
     This is the main preconditioner function which takes a SparseMatrix created by Eigen of the appropriate size.

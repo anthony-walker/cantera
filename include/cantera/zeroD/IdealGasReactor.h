@@ -7,6 +7,7 @@
 #define CT_IDEALGASREACTOR_H
 
 #include "Reactor.h"
+#include "cantera/numerics/Preconditioners.h"
 
 namespace Cantera
 {
@@ -43,6 +44,12 @@ public:
     virtual void initialize(doublereal t0 = 0.0);
 
     virtual void evalEqs(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
+    virtual void reactorPrecSetup(doublereal t, doublereal* y,
+                         doublereal* ydot, doublereal* params);
+
+    virtual void reactorPrecSolve(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
     virtual void updateState(doublereal* y);
