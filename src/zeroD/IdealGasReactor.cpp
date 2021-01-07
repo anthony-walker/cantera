@@ -72,6 +72,7 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
 {
     double dmdt = 0.0; // dm/dt (gas phase)
+    double mcvdTdt = 0.0; // m * c_v * dT/dt
     double* dYdt = ydot + 3;
 <<<<<<< HEAD
 
@@ -89,11 +90,21 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 >>>>>>> c9b17a9b9 (Adding evaluation of energy equation as separate function so as not to repeat work)
     const vector_fp& mw = m_thermo->molecularWeights();
     const doublereal* Y = m_thermo->massFractions();
-    //Evaluation of surfaces
+
+    if (m_chem) {
+        m_kin->getNetProductionRates(&m_wdot[0]); // "omega dot"
+    }
+
     double mdot_surf = evalSurfaces(time, ydot + m_nsp + 3);
     dmdt += mdot_surf;
 
+    // compression work and external heat transfer
+    mcvdTdt += - m_pressure * m_vdot - m_Q;
+
     for (size_t n = 0; n < m_nsp; n++) {
+        // heat release from gas phase and surface reactions
+        mcvdTdt -= m_wdot[n] * m_uk[n] * m_vol;
+        mcvdTdt -= m_sdot[n] * m_uk[n];
         // production in gas phase and from surfaces
         dYdt[n] = (m_wdot[n] * m_vol + m_sdot[n]) * mw[n] / m_mass;
         // dilution by net surface mass flux
@@ -138,21 +149,26 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 >>>>>>> c9b17a9b9 (Adding evaluation of energy equation as separate function so as not to repeat work)
         }
     }
+
     ydot[0] = dmdt;
     ydot[1] = m_vdot;
-    ydot[2] = m_dEdt / (m_mass * m_thermo->cv_mass()); //m_dEdt set to zero in evaluateEnergyEquation if not m_energy // m * c_v * dT/dt
+    ydot[2] = (mcvdTdt/(m_mass * m_thermo->cv_mass())) ? m_energy : 0.0; //ydot set to zero if not m_energy //m * c_v * dT/dt
     resetSensitivity(params);
 }
+    
+
 
 void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
 { 
-    evalFlowDevices(time);
+    m_dEdt = 0.0; // m * c_v * dT/dt
+
     evalWalls(time);
     applySensitivity(params);
     m_thermo->restoreState(m_state);
     m_thermo->getPartialMolarIntEnergies(&m_uk[0]);
     const vector_fp& mw = m_thermo->molecularWeights();
+
     if (m_chem) 
     {
         m_kin->getNetProductionRates(&m_wdot[0]); // "omega dot"
@@ -169,20 +185,19 @@ void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
         }
 
         // add terms for outlets
-        for (size_t i = 0; i < m_outlet.size(); i++) 
+        for (auto outlet : m_outlet) 
         {
-            m_dEdt -= m_mdot_out[i] * m_pressure * m_vol / m_mass; // flow work
+            m_dEdt -= outlet->massFlowRate() * m_pressure * m_vol / m_mass; // flow work
         }
 
         // add terms for inlets
-        for (size_t i = 0; i < m_inlet.size(); i++) 
+        for (auto inlet : m_inlet) 
         {
-            m_dEdt += m_inlet[i]->enthalpy_mass() * m_mdot_in[i];
+            m_dEdt += inlet->enthalpy_mass() * inlet->massFlowRate();
             for (size_t n = 0; n < m_nsp; n++) {
-                double mdot_spec = m_inlet[i]->outletSpeciesMassFlowRate(n);
                 // In combination with h_in*mdot_in, flow work plus thermal
                 // energy carried with the species
-                m_dEdt -= m_uk[n] / mw[n] * mdot_spec;
+                m_dEdt -= m_uk[n] / mw[n] * inlet->outletSpeciesMassFlowRate(n);
             }
         }
     }
@@ -194,17 +209,17 @@ void IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
 
 
 void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params)
+                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner,size_t prec_type,size_t start)
 {   
     //Setting up preconditioner
-    this->m_preconditioner.setDimensions(this->m_nv,this->m_nv); //setting number of dimensions for preconditioner
+    m_preconditioner->setDimensions(this->m_nv,this->m_nv); //setting number of dimensions for preconditioner
     //Defining index variables
-    size_t speciesStart = 3; //starting index for species
+    size_t speciesStart = start+3; //starting index for species
     //Getting derivative of temp w.r.t time - a lot of extra evaluation here, potentially add boolean to prevent recalculation in RHS function if possible
     this->evaluateEnergyEquation(t,y,ydot,params); //Solving energy equation for preconditioner
     double dTdt =this->m_dEdt/(this->m_mass*(this->m_thermo)->cv_mass()); //adjusting energy to get dTdt - K/s
     //Filling preconditioner based on type of preconditioner
-    switch (this->m_preconditioner_type)
+    switch (prec_type)
     {
     case PRECONDITIONER_NOT_SET:
         throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
@@ -213,8 +228,8 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
         std::cout<<"IdealGasReactor"<<std::endl;
         // Cantera::AMP::printReactorComponents(this);
         //Species derivatives
-        Cantera::AMP::SpeciesSpeciesDerivatives<SundialsSparseMatrix>(&(this->m_preconditioner),this,speciesStart);
-        Cantera::AMP::TemperatureDerivatives<SundialsSparseMatrix>(&(this->m_preconditioner),this,ydot,dTdt,2,speciesStart); //Temperature is index location 2
+        Cantera::AMP::SpeciesSpeciesDerivatives<SundialsSparseMatrix>(m_preconditioner,this,speciesStart);
+        Cantera::AMP::TemperatureDerivatives<SundialsSparseMatrix>(m_preconditioner,this,ydot,dTdt,start+2,speciesStart); //Temperature is index location 2
         break;
     default:
         throw CanteraError("Reactor::reactorPrecSetup", "unknown preconditioner type");
@@ -224,7 +239,7 @@ void IdealGasReactor::reactorPrecSetup(doublereal t, doublereal* y,
 }
 
 void IdealGasReactor::reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params)
+                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner,size_t prec_type,size_t start)
 {
 
 }

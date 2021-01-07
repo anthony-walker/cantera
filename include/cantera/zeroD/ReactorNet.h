@@ -10,6 +10,7 @@
 #include "cantera/numerics/FuncEval.h"
 #include "cantera/numerics/Integrator.h"
 #include "cantera/base/Array.h"
+#include "cantera/numerics/SparseMatrix.h"
 
 namespace Cantera
 {
@@ -282,7 +283,7 @@ public:
     //! Use this function to set the preconditioner type
     //! 1 -  adaptive mechanism preconditioning
     //! 
-    void setPreconditionerTypes(int prec_type);
+    void setPreconditionerType(int prec_type);
 
 protected:
 
@@ -324,7 +325,11 @@ protected:
     vector_fp m_ydot;
     vector_fp m_yest;
     vector_fp m_advancelimits;
-    void* m_preconditioner=NULL; //preconditioner matrix -- for sundials
+
+    //! Pointer to preconditioner
+    SparseMatrix<SundialsSparseMatrix> m_preconditioner;
+    //! Integer controlling preconditioner type
+    int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
 };
 }
 

@@ -272,9 +272,9 @@ void Reactor::evaluateEnergyEquation(doublereal time, doublereal* y,
 }
 
 void Reactor::reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params)
+                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner, size_t prec_type,size_t start)
 {   
-    switch (this->m_preconditioner_type)
+    switch (prec_type)
     {
     case PRECONDITIONER_NOT_SET:
         throw CanteraError("Reactor::reactorPrecSetup", "preconditioner type not set");
@@ -291,9 +291,22 @@ void Reactor::reactorPrecSetup(doublereal t, doublereal* y,
 }
 
 void Reactor::reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params)
+                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner, size_t prec_type,size_t start)
 {
+    switch (prec_type)
+    {
+    case PRECONDITIONER_NOT_SET:
+        throw CanteraError("Reactor::reactorPrecSolve", "preconditioner type not set");
+        break;
 
+    case ADAPTIVE_MECHANISM_PRECONDITIONER:
+        throw CanteraError("Reactor::reactorPrecSolve", "ADAPTIVE_MECHANISM_PRECONDITIONER is not implemented for Reactor");
+        break;
+
+    default:
+        throw CanteraError("Reactor::reactorPrecSolve", "unknown preconditioner type");
+        break;
+    }
 }
 
 
@@ -308,6 +321,7 @@ void Reactor::evalWalls(double t)
     }
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 void Reactor::setPreconditionerType(int prec_type)
@@ -326,6 +340,8 @@ void Reactor::evalFlowDevices(double t)
 }
 
 >>>>>>> f56793d51 (Tying into reactor and idealgasreactor, need to make preconditioner functions for these cases.)
+=======
+>>>>>>> 3e8c03828 (Setup network-preconditioner approach on this branch)
 double Reactor::evalSurfaces(double t, double* ydot)
 {
     const vector_fp& mw = m_thermo->molecularWeights();

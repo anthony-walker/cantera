@@ -133,15 +133,14 @@ public:
                       doublereal* ydot, doublereal* params);
 
     virtual void reactorPrecSetup(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params);
+                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner,size_t prec_type,size_t start);
 
     virtual void reactorPrecSolve(doublereal t, doublereal* y,
-                         doublereal* ydot, doublereal* params);
+                         doublereal* ydot, doublereal* params, SparseMatrix<SundialsSparseMatrix> *m_preconditioner, size_t prec_type,size_t start);
 
     //! Use this function to set the preconditioner type
     //! 1 -  adaptive mechanism preconditioning
     //! 
-    virtual void setPreconditionerType(int prec_type);
 
     virtual void syncState();
 
@@ -231,11 +230,7 @@ protected:
 
     //! Pointer to the homogeneous Kinetics object that handles the reactions
     Kinetics* m_kin;
-    
-    //! Pointer to preconditioner
-    SparseMatrix<SundialsSparseMatrix> m_preconditioner;
-    //! Integer controlling preconditioner type
-    int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
+
     //! Value of m*cv*dTdt
     double m_dEdt;
     bool m_reevalute=true;
