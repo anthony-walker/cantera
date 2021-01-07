@@ -118,18 +118,18 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
   typedef std::map<std::string,unsigned long> StateMap;
   typedef void (*AdaptiveFunction)(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap indexMap, std::string key);
-  typedef std::map<std::string,AdaptiveFunction> FunctionMap;
+  typedef std::map<std::string,std::vector<AdaptiveFunction>> FunctionMap;
 
  class AdaptivePreconditioner : public PreconditionerBase
   {
     protected:
         Eigen::SparseMatrix<double> matrix;
-        FunctionMap functionMap;
         unsigned long nonzeros;
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW 
-        AdaptivePreconditioner(/* args */){};
-        AdaptivePreconditioner(int rtype);
+        FunctionMap functionMap; //Public so it can be updated as someone wishes
+        AdaptivePreconditioner(/* args */);
+        AdaptivePreconditioner(FunctionMap fmap);
         ~AdaptivePreconditioner(){};
         AdaptivePreconditioner(const AdaptivePreconditioner &preconditioner){*this=preconditioner;} //Copy constructor
         virtual unsigned long getPreconditionerType(){return ADAPTIVE_MECHANISM_PRECONDITIONER;};
@@ -167,14 +167,8 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         //@param x a double pointer to the vector (array) to store inv(A)*b
         //@param b a double pointer to the vector (array) multiplied by inv(A)
         virtual void solve(double* x, double *b,unsigned long size);
-        //!Function to add extra functions to function map
-        //@param component a string type used as the map key
-        //@param newFunction AdaptiveFunction type for the function to be added
-        virtual void addToFunctionMap(std::string component, AdaptiveFunction newFunction);
-        //!Function to remove undesirable functions from function map
-        //@param component a string type used as the map key
-        virtual void removeFromFunctionMap(std::string component);
-
+        // !Function to build a standardized function map based on Reactor type
+        virtual void buildStandardFunctionMap();
     };
 
   //!This function returns an index map of nonspecies

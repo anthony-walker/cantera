@@ -46,14 +46,28 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
      * AdaptivePreconditioner implementations
      * 
      * **/
+    AdaptivePreconditioner::AdaptivePreconditioner()
+    {
+        this->buildStandardFunctionMap();
+    }
 
-
-    AdaptivePreconditioner::AdaptivePreconditioner(int rtype)
-    {   
-        if (rtype==0)
+    AdaptivePreconditioner::AdaptivePreconditioner(FunctionMap fmap)
+    {
+        this->buildStandardFunctionMap();
+        //Will overwrite entries in the standard map
+        for (auto const& iter : fmap)
         {
-        this->addToFunctionMap("temperature",TemperatureDerivatives); //Adding temperature to function map
+            this->functionMap[iter.first] = iter.second;
         }
+    }
+
+    void AdaptivePreconditioner::buildStandardFunctionMap()
+    {   
+        //IdealGasConstPressureReactor
+        std::vector<AdaptiveFunction> idgr;
+        idgr.push_back(NoPrecondition);
+        idgr.push_back(TemperatureDerivatives);
+        this->functionMap["IdealGasConstPressureReactor"] = idgr;
     }
 
     void AdaptivePreconditioner::setDimensions(unsigned long nrows,unsigned long ncols)
@@ -109,26 +123,15 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
     {   
         double *inputs[4] = {&t,y,ydot,params}; //Array of input arrays
         StateMap stateMap = getStateMap(reactor,reactorStart);
-        // printReactorComponents(reactor);
+        std::vector<AdaptiveFunction> reactorFunctions = functionMap[reactor->typeStr()];
        //Getting species on species derivatives
        Cantera::AMP::SpeciesDerivatives(this,reactor,inputs,stateMap);    
         //Solving other variables
-        for (unsigned long i = 0; i < stateMap["species"]; i++)
-        {
-            //Getting component name
+        for (unsigned long i = 0; i < reactorFunctions.size(); i++)
+        {   
             std::string component = reactor->componentName(i);
-            //If key not found in function map, no precondition
-            if ( this->functionMap.find(component) == this->functionMap.end() ) 
-            {
-                std::cout<<"No Precondition: "<<component<<std::endl;
-                NoPrecondition(this,reactor,inputs,stateMap,component);
-            } 
-            //Key is found call appropriate preconditioner function
-            else {
-                //Calling component function
-                std::cout<<"Appropriate Function: "<<component<<std::endl;
-                this->functionMap[component](this,reactor,inputs,stateMap,component);
-            }  
+            // std::cout<<component<<" "<<reactorFunctions.at(i)<<std::endl;
+            reactorFunctions.at(i)(this,reactor,inputs,stateMap,component);
         }
         
         // std::cout<<Eigen::MatrixXd(this->matrix)<<std::endl;   
@@ -151,23 +154,6 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
         this->matrix.reserve(this->nonzeros); //Reserve space potentially needed
     }
 
-    void AdaptivePreconditioner::addToFunctionMap(std::string component, AdaptiveFunction newFunction)
-    {
-        this->functionMap[component] = newFunction;
-    }
-
-    void AdaptivePreconditioner::removeFromFunctionMap(std::string component)
-    {
-        if ( this->functionMap.find(component) != this->functionMap.end() ) 
-        {
-            this->functionMap.erase(component);
-        }
-        else
-        {
-            warn_user("Cantera::AdaptivePreconditioner::removeFromFunctionMap",component+": key not found");
-        }
-    }
-
     /**
      * 
      * Non-Class member functions
@@ -175,6 +161,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
      * */
     void TemperatureDerivatives(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs,StateMap stateMap, std::string key)
     {   
+        // std::cout<<"Inside Temp"<<std::endl;
         //Getting kinetics object for access to reactions
         Kinetics* kinetics=reactor->getKineticsMgr();
         ThermoPhase* thermo=reactor->getThermoMgr();
@@ -367,6 +354,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
 
     void NoPrecondition(PreconditionerBase *preconditioner,Reactor* reactor, double** inputs, StateMap stateMap, std::string key)
     {   
+        // std::cout<<"Inside NoPrec"<<std::endl;
         unsigned long idx = reactor->componentIndex(key)+stateMap["start"];
         preconditioner->setElement(idx,idx,1); //setting mass variable element of preconditioner equal to 1
     }
