@@ -94,12 +94,10 @@ namespace Cantera //Making ASP apart of Cantera namespace
     //! @param *ydot A pointer to the current data of ydot passed from CVODES
     //! @param meanSpecificHeat The mean specific heat used based on reactor type
     //! @param index The index location of temperature in the state vector
-    template<class MATTYPE> void TemperatureDerivatives(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor, double* ydot, double meanSpecificHeat, size_t index, size_t speciesStart)
+    template<class MATTYPE> void TemperatureDerivatives(SparseMatrix<MATTYPE> *preconditioner,Reactor* reactor, double* ydot, double dTdt, size_t index, size_t speciesStart)
     {
         //Getting kinetics object for access to reactions
         Kinetics* kinetics=reactor->getKineticsMgr();
-        //Getting thermophase object for access to concentrations and species data
-        ThermoPhase* thermo=reactor->getThermoMgr();
         //Important sizes to the determination of values
         size_t numberOfSpecies = kinetics->nTotalSpecies();
         //Perturbation for finite difference of temperature
@@ -108,27 +106,19 @@ namespace Cantera //Making ASP apart of Cantera namespace
         //net production rates (omega dot)
         double* netProductionRates = new double[numberOfSpecies];
         kinetics->getNetProductionRates(netProductionRates);
-        //Internal energies
-        double dTdt = 0.0;
-        double* internalEnergies = new double[numberOfSpecies]; //Partial molar U
-        thermo->getPartialMolarIntEnergies(internalEnergies); //getting internal energies at state
         //Adding to preconditioner the species derivatives
         double specTempDerivative;
         for (size_t j = 0; j < numberOfSpecies; j++) //column
         {   
             specTempDerivative = (netProductionRates[j]-ydot[j+speciesStart])*perturbationInverse; //+1 because specie index will start after temperature
             preconditioner->setElementByThreshold(index,j+speciesStart,specTempDerivative); //Add by threshold
-            //Summing energy for temperature derivative
-            dTdt+=internalEnergies[j]*netProductionRates[j]*thermo->molecularWeight(j); //J/m^3/s
         }
         //Adding to preconditioner the temperature derivative
-        dTdt /= reactor->density()*meanSpecificHeat; //adjusting energy to get dTdt - K/s
         dTdt -= ydot[index];
         dTdt *= perturbationInverse; //Turning dTdt into d(dTdt)/dT
         preconditioner->setElementByThreshold(index,index,dTdt); //Add by threshold
         //Deleting appropriate pointers
         delete[] netProductionRates;
-        delete[] internalEnergies;
     }
 
     //! This function determines derivatives of Species with respect to species for jacobian preconditioning;

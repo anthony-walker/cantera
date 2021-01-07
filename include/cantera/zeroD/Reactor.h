@@ -122,6 +122,16 @@ public:
     virtual void evalEqs(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
+    /*
+    * Evaluate energy equations for preconditioning.
+     * @param[in] t time.
+     * @param[in] y solution vector, length neq()
+     * @param[out] ydot rate of change of solution vector, length neq()
+     * @param[in] params sensitivity parameter vector, length ReactorNet::nparams()
+    */
+    virtual void evaluateEnergyEquation(doublereal time, doublereal* y,
+                      doublereal* ydot, doublereal* params);
+
     virtual void reactorPrecSetup(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
@@ -226,6 +236,9 @@ protected:
     SparseMatrix<SundialsSparseMatrix> m_preconditioner;
     //! Integer controlling preconditioner type
     int m_preconditioner_type=0; //PRECONDITIONER_NOT_SET
+    //! Value of m*cv*dTdt
+    double m_dEdt;
+    bool m_reevalute=true;
 
     doublereal m_vdot; //!< net rate of volume change from moving walls [m^3/s]
     doublereal m_Q; //!< net heat transfer through walls [W]

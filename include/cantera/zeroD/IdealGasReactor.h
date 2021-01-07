@@ -46,6 +46,9 @@ public:
     virtual void evalEqs(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
+    virtual void evaluateEnergyEquation(doublereal time, doublereal* y,
+                      doublereal* ydot, doublereal* params);
+
     virtual void reactorPrecSetup(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
