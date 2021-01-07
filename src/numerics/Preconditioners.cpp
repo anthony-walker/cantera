@@ -127,7 +127,7 @@ namespace Cantera::AMP //Making ASP apart of Cantera namespace
        //Getting species on species derivatives
        Cantera::AMP::SpeciesDerivatives(this,reactor,inputs,stateMap);    
         //Solving other variables
-        for (unsigned long i = 0; i < reactorFunctions.size(); i++)
+        for (unsigned long i = 0; i < reactorFunctions.size(); i++) //Change to i to first and last of componenets
         {   
             std::string component = reactor->componentName(i);
             // std::cout<<component<<" "<<reactorFunctions.at(i)<<std::endl;
