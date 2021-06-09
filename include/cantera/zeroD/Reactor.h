@@ -66,7 +66,7 @@ public:
     void insert(shared_ptr<Solution> sol);
 
     virtual void setKineticsMgr(Kinetics& kin);
-    
+
     virtual Kinetics* getKineticsMgr();
 
     virtual void setChemistry(bool cflag = true) {

@@ -8,7 +8,7 @@
 #include "cantera/zeroD/Wall.h"
 #include "cantera/kinetics/Kinetics.h"
 #include "cantera/thermo/ThermoPhase.h"
-#include "cantera/zeroD/ReactorNet.h" 
+#include "cantera/zeroD/ReactorNet.h"
 
 using namespace std;
 
@@ -138,12 +138,12 @@ void IdealGasReactor::evalEqs(doublereal time, doublereal* y,
 
     resetSensitivity(params);
 }
-    
+
 
 
 double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
                       doublereal* ydot, doublereal* params)
-{ 
+{
 
     double m_dEdt = 0.0; // m * c_v * dT/dt
     evalWalls(time);
@@ -152,7 +152,7 @@ double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
     m_thermo->getPartialMolarIntEnergies(&m_uk[0]);
     const vector_fp& mw = m_thermo->molecularWeights();
 
-    if (m_chem) 
+    if (m_chem)
     {
         m_kin->getNetProductionRates(&m_wdot[0]); // "omega dot"
     }
@@ -168,13 +168,13 @@ double IdealGasReactor::evaluateEnergyEquation(doublereal time, doublereal* y,
         }
 
         // add terms for outlets
-        for (auto outlet : m_outlet) 
+        for (auto outlet : m_outlet)
         {
             m_dEdt -= outlet->massFlowRate() * m_pressure * m_vol / m_mass; // flow work
         }
 
         // add terms for inlets
-        for (auto inlet : m_inlet) 
+        for (auto inlet : m_inlet)
         {
             m_dEdt += inlet->enthalpy_mass() * inlet->massFlowRate();
             for (size_t n = 0; n < m_nsp; n++) {
@@ -215,10 +215,4 @@ std::string IdealGasReactor::componentName(size_t k) {
         return Reactor::componentName(k);
     }
 }
-
-void IdealGasReactor::acceptPreconditioner(PreconditionerBase *preconditioner, size_t reactorStart, double t, double* y, double* ydot, double* params)
-{
-    preconditioner->reactorLevelSetup(this,reactorStart,t,y,ydot,params);
-}
-
 }

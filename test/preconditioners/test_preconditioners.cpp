@@ -15,7 +15,7 @@
 
 using namespace Cantera;
 
-TEST(DISABLED_AdaptivePreconditioning,single_step_mechanism_test)
+TEST(AdaptivePreconditioning,single_step_mechanism_test)
 {
     //Declaring ReactorNet related components
     IdealGasConstPressureReactor* combustor;

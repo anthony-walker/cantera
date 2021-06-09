@@ -5,16 +5,9 @@
 
 #include "cantera/numerics/AdaptivePreconditioner.h"
 #include "float.h"
-#include <iostream>
 
 namespace Cantera
 {
-    /**
-     *
-     * AdaptivePreconditioner implementations
-     *
-     * **/
-
     void AdaptivePreconditioner::setDimensions(size_t nrows,size_t ncols)
     {
         this->m_dimensions[0] = nrows;
@@ -83,44 +76,27 @@ namespace Cantera
 
     void AdaptivePreconditioner::reactorLevelSetup(IdealGasConstPressureReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params)
     {
-
-        StateMap *reactorStateMap = new StateMap; //Index map of idealGasConstPressureReactor
-
+        //Index map of idealGasConstPressureReactor
+        StateMap *reactorStateMap = new StateMap;
+        //Specific variables in the state map used by all functions
         reactorStateMap->operator[]("start") = reactorStart;
         reactorStateMap->operator[]("numberOfSpecies") = (reactor->getKineticsMgr())->nTotalSpecies();
         reactorStateMap->operator[]("species") = reactorStart+(reactor->neq()-reactorStateMap->operator[]("numberOfSpecies")); //Starting idx for species
-
         for (size_t i = 0; i < reactor->neq(); i++)
         {
             reactorStateMap->operator[](reactor->componentName(i))=i;
         }
-
-        double* rateLawDervs = new double[(reactor->getKineticsMgr())->nTotalSpecies()*(reactor->getKineticsMgr())->nTotalSpecies()]; //For later use of rate law derivatives
-
-        SpeciesSpeciesDerivatives(reactor,reactorStateMap,rateLawDervs); //SpeciesDerivatives
-
-        TemperatureDerivatives(reactor,reactorStateMap,t,y,ydot,rateLawDervs,params); //Temperature Derivatives
-
-        NoPrecondition(reactorStateMap,"mass"); //No precondition on mass variable
-
+        //For later use of rate law derivatives
+        double* rateLawDervs = new double[(reactor->getKineticsMgr())->nTotalSpecies()*(reactor->getKineticsMgr())->nTotalSpecies()];
+        //SpeciesDerivatives
+        SpeciesSpeciesDerivatives(reactor,reactorStateMap,rateLawDervs);
+        //Temperature Derivatives
+        TemperatureDerivatives(reactor,reactorStateMap,t,y,ydot,rateLawDervs,params);
+        //No precondition on mass variable
+        NoPrecondition(reactorStateMap,"mass");
+        //Clean up
         delete[] rateLawDervs;
         delete reactorStateMap;
-        // std::cout<<Eigen::MatrixXd(this->m_matrix)<<std::endl;
-    }
-
-    void AdaptivePreconditioner::reactorLevelSetup(Reactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params)
-    {
-        throw CanteraError("AdaptivePrecondtioner:reactorLevelSetup",reactor->typeStr()+" setup not implemented.");
-    }
-
-    void AdaptivePreconditioner::reactorLevelSetup(IdealGasReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params)
-    {
-        throw CanteraError("AdaptivePrecondtioner:reactorLevelSetup",reactor->typeStr()+" setup not implemented.");
-    }
-
-    void AdaptivePreconditioner::reactorLevelSetup(ConstPressureReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params)
-    {
-        throw CanteraError("AdaptivePrecondtioner:reactorLevelSetup",reactor->typeStr()+" setup not implemented.");
     }
 
     void AdaptivePreconditioner::initialize(size_t nrows,size_t ncols)
@@ -271,24 +247,20 @@ namespace Cantera
         size_t numberOfSpecies = kinetics->nTotalSpecies();
         size_t speciesStart  = stateMap->operator[]("species"); //Starting idx for species
         size_t tempIndex = stateMap->operator[]("temperature")+stateMap->operator[]("start");
-
         //Array pointers for data that is reused
         //net production rates (omega dot)
         double* netProductionRatesNext = new double[numberOfSpecies];
         double* netProductionRatesCurrent = new double[numberOfSpecies];
-
         //Getting perturbed state
         //Perturbation for finite difference of temperature
         double deltaTemp = y[tempIndex]*(std::sqrt(DBL_EPSILON));
         thermo->setTemperature(y[tempIndex]+deltaTemp);
         kinetics->getNetProductionRates(netProductionRatesNext);
         double TDotNext = reactor->evaluateEnergyEquation(t,y,ydot,params)/(thermo->cp_mass()*reactor->mass()); //Perturbed internal energy
-
         //Getting current state
         thermo->setTemperature(y[tempIndex]); //Setting temperature back to correct value
         kinetics->getNetProductionRates(netProductionRatesCurrent);
         double TDotCurrent = reactor->evaluateEnergyEquation(t,y,ydot,params)/(thermo->cp_mass()*reactor->mass()); //Current internal energy
-
         /**
          * Temp Rate Derivatives w.r.t Temp
          * d T_dot/dT
@@ -306,7 +278,6 @@ namespace Cantera
         //Deleting appropriate pointers
         delete[] netProductionRatesNext;
         delete[] netProductionRatesCurrent;
-
         /**
          * Temp Rate Derivatives w.r.t Species
          * d T_dot/dnj
@@ -342,13 +313,11 @@ namespace Cantera
         delete[] concentrations;
     }
 
-
     int AdaptivePreconditioner::checkEigenError(std::string method, size_t info, std::string error)
     {
         int flag = 0;
         if(info!=Eigen::Success)
         {
-
             error+=" --> checkEigenError Failure: ";
             if(info==Eigen::NumericalIssue)
             {
@@ -380,17 +349,4 @@ namespace Cantera
         size_t idx = stateMap->operator[](key)+stateMap->operator[]("start");
         this->setElement(idx,idx,1); //setting key variable element of preconditioner equal to 1
     }
-
-    /*
-        Other functions used in preconditioner functions but not directly related to a state variable
-    */
-
-    inline void AdaptivePreconditioner::printReactorComponents(Reactor* reactor)
-    {
-        for (size_t i = 0; i < reactor->neq(); i++)
-        {
-        std::cout<<reactor->componentName(i)<<std::endl;
-        }
-    }
-
 }

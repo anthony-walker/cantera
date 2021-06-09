@@ -10,6 +10,7 @@
 #ifndef ADAPTIVEPRECONDITIONER_H
 #define ADAPTIVEPRECONDITIONER_H
 
+//Const Int for preconditioner type
 const int ADAPTIVE_MECHANISM_PRECONDITIONER = 1;
 
 //Eigen Imports
@@ -33,12 +34,6 @@ namespace Cantera //Making ASP apart of Cantera namespace
   class AdaptivePreconditioner : public PreconditionerBase
     {
       protected:
-
-        /**
-         *
-         * Physics Functions
-         *
-         **/
         //! This function determines derivatives of Species with respect to species for jacobian preconditioning;
         //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
         //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
@@ -65,12 +60,6 @@ namespace Cantera //Making ASP apart of Cantera namespace
         //!@param col the column index of the variable
         void NoPrecondition(StateMap* stateMap, std::string key);
 
-        /**
-         *
-         * Other Functions
-         *
-         **/
-
         //! This function is used to convert the system from mass fraction to mole fraction for solving the linear system with a mole based jacobian.
         //! @param *reactor A pointer to the current reactor being converted
         //! @param *tempState A double pointer to the temporary state used to solve the linear system
@@ -87,9 +76,6 @@ namespace Cantera //Making ASP apart of Cantera namespace
         //! This function determines the rate of progress derivatives given a composition of reactants or products
         int checkEigenError(std::string method, size_t info, std::string error);
 
-        //! Use this function to print and check reactor components
-        inline void printReactorComponents(Reactor* reactor);
-
       public:
           EIGEN_MAKE_ALIGNED_OPERATOR_NEW
           AdaptivePreconditioner(/* args */){};
@@ -99,9 +85,9 @@ namespace Cantera //Making ASP apart of Cantera namespace
 
           //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
           //!@param reactors A vector pointer of Reactor pointers in the network
-          //@param output a double pointer to the vector (array) to store inv(A)*b
-          //@param rhs_vector a double pointer to the vector (array) multiplied by inv(A)
-          //@param size a unsigned length of the vectors
+          //!@param output a double pointer to the vector (array) to store inv(A)*b
+          //!@param rhs_vector a double pointer to the vector (array) multiplied by inv(A)
+          //!@param size a unsigned length of the vectors
           virtual void solve(std::vector<Reactor*>* reactors,std::vector<size_t>* reactorStart,double* output, double *rhs_vector,size_t size);
 
           //! This function performs the setup of the preconditioner for a Reactor and should be overloaded for each different reactor time
@@ -143,31 +129,10 @@ namespace Cantera //Making ASP apart of Cantera namespace
           //!@param compress a bool dictating whether or not the set matrix needs compressed or not
           virtual void setMatrix(Eigen::SparseMatrix<double>* sparseMatrix);
 
-        /**
-         *
-         * Reactor Level Functions
-         *
-         **/
-
-        //!Function used to complete individual reactor setups
-          //!@param reactor A Reactor pointer
-          //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
-          virtual void reactorLevelSetup(Reactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params);
-
           //!Function used to complete individual reactor setups
           //!@param reactor A IdealGasConstPressureReactor pointer
           //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
           virtual void reactorLevelSetup(IdealGasConstPressureReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params);
-
-          //!Function used to complete individual reactor setups
-          //!@param reactor A IdealGasConstPressureReactor pointer
-          //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
-          virtual void reactorLevelSetup(IdealGasReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params);
-
-          //!Function used to complete individual reactor setups
-          //!@param reactor A IdealGasConstPressureReactor pointer
-          //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
-          virtual void reactorLevelSetup(ConstPressureReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params);
       };
 }
 #endif

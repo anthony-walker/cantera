@@ -516,5 +516,4 @@ void Reactor::acceptPreconditioner(PreconditionerBase *preconditioner, size_t re
 {
     preconditioner->reactorLevelSetup(this,reactorStart,t,y,ydot,params);
 }
-
 }
