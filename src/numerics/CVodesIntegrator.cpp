@@ -74,18 +74,18 @@ extern "C" {
         integrator->m_error_message += "\n";
     }
 
-    #if CT_SUNDIALS_VERSION>=40 //These functions only work with Sundials 4.0 or newer
+    #if CT_SUNDIALS_VERSION>=40 // These functions only work with Sundials 4.0 or newer
         static int cvodes_jac_setup(realtype t, N_Vector y, N_Vector ydot, booleantype jok, booleantype *jcurPtr, realtype gamma, void *f_data)
         {
             if(!jok)
             {
                 FuncEval* f = (FuncEval*) f_data;
-                (*jcurPtr)=true; //Jacobian data was recomputed
+                (*jcurPtr)=true; // Jacobian data was recomputed
                 return f->preconditioner_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot));
             }
             else
             {
-                (*jcurPtr)=false; //indicate that Jacobian data was not recomputed
+                (*jcurPtr)=false; // indicate that Jacobian data was not recomputed
                 return 0; //No error because not recomputed
             }
         }
@@ -427,19 +427,18 @@ void CVodesIntegrator::applyOptions()
             CVSpgmr(m_cvode_mem, PREC_NONE, 0);
         #endif
     }
-    else if (m_type == GMRES+PRECONDITION) //Added for adaptive preconditioner
+    else if (m_type == GMRES + PRECONDITION) // Added for adaptive preconditioner
     {
-        #if CT_SUNDIALS_VERSION >= 40 //Only works for version Sundials 4.0 or newer -- Add for older sundials versions
-            int flag;// flag for debugging
-            //Set linear solver - this must be done before preconditioner is set preconditioner
-            m_linsol =  SUNLinSol_SPGMR(m_y, PREC_LEFT, 0); //make solver Scaled Preconditioned General Minimum Residual
-            // SUNLinSol_SPGMRSetPrecType();
-            flag = CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol); //set linear solver
-            //Set preconditioner
-            flag = CVodeSetPreconditioner(m_cvode_mem,cvodes_jac_setup,cvodes_jac_solve); //Set preconditioner functions
+        #if CT_SUNDIALS_VERSION >= 40
+            // make solver Scaled Preconditioned General Minimum Residual
+            m_linsol = SUNLinSol_SPGMR(m_y, PREC_LEFT, 0);
+            // Set linear solver type
+            CVSpilsSetLinearSolver(m_cvode_mem, (SUNLinearSolver) m_linsol);
+            // Set preconditioner and functions for it
+            CVodeSetPreconditioner(m_cvode_mem, cvodes_jac_setup, cvodes_jac_solve);
         #else
             char buffer[100];
-            sprintf(buffer,"GMRES+PRECONDITION not setup for Sundials %d.\n",CT_SUNDIALS_VERSION);
+            sprintf(buffer, "GMRES+PRECONDITION not setup for Sundials %d.\n", CT_SUNDIALS_VERSION);
             throw CanteraError("CVodesIntegrator::applyOptions",buffer);
         #endif
     }

@@ -10,55 +10,82 @@
 #ifndef ADAPTIVEPRECONDITIONER_H
 #define ADAPTIVEPRECONDITIONER_H
 
-//Const Int for preconditioner type
-const int ADAPTIVE_MECHANISM_PRECONDITIONER = 1;
-
-//Eigen Imports
 #if CT_USE_SYSTEM_EIGEN
 #include <Eigen/Sparse>
 #else
 #include "cantera/ext/Eigen/Sparse"
 #endif
 
-//Adaptive preconditioning Cantera imports
 #include "cantera/numerics/PreconditionerBase.h"
 #include "cantera/thermo.h"
 #include "cantera/kinetics.h"
 #include "cantera/kinetics/Reaction.h"
+#include "float.h"
+
+//! Flag to indicate adaptive preconditioner is set
+const int ADAPTIVE_MECHANISM_PRECONDITIONER = 1;
 
 namespace Cantera //Making ASP apart of Cantera namespace
 {
-  //!Typedef used for getting indices based on strings
-  typedef std::map<std::string,size_t> StateMap;
 
   class AdaptivePreconditioner : public PreconditionerBase
     {
-      protected:
-        //! This function determines derivatives of Species with respect to species for jacobian preconditioning;
-        //! specifically it determines the derivatives of the rate laws of all species with respect to other species in terms of moles.
-        //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
-        //! @param *reactor A pointer to the current reactor being precondition
-        void SpeciesSpeciesDerivatives(Reactor* reactor,StateMap* stateMap,double* rateLawDerivatives);
-
-        //!This function is a subfunction of SpeciesDerivatives that gets the species w.r.t species derivatives for each reaction
-        void GetRateOfProgress(std::map<std::string, double> comp, StateMap* stateMap, double* omega, double* concentrations, double k_direction, double volume, size_t numberOfSpecies);
-        //Sparse matrix used as the preconditioner
+    protected:
+        //! @param m_matrix is the container that is the sparse preconditioner
         Eigen::SparseMatrix<double> m_matrix;
-        //Number of nonzero elements reserved
+
+        //! @param m_nonzeros is a member variable for the reserved nonzero elements in m_matrix
         size_t m_nonzeros;
 
-        //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
-        //! @param *preconditioner A pointer to a PreconditionerBase Object for preconditioning the system and storing preconditioner values
-        //! @param *reactor A pointer to the current reactor being precondition
-        //! @param *ydot A pointer to the current data of ydot passed from CVODES
-        //! @param meanSpecificHeat The mean specific heat used based on reactor type
-        //! @param index The index location of temperature in the state vector
-        virtual void TemperatureDerivatives(IdealGasConstPressureReactor* reactor, StateMap* stateMap, double t, double* y, double* ydot, double* rateLawDerivatives, double* params);
+        //! @param m_threshold a double value to selectively fill the matrix structure based on this threshold
+        double m_threshold = DBL_EPSILON; //default
 
-        //!This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
-        //!@param row the row index of the variable
-        //!@param col the column index of the variable
-        void NoPrecondition(StateMap* stateMap, std::string key);
+        //! @param m_current_start an index value for the starting index
+        //! of the current reactor in the state
+        size_t m_current_start;
+
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW //Required for mis-alignment of EIGEN matrix
+        AdaptivePreconditioner(/* args */){}; //Default constructor
+        virtual ~AdaptivePreconditioner(){}; //Default destructor
+        AdaptivePreconditioner(const AdaptivePreconditioner &externalPrecon); //Copy constructor
+
+        //! This function determines rate law derivatives of species
+        //! with respect to other species specifically it determines the
+        //! derivatives of the rate laws of all species with respect to
+        //! other species in terms of moles.
+        //! @param *reactor A pointer to the current reactor being used
+        //! for preconditioning
+        void SpeciesSpeciesDerivatives(Reactor* reactor);
+
+        //! This function is a subfunction of SpeciesDerivatives that
+        //! gets the species w.r.t species derivatives for each reaction
+        //! @param reactor pointer to the current reactor being
+        //! preconditioned
+        //! @param dependent a pointer to a Composition of the species
+        //! rate laws that will be differentiated
+        //! @param independent a pointer to a Composition of the species
+        //! and the derivatives are taken with respect too
+        //! @param rateLawDerivatives a pointer to vector data that
+        //! temporarily stores the derivatives
+        //! @param concentrations an array of concentrations of the current reactor
+        //! @param kDirection is reaction rate constants for either forward or reverse
+        inline void updateRateLawDerivatives(Reactor *reactor, Composition *dependent, Composition *independent, double* rateLawDerivatives, double* concentrations, double kDirection);
+
+
+        //! This function determines derivatives of Species and Temperature with respect to Temperature for jacobian preconditioning with a finite difference.
+        //! @param reactor A pointer to the current reactor being precondition
+        //! @parama t A double value of the current time
+        //! @param y A pointer to the current state passed from CVODES
+        //! @param ydot A pointer to the current state derivatives
+        //! passed from CVODES
+        //! @param params A double pointer to sensitivty parameters.
+        virtual void TemperatureDerivatives(IdealGasConstPressureReactor* reactor, double t, double* y, double* ydot, double* params);
+
+        //! This function does not precondition the associated equation by assigning it's preconditioner value to a value of 1
+        //! @param idx an index that counts for both row and column of
+        //! the non preconditioned variable.
+        void NoPrecondition(size_t idx);
 
         //! This function is used to convert the system from mass fraction to mole fraction for solving the linear system with a mole based jacobian.
         //! @param *reactor A pointer to the current reactor being converted
@@ -76,63 +103,79 @@ namespace Cantera //Making ASP apart of Cantera namespace
         //! This function determines the rate of progress derivatives given a composition of reactants or products
         int checkEigenError(std::string method, size_t info, std::string error);
 
-      public:
-          EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-          AdaptivePreconditioner(/* args */){};
-          ~AdaptivePreconditioner(){};
-          AdaptivePreconditioner(const AdaptivePreconditioner &preconditioner){*this=preconditioner;} //Copy constructor
-          virtual size_t getPreconditionerType(){return ADAPTIVE_MECHANISM_PRECONDITIONER;};
+        //! This function returns the current type of preconditioner as an integer
+        virtual size_t getPreconditionerType(){return ADAPTIVE_MECHANISM_PRECONDITIONER;};
 
-          //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
-          //!@param reactors A vector pointer of Reactor pointers in the network
-          //!@param output a double pointer to the vector (array) to store inv(A)*b
-          //!@param rhs_vector a double pointer to the vector (array) multiplied by inv(A)
-          //!@param size a unsigned length of the vectors
-          virtual void solve(std::vector<Reactor*>* reactors,std::vector<size_t>* reactorStart,double* output, double *rhs_vector,size_t size);
+        //! Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
+        //! @param reactors A vector pointer of Reactor pointers in the network
+        //! @param output a double pointer to the vector (array) to store inv(A)*b
+        //! @param rhs_vector a double pointer to the vector (array) multiplied by inv(A)
+        //! @param size a unsigned length of the vectors
+        virtual void solve(std::vector<Reactor*>* reactors,std::vector<size_t>* reactorStart,double* output, double *rhs_vector,size_t size);
 
-          //! This function performs the setup of the preconditioner for a Reactor and should be overloaded for each different reactor time
-          //!@param reactors A vector pointer of reactor pointers in the network
-          //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
-          virtual void setup(std::vector<Reactor*>* reactors,std::vector<size_t>* reactorStart, double t, double* y, double* ydot, double* params);
+        //! This function performs the setup of the preconditioner for a Reactor and should be overloaded for each different reactor time
+        //! @param reactors A vector pointer of reactor pointers in the network
+        //! @param reactorStart an size_t providing the index location in which the state of the given reactor starts
+        virtual void setup(std::vector<Reactor*>* reactors,std::vector<size_t>* reactorStart, double t, double* y, double* ydot, double* params);
 
-          //! THis function performs set up
-          //!This function is called during setup for any processes that need to be completed prior to setup functions
-          //! e.g. dynamic memory allocation
-          virtual void initialize(size_t nrows,size_t ncols);
+        //! This function is called during setup for any processes that need to be completed prior to setup functions used in sundials.
+        //! @param dims A pointer to a dimensions array
+        //! e.g. dynamic memory allocation
+        virtual void initialize(std::vector<size_t> *dims);
 
-          //!This function is called during setup for any processes that need to be completed post to setup functions
-          //! e.g. dynamic memory allocation
-          virtual void reset();
+        //! This function is called during setup to clean up previous
+        //! setup data
+        virtual void reset();
 
-          //!Function used to get a specific element of the matrix structure
-          //!@param row size_t specifying the row location
-          //!@param col size_t specifying the column location
-          virtual double getElement(size_t row, size_t col); //get element
+        //! Function used to get index start of the current reactor variable
+        virtual double getReactorStart();
 
-          //!Function used to return compressed version of the matrix structure
-          virtual Eigen::SparseMatrix<double>* getMatrix();
+        //! Function used to get a specific element of the matrix structure
+        //! @param row size_t specifying the row location
+        //! @param col size_t specifying the column location
+        virtual double getElement(size_t row, size_t col); //get element
 
-          //!Function used to set the dimensions of and construct the matrix structure - required for initialization and use of the class
-          //!@param nrows size_t number of rows in the structure
-          //!@param ncols size_t nubmer of columns in the structure
-          //!@param otherData void* for passing other data necessary for subclasses to initialize the matrix structure
-          virtual void setDimensions(size_t nrows,size_t ncols);
+        //! Function used to return compressed version of the matrix structure
+        virtual Eigen::SparseMatrix<double>* getMatrix();
 
-          //!Function used to set a specific element of the matrix structure
-          //!@param row size_t specifying the row location
-          //!@param col size_t specifying the column location
-          //!@param element double value to be inserted into matrix structure
-          virtual void setElement(size_t row, size_t col, double element);//set element
+        //! Use this function to get the threshold value for setting elements
+        virtual double getThreshold();
 
-          //!Function used to set compressed version of the matrix structure
-          //!@param sparseMatrix a SUNMatrix pointer to a type of SUNMatrix
-          //!@param compress a bool dictating whether or not the set matrix needs compressed or not
-          virtual void setMatrix(Eigen::SparseMatrix<double>* sparseMatrix);
+        //! Function used to set index start of the current reactor variable
+        virtual void setReactorStart(size_t reactorStart);
 
-          //!Function used to complete individual reactor setups
-          //!@param reactor A IdealGasConstPressureReactor pointer
-          //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
-          virtual void reactorLevelSetup(IdealGasConstPressureReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params);
+        //! Function used to set a specific element of the matrix structure
+        //! @param row size_t specifying the row location
+        //! @param col size_t specifying the column location
+        //! @param element double value to be inserted into matrix structure
+        virtual void setElement(size_t row, size_t col, double element);//set element
+
+        //! Function used to set compressed version of the matrix structure
+        //! @param sparseMatrix a SUNMatrix pointer to a type of SUNMatrix
+        virtual void setMatrix(Eigen::SparseMatrix<double>* sparseMatrix);
+
+        //! Function used to complete individual reactor setups
+        //! @param reactor A IdealGasConstPressureReactor pointer
+        //! @param reactorStart an size_t providing the index location in which the state of the given reactor starts
+        virtual void reactorLevelSetup(IdealGasConstPressureReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params);
+
+        //! Use this function to set the threshold value to compare elements against
+        //! @param threshold double value used in setting by threshold
+        virtual void setThreshold(double threshold);
+
+        //! @param reactor - the contents of this reactor will be printed
+        inline void printReactorComponents(Reactor* reactor);
+
+        //! Print preconditioner contents
+        void printPreconditioner();
+
+        //! Overloading of the == operator to compare values inside preconditioners
+        //! @param externalPrecon - == comparison with this object
+        bool operator== (const AdaptivePreconditioner &externalPrecon);
+
+        //! Overloading of the = operator to copy one preconditioner to another
+        //! @param externalPrecon. Preconditioner becoming this object
+        void operator= (const AdaptivePreconditioner &externalPrecon);
       };
 }
 #endif

@@ -1,12 +1,10 @@
 generator: ctml2yaml
 cantera-version: 2.5.0a4
-date: Sun, 05 Jul 2020 22:26:31 -0400
-input-files: [methane_onestep_multiphase.xml]
 
 phases:
-- name: methane_multiphase_mix
-  elements: [O, H, C, N]
-  species: [O2, H2O, CH4, CO2, N2]
+- name: methane_onestep
+  elements: [O, H, C]
+  species: [O2, H2O, CH4, CO2]
   thermo: ideal-gas
   transport: mixture-averaged
   kinetics: gas
@@ -96,27 +94,6 @@ species:
     dipole: 0.0
     polarizability: 2.65
     rotational-relaxation: 2.1
-    dispersion-coefficient: 0.0
-    quadrupole-polarizability: 0.0
-- name: N2
-  composition: {N: 2.0}
-  note: '121286'
-  thermo:
-    model: NASA7
-    temperature-ranges: [300.0, 1000.0, 5000.0]
-    data:
-    - [3.298677, 1.4082404e-03, -3.963222e-06, 5.641515e-09, -2.444854e-12, -1020.8999,
-      3.950372]
-    - [2.92664, 1.4879768e-03, -5.68476e-07, 1.0097038e-10, -6.753351e-15, -922.7977,
-      5.980528]
-  transport:
-    model: gas
-    geometry: linear
-    well-depth: 97.53
-    diameter: 3.62
-    dipole: 0.0
-    polarizability: 1.76
-    rotational-relaxation: 4.0
     dispersion-coefficient: 0.0
     quadrupole-polarizability: 0.0
 

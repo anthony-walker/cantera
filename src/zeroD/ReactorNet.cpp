@@ -36,7 +36,7 @@ ReactorNet::~ReactorNet()
 }
 
 void ReactorNet::setIntegratorType(int integratorType)
-{   
+{
     this->m_integ->setProblemType(integratorType); //Use integrator member function to set problem type
 }
 
@@ -91,7 +91,7 @@ void ReactorNet::setSensitivityTolerances(double rtol, double atol)
 }
 
 void ReactorNet::initialize()
-{   
+{
     m_nv = 0;
     debuglog("Initializing reactor network.\n", m_verbose);
     if (m_reactors.empty()) {
@@ -131,7 +131,8 @@ void ReactorNet::initialize()
     }
     if (m_preconditioner_type!=PRECONDITIONER_NOT_SET)
     {
-        m_preconditioner->initialize(this->m_nv,this->m_nv);
+        std::vector<size_t> precon_dims{this->m_nv, this->m_nv};
+        m_preconditioner->initialize(&precon_dims);
     }
     m_integ->initialize(m_time, *this);
     m_integrator_init = true;
@@ -139,7 +140,7 @@ void ReactorNet::initialize()
 }
 
 void ReactorNet::reinitialize()
-{   
+{
     if (m_init) {
         debuglog("Re-initializing reactor network.\n", m_verbose);
         m_integ->reinitialize(m_time, *this);
@@ -411,11 +412,11 @@ void ReactorNet::preconditionerSetup(doublereal t, doublereal* y,
                       doublereal* ydot, doublereal* params)
 {
     //Update state of reactors in setup
-    updateState(y); 
+    updateState(y);
     //Reseting preconditioner for new setup
-    this->m_preconditioner->reset(); 
+    this->m_preconditioner->reset();
     //Passing reactors to preconditioner to complete setup
-    this->m_preconditioner->setup(&m_reactors, &m_start,t, y, ydot, params);
+    this->m_preconditioner->setup(&m_reactors, &m_start, t, y, ydot, params);
 }
 
 void ReactorNet::preconditionerSolve(doublereal t, doublereal* y,

@@ -17,7 +17,7 @@
 #include "cantera/zeroD/ConstPressureReactor.h"
 #include "cantera/zeroD/FlowReactor.h"
 
-//Preconditioner type
+//! Flag to indicate preconditioner is not set
 const int PRECONDITIONER_NOT_SET = 0;
 
 namespace Cantera//Making ASP apart of Cantera namespace
@@ -25,96 +25,86 @@ namespace Cantera//Making ASP apart of Cantera namespace
   class PreconditionerBase
   {
     protected:
-        //!@param threshold a double value to selectively fill the matrix structure based on this threshold
-        double m_threshold=10e-16; //default
-        //!@param dimensions an size_t pointer to store dimensions
-        size_t m_dimensions[2];
+        //! @param dimensions an size_t pointer to store dimensions
+        std::vector<size_t> m_dimensions;
     public:
-        PreconditionerBase(/* args */){}
-        PreconditionerBase(const PreconditionerBase &precBase){*this=precBase;} //Copy constructor
-        virtual ~PreconditionerBase(){} //destructor
+        PreconditionerBase(/* args */){} //default constructor
+        ~PreconditionerBase(){} //default destructor
+        //! This function returns zero for preconditioner not set
         virtual size_t getPreconditionerType(){return PRECONDITIONER_NOT_SET;};
 
-        //!Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
-        //!@param reactors A vector pointer of reactor pointers in the network
-        //!@param output a double pointer to the vector (array) to store inv(A)*b
-        //!@param rhs_vector a double pointer to the vector (array) multiplied by inv(A)
-        //!@param size a unsigned length of the vectors
+        //! Function to solve a linear system Ax=b where A is the preconditioner contained in this matrix
+        //! @param reactors A vector pointer of reactor pointers in the network
+        //! @param output a double pointer to the vector (array) to store inv(A)*b
+        //! @param rhs_vector a double pointer to the vector (array) multiplied by inv(A)
+        //! @param size a unsigned length of the vectors
         virtual void solve(std::vector<Reactor*>* reactors, std::vector<size_t>* reactorStart, double* output, double *rhs_vector,size_t size){
             throw CanteraError("Cantera::PrecondtionerBase::solve","solve not implemented for PreconditionerBase, please use a subclass.");
         };
 
         //! This function performs the setup of the preconditioner for the specified reactor type and should be overloaded for each different reactor time
-        //!@param reactors A vector to reactor objects in the network
-        //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
+        //! @param reactors A vector to reactor objects in the network
+        //! @param reactorStart an size_t providing the index location in which the state of the given reactor starts
         virtual void setup(std::vector<Reactor*>* reactors, std::vector<size_t>* reactorStart, double t, double* y, double* ydot, double* params){
             throw CanteraError("Cantera::PrecondtionerBase::setup","setup not implemented for PreconditionerBase, please use a subclass.");
         };
 
-        //!This function is called during setup for any processes that need to be completed prior to setup functions
-        //! e.g. dynamic memory allocation
-        virtual void initialize(size_t nrows,size_t ncols){
+        //! This function is called during setup for any processes that need to be completed prior to setup functions
+        //! @param dims A pointer to a dimensions array
+        virtual void initialize(std::vector<size_t> *dims){
             throw CanteraError("Cantera::PrecondtionerBase::initialize","initialize not implemented for PreconditionerBase, please use a subclass.");
         };
 
-        //!This function is called during setup for any processes that need to be completed post to setup functions
-        //! e.g. dynamic memory allocation
+        //! This function is called during setup for any processes that need to be completed post to setup functions
         virtual void reset(){
             throw CanteraError("Cantera::PrecondtionerBase::reset","reset not implemented for PreconditionerBase, please use a subclass.");
         };
 
-        //!Function used to set a specific element of the matrix structure
-        //!@param row size_t specifying the row location
-        //!@param col size_t specifying the column location
-        //!@param element double value to be inserted into matrix structure
-        virtual void setElement(size_t row, size_t col, double element)
-        {
-        throw CanteraError("Cantera::PrecondtionerBase::setElement","setElement not implemented for PreconditionerBase, please use a subclass.");
-        }; //set element
+        //! Function used to set a specific element of the matrix structure
+        //! @param element double value to be inserted into matrix structure
+        //! @param row size_t specifying the row location
+        //! @param col size_t specifying the column location
+        virtual void setElement(size_t row, size_t col, double element){
+            throw CanteraError("Cantera::PrecondtionerBase(setElement","setElement is not defined for PreconditionerBase, please use a subclass.");
+        };//set element
 
-        //!Function used to get a specific element of the matrix structure
-        //!@param row size_t specifying the row location
-        //!@param col size_t specifying the column location
+        //! Function used to get a specific element of the matrix structure
+        //! @param row size_t specifying the row location
+        //! @param col size_t specifying the column location
         virtual double getElement(size_t row, size_t col){
-        throw CanteraError("Cantera::PrecondtionerBase::getElement","getElement not implemented for PreconditionerBase, please use a subclass.");
+            throw CanteraError("Cantera::PrecondtionerBase(getElement","getElement is not defined for PreconditionerBase, please use a subclass.");
         }; //get element
 
-        //Other preconditioner functions
-        //!Use this function to get the threshold value for setting elements
-        virtual double getThreshold();
-
-        //!Use this function to set the threshold value to compare elements against
-        //!@param threshold double value used in setting by threshold
-        virtual void setThreshold(double threshold);
-
-        //!Use this function to set an element by the threshold
-        //!@param row size_t specifying the row location
-        //!@param col size_t specifying the column location
-        //!@param element double value to be inserted into matrix structure
-        virtual void setElementByThreshold(size_t row,size_t col, double element);
-
-        //!Function used to set the dimensions of and construct the matrix structure - required for initialization and use of the class
-        //!@param nrows size_t number of rows in the structure
-        //!@param ncols size_t nubmer of columns in the structure
-        //!@param otherData void* for passing other data necessary for subclasses to initialize the matrix structure
-        virtual void setDimensions(size_t nrows,size_t ncols);
-
-        //!Function to return the dimensions of the matrix structure
-        virtual size_t* getDimensions();
-
-        //!Function used to complete individual reactor setups
-        //!@param reactor A Reactor pointer
-        //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
+        //! Function used to complete individual reactor setups
+        //! @param reactor A Reactor pointer
+        //! @param reactorStart an size_t providing the index location in which the state of the given reactor starts
         virtual void reactorLevelSetup(Reactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params){
         throw CanteraError("Cantera::PrecondtionerBase::reactorLevelSetup","reactorLevelSetup not implemented for specified reactor or preconditioner type.");
         };
 
-        //!Function used to complete individual reactor setups
-        //!@param reactor A IdealGasConstPressureReactor pointer
-        //!@param reactorStart an size_t providing the index location in which the state of the given reactor starts
+        //! Function used to complete individual reactor setups
+        //! @param reactor A IdealGasConstPressureReactor pointer
+        //! @param reactorStart an size_t providing the index location in which the state of the given reactor starts
         virtual void reactorLevelSetup(IdealGasConstPressureReactor* reactor, size_t reactorStart, double t, double* y, double* ydot, double* params){
         throw CanteraError("Cantera::PrecondtionerBase::reactorLevelSetup","Cantera::PrecondtionerBase::reactorLevelSetup","reactorLevelSetup not implemented for specified reactor or preconditioner type.");
         };
+
+        //! Function used to set dimensions of the preconditioner
+        //! @param dims A pointer to an array of the dimensions
+        void setDimensions(std::vector<size_t> *dims)
+        {
+            this->m_dimensions.clear();
+            for (auto it = dims->begin(); it != dims->end(); ++it)
+            {
+                this->m_dimensions.push_back(*it);
+            }
+        }
+
+        //! Function to return pointer to dimensions
+        std::vector<size_t>* getDimensions()
+        {
+            return &(this->m_dimensions);
+        }
   };
 }
 #endif

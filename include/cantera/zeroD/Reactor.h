@@ -117,16 +117,6 @@ public:
     virtual void evalEqs(doublereal t, doublereal* y,
                          doublereal* ydot, doublereal* params);
 
-    /*
-    * Evaluate energy equations for preconditioning.
-     * @param[in] t time.
-     * @param[in] y solution vector, length neq()
-     * @param[out] ydot rate of change of solution vector, length neq()
-     * @param[in] params sensitivity parameter vector, length ReactorNet::nparams()
-    */
-    virtual double evaluateEnergyEquation(doublereal time, doublereal* y,
-                      doublereal* ydot, doublereal* params);
-
     virtual void syncState();
 
     //! Set the state of the reactor to correspond to the state vector *y*.
