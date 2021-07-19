@@ -1459,3 +1459,6 @@ cdef class ReactorNet:
 
     def __copy__(self):
         raise NotImplementedError('ReactorNet object is not copyable')
+
+    def setIntegratorType(self, int integratorType):
+        self.net.setIntegratorType(integratorType)
