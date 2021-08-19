@@ -427,4 +427,9 @@ void ReactorNet::preconditionerSolve(double t, double* y,
     m_preconditioner->solve(this, rhs, output);
 }
 
+int ReactorNet::getNumNonlinIters()
+{
+    return m_integ->getNonlinSolvIters();
+}
+
 }
