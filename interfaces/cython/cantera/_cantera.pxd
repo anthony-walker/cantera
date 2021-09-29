@@ -920,6 +920,7 @@ cdef extern from "cantera/zerodim.h" namespace "Cantera":
             double threshold
             double getThreshold()
             void setThreshold(double threshold)
+            void printPreconditioner()
 
     # reactor net
 
@@ -959,7 +960,8 @@ cdef extern from "cantera/zerodim.h" namespace "Cantera":
         void setIntegratorType(int integratorType)
         void setIntegratorType(CxxPreconditionerBase* preconditioner,
         int integratorType)
-        int getNumNonlinIters();
+        int getNumNonlinIters()
+        int getNumLinIters()
 
 cdef extern from "cantera/zeroD/ReactorDelegator.h" namespace "Cantera":
     cdef cppclass CxxReactorAccessor "Cantera::ReactorAccessor":
@@ -1461,6 +1463,9 @@ cdef class IdealGasReactor(Reactor):
     pass
 
 cdef class IdealGasConstPressureReactor(Reactor):
+    pass
+
+cdef class IdealGasConstPressureMoleReactor(Reactor):
     pass
 
 cdef class FlowReactor(Reactor):

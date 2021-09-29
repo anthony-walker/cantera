@@ -1037,6 +1037,24 @@ class TestIdealGasConstPressureReactor(TestConstPressureReactor):
     reactorClass = ct.IdealGasConstPressureReactor
 
 
+class TestIdealGasConstPressureMoleReactor(TestIdealGasConstPressureReactor):
+    reactorClass = ct.IdealGasConstPressureMoleReactor
+
+    @unittest.expectedFailure
+    def test_with_surface_reactions(self):
+        self.create_reactors(add_surf=True)
+        self.net1.atol = self.net2.atol = 1e-18
+        self.net1.rtol = self.net2.rtol = 1e-9
+        self.integrate(surf=True)
+
+    def test_preconditioned_integration(self):
+        self.create_reactors()
+        self.precon = ct.AdaptivePreconditioner()
+        self.precon.setThreshold(1e-8)
+        self.precon.addToNetwork(self.net2)
+        self.integrate()
+
+
 class TestFlowReactor(utilities.CanteraTest):
     gas_def = """
     phases:

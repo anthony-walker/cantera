@@ -11,6 +11,7 @@
 #include "cantera/zeroD/IdealGasReactor.h"
 #include "cantera/zeroD/IdealGasConstPressureReactor.h"
 #include "cantera/zeroD/ReactorDelegator.h"
+#include "cantera/zeroD/IdealGasConstPressureMoleReactor.h"
 
 using namespace std;
 namespace Cantera
@@ -36,6 +37,7 @@ ReactorFactory::ReactorFactory()
         []() { return new ReactorDelegator<ConstPressureReactor>(); });
     reg("ExtensibleIdealGasConstPressureReactor",
         []() { return new ReactorDelegator<IdealGasConstPressureReactor>(); });
+    reg("IdealGasConstPressureMoleReactor", []() { return new IdealGasConstPressureMoleReactor(); });
 }
 
 ReactorBase* ReactorFactory::newReactor(const std::string& reactorType)
