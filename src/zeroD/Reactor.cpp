@@ -527,9 +527,4 @@ void Reactor::setAdvanceLimit(const string& nm, const double limit)
     }
 }
 
-void Reactor::acceptPreconditioner(PreconditionerBase *preconditioner, double t, double* c, double* cdot, double* params)
-{
-    preconditioner->reactorLevelSetup(this, t, c, cdot, params);
-}
-
 }
