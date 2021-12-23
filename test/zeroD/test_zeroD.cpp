@@ -29,6 +29,7 @@ TEST(ZeroDim, test_individual_reactor_initialization)
     // Setup reactor network and integrate
     ReactorNet network;
     network.addReactor(reactor1);
+    network.initialize();
     network.advance(1.0);
     // Secondary gas for comparison
     std::shared_ptr<Solution> sol2 = newSolution("h2o2.yaml");
@@ -126,7 +127,6 @@ TEST(MoleReactorTestSet, test_preconditioned_ideal_const_pressure)
     AdaptivePreconditioner precon;
     net1.setProblemType(GMRES);
     net1.setPreconditioner(precon);
-    net1.initialize();
     // Network 2
     ReactorNet net2;
     net2.addReactor(r2);
@@ -144,54 +144,11 @@ TEST(MoleReactorTestSet, test_preconditioned_ideal_const_pressure)
     }
 }
 
-TEST(DISABLED_MoleReactorTestSet, test_preconditioned_ideal_network_integrations)
-{
-    //! TODO: This test needs fixed. It consistently fails on other operating systems.
-    // Network 1
-    auto sol1 = newSolution("h2o2.yaml");
-    sol1->thermo()->setState_TP(1100.0, 10 * OneAtm);
-    sol1->thermo()->setEquivalenceRatio(1, "H2", "O2:0.21, N2:0.78, AR:0.09");
-    IdealGasMoleReactor r1;
-    IdealGasConstPressureMoleReactor r2;
-    r1.insert(sol1);
-    r2.insert(sol1);
-    ReactorNet net1;
-    net1.addReactor(r1);
-    net1.addReactor(r2);
-    AdaptivePreconditioner precon;
-    net1.setProblemType(GMRES);
-    net1.setPreconditioner(precon);
-    net1.initialize();
-    // Network 2
-    ReactorNet net2;
-    auto sol2 = newSolution("h2o2.yaml");
-    sol2->thermo()->setState_TP(1100.0, 10 * OneAtm);
-    sol2->thermo()->setEquivalenceRatio(1, "H2", "O2:0.21, N2:0.78, AR:0.09");
-    IdealGasMoleReactor r3;
-    IdealGasConstPressureMoleReactor r4;
-    r3.insert(sol1);
-    r4.insert(sol1);
-    net2.addReactor(r3);
-    net2.addReactor(r4);
-    net2.setProblemType(GMRES);
-    net2.initialize();
-    // Advancing
-    net1.advance(0.1);
-    net2.advance(0.1);
-    // Comparison
-    vector_fp state1(net1.neq(), 0.0);
-    vector_fp state2(net2.neq(), 0.0);
-    for (size_t i = 0; i < net1.neq(); i++)
-    {
-        EXPECT_NEAR(state1[i], state2[i], net1.atol());
-    }
-}
-
 TEST(MoleReactorTestSet, test_mole_reactor_get_state)
 {
     // Setting up solution object and thermo/kinetics pointers
     auto sol = newSolution("h2o2.yaml");
-    sol->thermo()->setState_TPY(1000.0, 101325, "H2:0.5, O2:0.5");
+    sol->thermo()->setState_TPY(1000.0, OneAtm, "H2:0.5, O2:0.5");
     IdealGasConstPressureMoleReactor reactor;
     reactor.insert(sol);
     reactor.setInitialVolume(0.5);
@@ -210,19 +167,18 @@ TEST(MoleReactorTestSet, test_mole_reactor_get_state)
     double  H2_Moles = imw[H2I] * 0.5 * mass;
     // test getState
     reactor.getState(state.data());
-    EXPECT_EQ(state[reactor.componentIndex("H2")], H2_Moles);
-    EXPECT_EQ(state[reactor.componentIndex("O2")], O2_Moles);
+    EXPECT_DOUBLE_EQ(state[reactor.componentIndex("H2")], H2_Moles);
+    EXPECT_DOUBLE_EQ(state[reactor.componentIndex("O2")], O2_Moles);
     // Test updateState
     reactor.updateState(state.data());
     reactor.getState(updatedState.data());
-    EXPECT_EQ(reactor.volume(), 0.5);
-    EXPECT_EQ(reactor.pressure(), 101325);
+    EXPECT_DOUBLE_EQ(reactor.volume(), 0.5);
+    EXPECT_DOUBLE_EQ(reactor.pressure(), OneAtm);
     for (size_t i = 0; i < reactor.neq(); i++)
     {
-       EXPECT_EQ(state[i], updatedState[i]);
+       EXPECT_DOUBLE_EQ(state[i], updatedState[i]);
     }
 }
-
 
 TEST(MoleReactorTestSet, test_reinitialize_preconditioned_mole_reactors)
 {
@@ -273,6 +229,49 @@ TEST(MoleReactorTestSet, test_reinitialize_preconditioned_mole_reactors)
     // Compare second round
     ASSERT_NEAR(T1a, T1b, 1e-8);
     ASSERT_NEAR(T2a, T2b, 1e-8);
+}
+
+TEST(DISABLED_MoleReactorTestSet, test_preconditioned_ideal_network_integrations)
+{
+    //! TODO: This test needs fixed. It consistently fails on other operating systems.
+    // Network 1
+    auto sol1 = newSolution("h2o2.yaml");
+    sol1->thermo()->setState_TP(1100.0, 10 * OneAtm);
+    sol1->thermo()->setEquivalenceRatio(1, "H2", "O2:0.21, N2:0.78, AR:0.09");
+    IdealGasMoleReactor r1;
+    IdealGasConstPressureMoleReactor r2;
+    r1.insert(sol1);
+    r2.insert(sol1);
+    ReactorNet net1;
+    net1.addReactor(r1);
+    net1.addReactor(r2);
+    AdaptivePreconditioner precon;
+    net1.setProblemType(GMRES);
+    net1.setPreconditioner(precon);
+    net1.initialize();
+    // Network 2
+    ReactorNet net2;
+    auto sol2 = newSolution("h2o2.yaml");
+    sol2->thermo()->setState_TP(1100.0, 10 * OneAtm);
+    sol2->thermo()->setEquivalenceRatio(1, "H2", "O2:0.21, N2:0.78, AR:0.09");
+    IdealGasMoleReactor r3;
+    IdealGasConstPressureMoleReactor r4;
+    r3.insert(sol1);
+    r4.insert(sol1);
+    net2.addReactor(r3);
+    net2.addReactor(r4);
+    net2.setProblemType(GMRES);
+    net2.initialize();
+    // Advancing
+    net1.advance(0.1);
+    net2.advance(0.1);
+    // Comparison
+    vector_fp state1(net1.neq(), 0.0);
+    vector_fp state2(net2.neq(), 0.0);
+    for (size_t i = 0; i < net1.neq(); i++)
+    {
+        EXPECT_NEAR(state1[i], state2[i], net1.atol());
+    }
 }
 
 int main(int argc, char** argv)

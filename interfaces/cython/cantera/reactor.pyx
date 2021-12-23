@@ -1492,11 +1492,12 @@ cdef class ReactorNet:
                 if (problem_type != "DENSE + NOJAC"):
                     warnings.warn("Problem type not found, set to \"DENSE + NOJAC\"")
 
-    def get_num_nonlin_iters(self):
-        return self.net.getNumNonlinIters()
+    def get_nonlin_solver_stats(self):
+        cdef np.ndarray[np.int_t, ndim=1, mode="c"] stats = np.zeros((2,), dtype=long)
+        self.net.getNonlinSolverStats(<long int*> stats.data)
+        return stats        
 
-    def get_num_lin_iters(self):
-        return self.net.getNumLinIters()
-
-    def get_sparsity_percentage(self):
-        return self.net.getSparsityPercentage()
+    def get_lin_solver_stats(self):
+        cdef np.ndarray[np.int_t, ndim=1, mode="c"] stats = np.zeros((8,), dtype=long)
+        self.net.getLinSolverStats(<long int*> stats.data)
+        return stats

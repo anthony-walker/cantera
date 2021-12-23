@@ -797,6 +797,8 @@ cdef extern from "cantera/numerics/AdaptivePreconditioner.h" namespace "Cantera"
         CxxAdaptivePreconditioner() except +
         double getThreshold()
         void setThreshold(double threshold)
+        void setFillFactorILUT(int fillfactor)
+        void setDropTolILUT(double droptol)
         void printPreconditioner()
 
 cdef extern from "cantera/numerics/PreconditionerFactory.h" namespace "Cantera":
@@ -972,9 +974,8 @@ cdef extern from "cantera/zerodim.h" namespace "Cantera":
         string sensitivityParameterName(size_t) except +translate_exception
         void setProblemType(int integratorType)
         void setPreconditioner(CxxPreconditionerBase& preconditioner)
-        int getNumNonlinIters()
-        int getNumLinIters()
-        double getSparsityPercentage()
+        void getLinSolverStats(long int* stats)
+        void getNonlinSolverStats(long int* stats)
 
 cdef extern from "cantera/zeroD/ReactorDelegator.h" namespace "Cantera":
     cdef cppclass CxxReactorAccessor "Cantera::ReactorAccessor":

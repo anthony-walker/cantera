@@ -15,10 +15,10 @@
 #include "cantera/numerics/PreconditionerBase.h"
 #include "cantera/zeroD/ReactorNet.h"
 #include "cantera/thermo/ThermoPhase.h"
-#include "cantera/kinetics/ReactionDerivativeManager.h"
 #include "cantera/kinetics/Kinetics.h"
 #include "float.h"
 #include <unordered_map>
+#include <iostream>
 
 namespace Cantera
 {
@@ -39,11 +39,6 @@ public:
     ~AdaptivePreconditioner(){};
     AdaptivePreconditioner(const AdaptivePreconditioner &externalPrecon){};
 
-    //! Friend classes
-    friend class MoleReactor;
-    friend class IdealGasConstPressureMoleReactor;
-    friend class IdealGasMoleReactor;
-
     //! This function is called during setup for any processes that need
     //! to be completed prior to setup functions used in sundials.
     //! @param network A pointer to the reactor net object associated
@@ -52,9 +47,8 @@ public:
 
     //! Use this function to reset arrays within preconditioner object
     void reset(){
-        m_precon_matrix.reserve(m_nnz);
         m_precon_matrix.setZero();
-        std::fill(m_values.begin(), m_values.end(), 0);
+        m_jac_trips.clear();
     };
 
     //! This function performs preconditioner specific post-reactor
@@ -63,15 +57,15 @@ public:
 
     //! This function is for a visitor design pattern to determine
     //! preconditioner type with MoleReactor
-    void acceptReactor(MoleReactor& reactor, double t, double* N, double* Ndot, double* params);
+    void acceptReactor(MoleReactor& reactor, double t, double* LHS, double* RHS);
 
     //! This function is for a visitor design pattern to determine
     //! preconditioner type with IdealGasMoleReactor
-    void acceptReactor(IdealGasMoleReactor& reactor, double t, double* N, double* Ndot, double* params);
+    void acceptReactor(IdealGasMoleReactor& reactor, double t, double* LHS, double* RHS);
 
     //! This function is for a visitor design pattern to determine
     //! preconditioner type with IdealGasConstPressureMoleReactor
-    void acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* N, double* Ndot, double* params);
+    void acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* LHS, double* RHS);
 
     //! This function checks if there was an error with eigen and throws
     //! it if so.
@@ -80,6 +74,9 @@ public:
     //!Use this function to transform Jacobian vector and write into
     //!preconditioner
     void transformJacobianToPreconditioner();
+
+    //!Use this function to prune preconditioner elements
+    void prunePreconditioner();
 
     //! Function to solve a linear system Ax=b where A is the
     //! preconditioner contained in this matrix
@@ -94,21 +91,15 @@ public:
     //! This function returns preconditioning type as an integer
     PreconditionerType getPreconditionerType(){return LEFT_PRECONDITION;};
 
-    //! Use this function to get a global flat index from local
-    //! @param row local row index
-    //! @param col local column index
-    size_t globalIndex(size_t row, size_t col){
-        return (row + m_starts[m_ctr]) + (col + m_starts[m_ctr]) * m_dimensions[1];
-    };
-
-    // Use this function to get the current Jacobian
-    Eigen::SparseMatrix<double> getJacobian(){
-        Eigen::Map<Eigen::SparseMatrix<double>> jacobian(m_dimensions[0], m_dimensions[1], m_nnz, m_outer.data(), m_inner.data(), m_values.data());
-        return jacobian;
-    };
-
     //! Function used to return pointer to preconditioner matrix
     Eigen::SparseMatrix<double>* getMatrix(){return &(m_precon_matrix);};
+
+    //! Function used to return semi-analytical jacobian matrix
+    Eigen::SparseMatrix<double> getJacobian(){
+        Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
+        jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
+        return jacobian;
+    };
 
     //! Use this function to get the threshold value for setting
     //! elements
@@ -116,14 +107,6 @@ public:
 
     //! Use this function to get the pertubation constant
     double getPerturbationConst(){return m_perturb;};
-
-    //! Use this function to get the ratio of nonzero preconditioner
-    //! elements to the maximum number of elements
-    double getSparsityPercentage(){
-        size_t totalElements = m_dimensions[0] * m_dimensions[0];
-        size_t p_nnz = (m_precon_matrix.nonZeros() > 0) ? m_precon_matrix.nonZeros() : m_nnz;
-        return 1.0 - ((double) p_nnz)/((double) totalElements);
-    };
 
     //! Use this function to get a strictly positive composition
     void getStrictlyPositiveComposition(size_t vlen, double* in, double* out){
@@ -136,7 +119,22 @@ public:
     //! Use this function to set the threshold value to compare elements
     //! against
     //! @param threshold double value used in setting by threshold
-    void setThreshold(double threshold){m_threshold = threshold;};
+    void setThreshold(double threshold)
+    {
+        m_threshold = threshold;
+        m_prune_precon = (threshold <= 0) ? false : true;
+    };
+
+    //! Use this function to set drop tolerance for ILUT
+    //! @param droptol double value used in setting solver drop tolerance
+    void setDropTolILUT(double droptol = 1e-10){m_solver.setDroptol(droptol);};
+
+    //! Use this function to set the fill factor for ILUT
+    void setFillFactorILUT(int fillfactor = -1)
+    {
+        int newfillfactor = (fillfactor < 0) ? m_dimensions[0]/4 : fillfactor;
+        m_solver.setFillfactor(newfillfactor);
+    }
 
     //! Use this function to set the perturbation constant used in
     //! finite difference calculations.
@@ -152,16 +150,17 @@ public:
     //! @param externalPrecon the preconditioner becoming this object
     void operator= (const AdaptivePreconditioner &externalPrecon);
 
-    //! Overloading of the [] operator to assign values to the jacobian
-    //! this function assumes that the index is in the index map
-    //! @param index the flattened index of the point to be accessed
-    double& operator[] (int index){return m_values[m_state_indices[index]];};
+    // //! Overloading of the [] operator to assign values to the jacobian
+    // //! this function assumes that the index is in the index map
+    // //! @param index the flattened index of the point to be accessed
+    // double& operator[] (int index){return m_values[m_state_indices[index]];};
 
     //! Overloading of the () operator to assign values to the jacobian
     //! this function does not assume that index is index map
     //! @param row row index of jacobian
     //! @param col column index of jacobian
-    double& operator() (size_t row, size_t col);
+    //! @param value to place in jacobian vector
+    void operator() (size_t row, size_t col, double value);
 
     //! Print preconditioner contents
     void printPreconditioner(){
@@ -171,7 +170,8 @@ public:
 
     //! Print jacobian contents
     void printJacobian(){
-        Eigen::Map<Eigen::SparseMatrix<double>> jacobian(m_dimensions[0], m_dimensions[1], m_nnz, m_outer.data(), m_inner.data(), m_values.data());
+        Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
+        jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
         std::cout<<Eigen::MatrixXd(jacobian)<<std::endl;
     };
 
@@ -187,29 +187,7 @@ public:
 
 protected:
     //! Container for the values that are mapped to m_jacobian
-    vector_fp m_values;
-
-    //! Container for inner (row) indices in CSC format
-    vector_int m_inner;
-
-    //! Container for outer starts (nnz elements per row)
-    vector_int m_outer;
-
-    //! Container for starts of each reactor in double m_values
-    std::vector<size_t> m_sizes;
-
-    //! Container for starts of each reactor in normal state
-    std::vector<size_t> m_starts;
-
-    //! Indices of thermo variables temp, mass, vol, etc.
-    std::vector<size_t> m_thermo_indices;
-
-    //! Total index map of system, the key is a flattened index and the
-    //! output is the corresponding derivative index
-    std::unordered_map<int, int> m_state_indices;
-
-    //! The number of non zeros
-    int m_nnz = 0;
+    std::vector<Eigen::Triplet<double>> m_jac_trips;
 
     //! Container that is the sparse preconditioner
     Eigen::SparseMatrix<double> m_identity;
@@ -224,13 +202,12 @@ protected:
     //! the preconditioner
     double m_threshold = DBL_EPSILON; // default
 
-    //! Index value for the starting index A value of zero for returns
-    //! and assignments to non-existent values
-    double m_zero{0};
-
     //! Perturbation constant that is multiplied by temperature for
     //! perturbation
     double m_perturb = std::sqrt(DBL_EPSILON);
+
+    //! Bool set whether to prune the matrix or not
+    double m_prune_precon = true;
 };
 
 }

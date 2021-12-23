@@ -648,22 +648,31 @@ int CVodesIntegrator::nEvals() const
     return ne;
 }
 
-int CVodesIntegrator::getNonlinSolvIters() const
+void CVodesIntegrator::getNonlinSolvStats(long int* stats) const
 {
-    long int numIters;
-    CVodeGetNumNonlinSolvIters(m_cvode_mem, &numIters);
-    return numIters;
+    #if CT_SUNDIALS_VERSION >= 40
+        CVodeGetNonlinSolvStats(m_cvode_mem, stats, stats+1);
+    #else
+        throw CanteraError("CVodesIntegrator::getLinSolvNonlinStats", "Function not supported with sundials versions less than 4.");
+    #endif
 }
 
-int CVodesIntegrator::getLinSolvIters() const
+void CVodesIntegrator::getLinSolvStats(long int* stats) const
 {
-    long int numIters = 0;
-    #if CT_SUNDIALS_VERSION >= 40
-        CVodeGetNumLinRhsEvals(m_cvode_mem, &numIters);
+    #if CT_SUNDIALS_VERSION >= 60
+        CVodeGetLinSolveStats(m_cvode_mem, stats, stats+1, stats+2, stats+3, stats+4, stats+5, stats+6, stats+7);
+    #elif CT_SUNDIALS_VERSION >= 40
+        CVodeGetNumJacEvals(m_cvode_mem, stats);
+        CVodeGetNumLinRhsEvals(m_cvode_mem, stats + 1);
+        CVodeGetNumLinIters(m_cvode_mem, stats + 2);
+        CVodeGetNumLinConvFails(m_cvode_mem, stats + 3);
+        CVodeGetNumPrecEvals(m_cvode_mem, stats + 4);
+        CVodeGetNumPrecSolves(m_cvode_mem, stats + 5);
+        CVodeGetNumJTSetupEvals(m_cvode_mem, stats + 6);
+        CVodeGetNumJtimesEvals(m_cvode_mem, stats + 7);
     #else
-        throw CanteraError("CVodesIntegrator::getLinSolvIters", "Function not supported with sundials versions less than 4.");
+        throw CanteraError("CVodesIntegrator::getLinSolvStats", "Function not supported with sundials versions less than 4.");
     #endif
-    return numIters;
 }
 
 void CVodesIntegrator::preconditionerError()

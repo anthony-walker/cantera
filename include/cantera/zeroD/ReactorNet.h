@@ -50,9 +50,6 @@ public:
     //! @param preconditioner preconditioner object used for the linear solver
     void setPreconditioner(PreconditionerBase& preconditioner);
 
-    //! Use this to get a measure of jacobian sparsity
-    double getSparsityPercentage();
-
     //! Set initial time. Default = 0.0 s. Restarts integration from this time
     //! using the current mixture state as the initial condition.
     void setInitialTime(double time);
@@ -286,7 +283,7 @@ public:
     //! @param[out] ydot rate of change of solution vector, length neq()
     //! @param[in] params sensitivity parameters
     //! @param gamma the gamma in M=I-gamma*J
-    virtual void preconditionerSetup(double t, double* y, double* ydot, double* params, double gamma);
+    virtual void preconditionerSetup(double t, double* y, double* ydot, double gamma);
 
     //! Evaluate the preconditioned linear system used by the nonlinear
     //! integrator.
@@ -297,16 +294,15 @@ public:
     //! @param[out] output guess vector used by GMRES
     virtual void preconditionerSolve(double t, double* y, double* ydot, double* rhs, double* output){m_preconditioner->solve(m_nv, rhs, output);}
 
-    //! Use this to get the number of nonlinear iterations from cvodes
-    int getNumNonlinIters(){return m_integ->getNonlinSolvIters();};
+    //! Use this to get nonlinear solver stats from cvodes
+    //! @param stats a long int pointer with at least two spaces
+    void getNonlinSolverStats(long int* stats){m_integ->getNonlinSolvStats(stats);};
 
-    //! Use this to get the number of linear iterations from cvodes
-    int getNumLinIters(){return m_integ->getLinSolvIters();};
+    //! Use this to get linear solver stats from cvodes
+    //! @param stats a long int pointer with at least eight spaces
+    void getLinSolverStats(long int* stats){m_integ->getLinSolvStats(stats);};
 
 protected:
-    //! Make AdaptivePreconditioner able to access internal elements
-    friend class AdaptivePreconditioner;
-
     //! Estimate a future state based on current derivatives.
     //! The function is intended for internal use by ReactorNet::advance
     //! and deliberately not exposed in external interfaces.
@@ -353,10 +349,6 @@ protected:
 
     //! Pointer to preconditioner
     PreconditionerBase *m_preconditioner;
-    //! preconditioner type set
-    unsigned long m_preconditioner_type=PRECONDITIONER_NOT_SET; //default setting is that it is not on.
-    //! Measurement of system sparsity percentage
-    double m_sparsity_percentage;
 };
 }
 

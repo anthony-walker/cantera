@@ -49,32 +49,21 @@ public:
 
     //! Right hand side function used to integrate by CVODES
     //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void evalEqs(double t, double* N, double* Ndot, double* params);
+    //! @param LHS state vector in moles
+    //! @param RHS derivative vector in moles per second
+    virtual void eval(double t, double* LHS, double* RHS);
 
     //! Use to update state vector N
     virtual void updateState(double* N);
 
-    //! Use this function to precondition the supplied preconditioner
-    //! with state variable related derivatives. It can be overloaded
-    //! for multiple derivative types.
+    //! This function is the next level of preconditioner setup used in
+    //! the visitor design pattern. This is necessary for determining
+    //! specific types of both the reactor and preconditioner object
     //! @param preconditioner the preconditioner being used by cvodes
     //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void StateDerivatives(AdaptivePreconditioner& preconditioner, double t, double* N, double* Ndot, double* params);
-    //! Use this function to precondition the supplied preconditioner
-    //! with species variable related derivatives. It can be overloaded
-    //! for multiple derivative types.
-    //! @param preconditioner the preconditioner being used by cvodes
-    //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void SpeciesSpeciesDerivatives(AdaptivePreconditioner& preconditioner, double* N);
+    //! @param LHS state vector in moles
+    //! @param RHS derivative vector in moles per second
+    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* LHS, double* RHS);
 
 protected:
     vector_fp m_hk; //!< Species molar enthalpies

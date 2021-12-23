@@ -7,13 +7,13 @@
 #define CT_REACTOR_H
 
 #include "ReactorBase.h"
+#include "cantera/base/AnyMap.h"
 #include "cantera/numerics/PreconditionerBase.h"
 
 namespace Cantera
 {
 
 //! Forward Declaration
-class ReactionDerivativeManager;
 class Solution;
 class AdaptivePreconditioner;
 
@@ -165,10 +165,9 @@ public:
     //! design pattern.
     //! @param preconditioner the preconditioner being used by cvodes
     //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void preconditionerSetup(PreconditionerBase& preconditioner, double t, double* N, double* Ndot, double* params)
+    //! @param LHS state vector in moles
+    //! @param RHS derivative vector in moles per second
+    virtual void preconditionerSetup(PreconditionerBase& preconditioner, double t, double* LHS, double* RHS)
     {
         throw NotImplementedError("Reactor::preconditionerSetup");
     }
@@ -181,7 +180,7 @@ public:
     //! @param N state vector in moles
     //! @param Ndot derivative vector in moles per second
     //! @param params sensitivity parameters
-    virtual void reactorPreconditionerSetup(PreconditionerBase& preconditioner, double t, double* N, double* Ndot, double* params)
+    virtual void reactorPreconditionerSetup(PreconditionerBase& preconditioner, double t, double* LHS, double* RHS)
     {
         throw NotImplementedError("Reactor::reactorPreconditionerSetup");
     }
@@ -191,29 +190,24 @@ public:
     //! specific types of both the reactor and preconditioner object
     //! @param preconditioner the preconditioner being used by cvodes
     //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* N, double* Ndot, double* params)
+    //! @param LHS state vector in moles
+    //! @param RHS derivative vector in moles per second
+    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* LHS, double* RHS)
     {
         throw NotImplementedError("Reactor::reactorPreconditionerSetup");
     }
 
-    //! Return the associated ReactionDerivativeManager object
-    virtual ReactionDerivativeManager& reaction_derivative_manager() {throw NotImplementedError("Reactor::reaction_derivative_manager");};
+    //! Use this to set the kinetics objects derivative settings
+    virtual void setKineticsDerivativeSettings(AnyMap& settings);
 
     //! Return species start in state
     virtual size_t species_start() {
         throw NotImplementedError("Reactor::species_start");};
 
-    //! Return the number of nonzero jacobian elements
-    virtual size_t nonzero_jacobian_elements() {
-        return m_nv * m_nv;};
-
-protected:
     //! Set reaction rate multipliers based on the sensitivity variables in
     //! *params*.
     virtual void applySensitivity(double* params);
+
     //! Reset the reaction rate multipliers
     virtual void resetSensitivity(double* params);
 

@@ -77,13 +77,12 @@ void IdealGasMoleReactor::updateState(double* N)
     updateConnected(true);
 }
 
-void IdealGasMoleReactor::evalEqs(double time, double* N,
-                                   double* Ndot, double* params)
+void IdealGasMoleReactor::eval(double time, double* LHS,
+                                   double* RHS)
 {
     double mcvdTdt = 0.0; // m * c_v * dT/dt
-    double* dNdt = Ndot + m_sidx; // kmol per s
+    double* dNdt = RHS + m_sidx; // kmol per s
 
-    applySensitivity(params);
     evalWalls(time);
 
     m_thermo->restoreState(m_state);
@@ -130,74 +129,90 @@ void IdealGasMoleReactor::evalEqs(double time, double* N,
     }
 
     if (m_energy) {
-        Ndot[0] = mcvdTdt / (m_mass * m_thermo->cv_mass());
+        RHS[0] = mcvdTdt / (m_mass * m_thermo->cv_mass());
     } else {
-        Ndot[0] = 0.0;
+        RHS[0] = 0.0;
     }
 
-    resetSensitivity(params);
 }
 
-void IdealGasMoleReactor::StateDerivatives(AdaptivePreconditioner& preconditioner, double t, double* N, double* Ndot, double* params)
+void IdealGasMoleReactor::reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* LHS, double* RHS)
 {
-    // getting perturbed state for finite difference
-    double deltaTemp = N[0] * preconditioner.m_perturb;
-    // finite difference temperature derivatives
-    vector_fp NNext (m_nv);
-    vector_fp NdotNext (m_nv);
-    vector_fp NCurrent (m_nv);
-    vector_fp NdotCurrent (m_nv);
-    // copy N to current and next
-    copy(N, N + m_nv, NCurrent.begin());
-    copy(N, N + m_nv, NNext.begin());
-    // perturb temperature
-    NNext[0] += deltaTemp;
-    // getting perturbed state
-    updateState(NNext.data());
-    evalEqs(t, NNext.data(), NdotNext.data(), params);
-    // reset and get original state
-    updateState(NCurrent.data());
-    evalEqs(t, NCurrent.data(), NdotCurrent.data(), params);
-    // d T_dot/dT
-    preconditioner(0, 0) = (NdotNext[0] - NdotCurrent[0]) / deltaTemp;
-    // d omega_dot_j/dT
-    for (size_t j = m_sidx; j < m_nv; j++)
+    // strictly positive composition
+    vector_fp LHSCopy(m_nv);
+    preconditioner.getStrictlyPositiveComposition(m_nv, LHS, LHSCopy.data());
+    updateState(LHSCopy.data());
+    // Determine Species Derivatives
+    // get ROP derivatives
+    double scalingFactor = m_vol/accumulate(LHS + m_sidx, LHS + m_nv, 0.0);
+    Eigen::SparseMatrix<double> speciesDervs = scalingFactor * m_kin->netProductionRates_ddX();
+    // add to preconditioner
+    for (int k=0; k<speciesDervs.outerSize(); ++k)
     {
-        preconditioner(j, 0) = (NdotNext[j] - NdotCurrent[j]) / deltaTemp;
-    }
-    // find derivatives d T_dot/dNj
-    vector_fp specificHeat (m_nsp);
-    vector_fp netProductionRates (m_nsp);
-    vector_fp internal_energy (m_nsp);
-    vector_fp concentrations (m_nsp);
-    // getting species concentrations
-    m_thermo->getConcentrations(concentrations.data());
-    m_thermo->getPartialMolarCp(specificHeat.data());
-    m_thermo->getPartialMolarIntEnergies(internal_energy.data());
-    m_kin->getNetProductionRates(netProductionRates.data());
-    // convert Cp to Cv for ideal gas as Cp - Cv = R
-    for (size_t i = 0; i < specificHeat.size(); i++)
-    {
-        specificHeat[i] -= GasConstant;
-    }
-    // getting perturbed changes w.r.t temperature
-    double CkCvkSum = 0;
-    double ukwkSum = 0;
-    double inverseVolume = 1/volume();
-    for (size_t i = 0; i < m_nsp; i++)
-    {
-        ukwkSum += internal_energy[i] * netProductionRates[i];
-        CkCvkSum += concentrations[i] * specificHeat[i];
-    }
-    for (size_t j = 0; j < m_nsp; j++) // spans columns
-    {
-        double ukdwkdnjSum = 0;
-        for (size_t k = 0; k < m_nsp; k++) // spans rows
+        for (Eigen::SparseMatrix<double>::InnerIterator it(speciesDervs, k); it; ++it)
         {
-            ukdwkdnjSum += internal_energy[k] * preconditioner(k+m_sidx, j + m_sidx);
+            preconditioner(it.row() + m_sidx, it.col() + m_sidx, it.value());
         }
-        // set appropriate column of preconditioner
-        preconditioner(0, j + m_sidx) = (ukdwkdnjSum * CkCvkSum - specificHeat[j] * inverseVolume * ukwkSum) / (CkCvkSum * CkCvkSum);
+    }
+    // Temperature Derivatives
+    if (m_energy)
+    {
+        // getting perturbed state for finite difference
+        double deltaTemp = LHSCopy[0] * preconditioner.getPerturbationConst();
+        // finite difference temperature derivatives
+        vector_fp NNext (m_nv);
+        vector_fp NdotNext (m_nv);
+        vector_fp NCurrent (m_nv);
+        vector_fp NdotCurrent (m_nv);
+        // copy LHS to current and next
+        copy(LHSCopy.begin(), LHSCopy.end(), NCurrent.begin());
+        copy(LHSCopy.begin(), LHSCopy.end(), NNext.begin());
+        // perturb temperature
+        NNext[0] += deltaTemp;
+        // getting perturbed state
+        updateState(NNext.data());
+        eval(t, NNext.data(), NdotNext.data());
+        // reset and get original state
+        updateState(NCurrent.data());
+        eval(t, NCurrent.data(), NdotCurrent.data());
+        // d T_dot/dT
+        preconditioner(0, 0, (NdotNext[0] - NdotCurrent[0]) / deltaTemp);
+        // d omega_dot_j/dT
+        for (size_t j = m_sidx; j < m_nv; j++)
+        {
+            preconditioner(j, 0, (NdotNext[j] - NdotCurrent[j]) / deltaTemp);
+        }
+        // find derivatives d T_dot/dNj
+        vector_fp specificHeat (m_nsp);
+        vector_fp netProductionRates (m_nsp);
+        vector_fp internal_energy (m_nsp);
+        vector_fp concentrations (m_nsp);
+        // getting species concentrations
+        m_thermo->getConcentrations(concentrations.data());
+        m_thermo->getPartialMolarCp(specificHeat.data());
+        m_thermo->getPartialMolarIntEnergies(internal_energy.data());
+        m_kin->getNetProductionRates(netProductionRates.data());
+        // convert Cp to Cv for ideal gas as Cp - Cv = R
+        for (size_t i = 0; i < specificHeat.size(); i++)
+        {
+            specificHeat[i] -= GasConstant;
+        }
+        double uknkSum = 0;
+        double NtotalCv = accumulate(LHSCopy.begin() + m_sidx, LHSCopy.end(), 0.0) * m_thermo->cv_mole();
+        for (size_t i = 0; i < m_nsp; i++)
+        {
+            uknkSum += internal_energy[i] * netProductionRates[i];
+        }
+        for (size_t j = 0; j < m_nsp; j++) // spans columns
+        {
+            double ukdnkdnjSum = 0;
+            for (size_t k = 0; k < m_nsp; k++) // spans rows
+            {
+                ukdnkdnjSum += internal_energy[k] * speciesDervs.coeff(k, j);
+            }
+            // set appropriate column of preconditioner
+            preconditioner(0, j + m_sidx, (-ukdnkdnjSum * NtotalCv + specificHeat[j] *  uknkSum) / (NtotalCv * NtotalCv));
+        }
     }
 }
 

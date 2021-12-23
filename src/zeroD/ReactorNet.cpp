@@ -9,7 +9,6 @@
 #include "cantera/base/utilities.h"
 #include "cantera/base/Array.h"
 #include "cantera/numerics/Integrator.h"
-#include "cantera/kinetics/ReactionDerivativeManager.h"
 
 using namespace std;
 
@@ -79,7 +78,6 @@ void ReactorNet::setSensitivityTolerances(double rtol, double atol)
 void ReactorNet::initialize()
 {
     m_nv = 0;
-    m_sparsity_percentage = 0.0;
     debuglog("Initializing reactor network.\n", m_verbose);
     if (m_reactors.empty()) {
         throw CanteraError("ReactorNet::initialize",
@@ -117,7 +115,7 @@ void ReactorNet::initialize()
         writelog("Maximum time step:   {:14.6g}\n", m_maxstep);
     }
     // Initialize preconditioner if it isn't null
-    if (m_preconditioner != nullptr)
+    if (m_integ->getPreconditionerType() != NO_PRECONDITION)
     {
         m_preconditioner->initialize(*this);
     }
@@ -131,11 +129,10 @@ void ReactorNet::reinitialize()
     if (m_init) {
         debuglog("Re-initializing reactor network.\n", m_verbose);
         m_integ->reinitialize(m_time, *this);
-        if (m_preconditioner != nullptr)
+        if (m_integ->getPreconditionerType() != NO_PRECONDITION)
         {
             m_preconditioner->initialize(*this);
         }
-        m_sparsity_percentage = 0;
         m_integrator_init = true;
     } else {
         initialize();
@@ -424,7 +421,7 @@ size_t ReactorNet::registerSensitivityParameter(
 }
 
 void ReactorNet::preconditionerSetup(double t, double* N,
-                      double* Ndot, double* params, double gamma)
+                      double* Ndot, double gamma)
 {
     // Reset preconditioner
     m_preconditioner->reset();
@@ -432,37 +429,11 @@ void ReactorNet::preconditionerSetup(double t, double* N,
     m_preconditioner->setGamma(gamma);
     for (size_t i = 0; i < m_reactors.size(); i++)
     {
-        m_preconditioner->m_ctr = i;
-        m_reactors[i]->preconditionerSetup(*m_preconditioner, t, N + m_start[i], Ndot + m_start[i], params);
+        m_preconditioner->m_rctr = m_start[i];
+        m_reactors[i]->preconditionerSetup(*m_preconditioner, t, N + m_start[i], Ndot + m_start[i]);
     }
     // post reactor setup operations
     m_preconditioner->setup();
-}
-
-double ReactorNet::getSparsityPercentage()
-{
-    if (m_init)
-    {   // get sparsity percentage from preconditioner if it is not null
-        if (m_preconditioner != nullptr)
-        {
-            m_sparsity_percentage = m_preconditioner->getSparsityPercentage();
-        }
-        else if (m_sparsity_percentage == 0.0)
-        {   // loop through reactors for sparisty percentage instead if it is not set
-            size_t nonzero_elements = 0;
-            size_t total_elements = m_nv * m_nv;
-            for (size_t i = 0; i < m_reactors.size(); i++)
-            {
-                nonzero_elements += m_reactors[i]->nonzero_jacobian_elements();
-            }
-            m_sparsity_percentage = 1.0 - ((double) nonzero_elements) / ((double) total_elements);
-        }
-        return m_sparsity_percentage;
-    }
-    else
-    {
-        throw CanteraError("ReactorNet::getSparsityPercentage", "ReactorNet must first be initialized before obtaining sparsity percentages");
-    }
 }
 
 }

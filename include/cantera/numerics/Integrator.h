@@ -117,6 +117,11 @@ public:
         warn("setPreconditionerType");
     }
 
+    virtual PreconditionerType getPreconditionerType() {
+        warn("getPreconditionerType");
+        return NO_PRECONDITION;
+    }
+
     /**
      * Initialize the integrator for a new problem. Call after all options have
      * been set.
@@ -240,18 +245,18 @@ public:
         return 0.0;
     }
 
-    //! Use this to get nonlinear iterations from the integrator
-    virtual int getNonlinSolvIters() const
+    //! Use this to get nonlinear solver stats from cvodes
+    //! @param stats a long int pointer with at least two spaces
+    virtual void getNonlinSolvStats(long int* stats) const
     {
-        warn("getNonlinSolvIters");
-        return 0;
+        warn("getNonlinSolvStats");
     }
 
-    //! Use this to get linear iterators from the integrator
-    virtual int getLinSolvIters() const
+    //! Use this to get linear solver stats from cvodes
+    //! @param stats a long int pointer with at least eight spaces
+    virtual void getLinSolvStats(long int* stats) const
     {
-        warn("getNonlinSolvIters");
-        return 0;
+        warn("getLinSolvStats");
     }
 
 private:

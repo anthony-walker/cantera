@@ -8,7 +8,6 @@
 #include "cantera/zeroD/MoleReactor.h"
 #include "cantera/zeroD/IdealGasConstPressureMoleReactor.h"
 #include "cantera/zeroD/IdealGasMoleReactor.h"
-#include "cantera/base/utilities.h"
 #include "cantera/base/global.h"
 #include <iostream>
 
@@ -23,40 +22,22 @@ bool AdaptivePreconditioner::operator== (const AdaptivePreconditioner &externalP
 void AdaptivePreconditioner::operator= (const AdaptivePreconditioner &externalPrecon)
 {
     // copy all variables
-    m_values = externalPrecon.m_values;
-    m_inner = externalPrecon.m_inner;
-    m_outer = externalPrecon.m_outer;
-    m_sizes = externalPrecon.m_sizes;
-    m_starts = externalPrecon.m_starts;
-    m_thermo_indices = externalPrecon.m_thermo_indices;
-    m_state_indices = externalPrecon.m_state_indices;
-    m_nnz = externalPrecon.m_nnz;
+    m_jac_trips = externalPrecon.m_jac_trips;
     m_identity = externalPrecon.m_identity;
     m_precon_matrix = externalPrecon.m_precon_matrix;
     m_threshold = externalPrecon.m_threshold;
-    m_zero = externalPrecon.m_zero;
     m_perturb = externalPrecon.m_perturb;
     m_dimensions = externalPrecon.m_dimensions;
     m_atol = externalPrecon.m_atol;
     m_gamma = externalPrecon.m_gamma;
     m_init = externalPrecon.m_init;
-    m_ctr = 0;
+    m_rctr = 0;
     return;
 }
 
-double& AdaptivePreconditioner::operator() (size_t row, size_t col)
+void AdaptivePreconditioner::operator() (size_t row, size_t col, double value)
 {
-    size_t index = globalIndex(row, col);
-    if (m_state_indices.find(index) != m_state_indices.end())
-    {
-        size_t idx = m_state_indices.at(index);
-        return m_values[idx];
-    }
-    else
-    {
-        m_zero = 0; // reset value to zero in the event it was changed by assignment
-        return m_zero;
-    }
+    m_jac_trips.push_back(Eigen::Triplet<double>(row + m_rctr, col + m_rctr, value));
 }
 
 void AdaptivePreconditioner::initialize(ReactorNet& network)
@@ -65,141 +46,50 @@ void AdaptivePreconditioner::initialize(ReactorNet& network)
     use_legacy_rate_constants(false);
     // reset arrays in case of re-initialization
     m_dimensions.clear();
-    m_outer.clear();
-    m_inner.clear();
-    m_thermo_indices.clear();
-    m_values.clear();
-    m_sizes.clear();
-    m_state_indices.clear();
-    m_nnz = 0;
+    m_jac_trips.clear();
     // set dimensions of preconditioner from network
     size_t totalColLen = network.neq();
     m_dimensions.push_back(totalColLen);
     m_dimensions.push_back(totalColLen);
-    if (m_dimensions[0] != m_dimensions[1])
-    {
-        throw CanteraError("initialize", "specified matrix dimensions are not square");
-    }
-    // reserve maximum space for vectors making up SparseMatrix
-    m_inner.reserve(totalColLen * totalColLen);
-    m_outer.reserve(totalColLen * totalColLen);
-    m_outer.push_back(0); // first outer starts at zero
-    m_thermo_indices.reserve(3 * network.nreactors() * totalColLen);
-    // allocate spaces for sizes and set first start to zero
-    m_sizes.reserve(network.nreactors() + 1);
-    m_sizes.push_back(0);
-    // set up sparse patterns
+    // Derivative settings
+    AnyMap m_settings;
+    m_settings["skip-third-bodies"] = true;
+    m_settings["skip-falloff"] = true;
+    // Loop through reactors
     for (size_t i = 0; i < network.nreactors(); i++)
     {
+        // apply settings to each reactor
         Reactor& currReactor = network.reactor(i);
-        ReactionDerivativeManager& reaction_derv_mgr = currReactor.reaction_derivative_manager();
-        // this is for reinitialization - an error is caused if two
-        // preconditioners are initialized with the same network
-        if (reaction_derv_mgr.isInit())
-        {
-            reaction_derv_mgr.reset();
-            reaction_derv_mgr.initialize(currReactor);
-        }
-        size_t currStart = network.reactor_start(i);
-        m_starts.push_back(currStart);
-        // checking manager
-        int column_size = currReactor.neq();
-        int species_start = currReactor.species_start();
-        // create temporary indices vector and reserve space for it
-        vector_int indices;
-        std::unordered_map<int, int> newIndices;
-        indices.reserve(column_size * column_size);
-        // diagonal state variables
-        for (int j = 0; j < species_start; j++)
-        {
-            // non diagonal state variable derivative elements
-            for (int k = 0; k < column_size; k++)
-            {
-                indices.push_back(k + j * column_size); // traverse row
-                indices.push_back(column_size * (k) + j); // traverse column
-            }
-        }
-        // get reaction derivative indices
-        reaction_derv_mgr.getDerivativeIndices(&indices);
-        // sort
-        std::sort(indices.begin(), indices.end(), std::less<int>());
-        // only keep unique elements
-        vector_int::iterator unique_itr = std::unique(indices.begin(), indices.end());
-        // resize based on unique elements
-        indices.resize( std::distance(indices.begin(), unique_itr));
-        // reduce indices capacity to it's size
-        indices.shrink_to_fit();
-        // convert indices to network based
-        int currCol = currStart;
-        int counter = 0;
-        for (auto j = indices.begin(); j != indices.end(); j++)
-        {
-            // current index
-            int cidx = *j;
-            // associated preconditioner column
-            int nextCol = cidx / column_size + currStart;
-            int nextRow = cidx % column_size + currStart;
-            int flatIdx = nextRow + nextCol * totalColLen;
-            // check that index is not already in the state map
-            if (m_state_indices.find(flatIdx) == m_state_indices.end())
-            {
-                // associated preconditioner row
-                m_inner.push_back(nextRow);
-                // global state index
-                m_state_indices.insert(std::pair<int, int>(flatIdx, m_nnz));
-                // remapped index
-                newIndices.insert(std::pair<int, int> (cidx, counter));
-                // find outer index locations
-                if (nextCol != currCol)
-                {
-                    for (int k = 0; k < std::abs(nextCol-currCol); k++)
-                    {
-                        m_outer.push_back(m_nnz);
-                    }
-                    currCol = nextCol;
-                }
-                m_nnz++;
-                counter++;
-            }
-        }
-        // add final size to m_outer for current reactor
-        m_outer.push_back(m_nnz);
-        // set next size of reactor indices array
-        m_sizes.push_back(m_nnz);
-        // remap derivative indices to sparse structure
-        reaction_derv_mgr.remapDerivativeIndices(&newIndices);
+        currReactor.setKineticsDerivativeSettings(m_settings);
     }
-    // shrink appropriate vectors
-    m_inner.shrink_to_fit();
-    m_outer.shrink_to_fit();
-    // create space for working vector
-    m_values.resize(m_inner.size());
+    // reserve maximum space for vectors making up SparseMatrix
+    m_jac_trips.reserve(totalColLen * totalColLen);
     // reserve space for preconditioner
     m_precon_matrix.resize(m_dimensions[0], m_dimensions[1]);
-    m_precon_matrix.reserve(m_nnz);
     // creating sparse identity matrix
     m_identity.resize(m_dimensions[0], m_dimensions[1]);
     m_identity.setIdentity();
     m_identity.makeCompressed();
-    m_solver.setDroptol(1e-10);
-    m_solver.setFillfactor(m_dimensions[0] / 4);
+    // setting ILUT parameters
+    setDropTolILUT();
+    setFillFactorILUT();
     // update initialized status
     m_init = true;
 }
 
-void AdaptivePreconditioner::acceptReactor(MoleReactor& reactor, double t, double* N, double* Ndot, double* params)
+void AdaptivePreconditioner::acceptReactor(MoleReactor& reactor, double t, double* LHS, double* RHS)
 {
-    reactor.reactorPreconditionerSetup(*this, t, N, Ndot, params);
+    reactor.reactorPreconditionerSetup(*this, t, LHS, RHS);
 }
 
-void AdaptivePreconditioner::acceptReactor(IdealGasMoleReactor& reactor, double t, double* N, double* Ndot, double* params)
+void AdaptivePreconditioner::acceptReactor(IdealGasMoleReactor& reactor, double t, double* LHS, double* RHS)
 {
-     reactor.reactorPreconditionerSetup(*this, t, N, Ndot, params);
+     reactor.reactorPreconditionerSetup(*this, t, LHS, RHS);
 }
 
-void AdaptivePreconditioner::acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* N, double* Ndot, double* params)
+void AdaptivePreconditioner::acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* LHS, double* RHS)
 {
-     reactor.reactorPreconditionerSetup(*this, t, N, Ndot, params);
+     reactor.reactorPreconditionerSetup(*this, t, LHS, RHS);
 }
 
 void AdaptivePreconditioner::setup()
@@ -216,8 +106,29 @@ void AdaptivePreconditioner::setup()
 
 void AdaptivePreconditioner::transformJacobianToPreconditioner()
 {
-    Eigen::Map<Eigen::SparseMatrix<double>> jacobian(m_dimensions[0], m_dimensions[1], m_nnz, m_outer.data(), m_inner.data(), m_values.data());
-    m_precon_matrix = m_identity - m_gamma * jacobian;
+    // set precon to jacobian
+    m_precon_matrix.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
+    // convert to preconditioner
+    m_precon_matrix = m_identity - m_gamma * m_precon_matrix;
+    // prune by threshold if desired
+    if (m_prune_precon)
+    {
+        prunePreconditioner();
+    }
+}
+
+void AdaptivePreconditioner::prunePreconditioner()
+{
+    for (int k=0; k<m_precon_matrix.outerSize(); ++k)
+    {
+        for (Eigen::SparseMatrix<double>::InnerIterator it(m_precon_matrix, k); it; ++it)
+        {
+            if (std::abs(it.value()) < m_threshold && it.row() != it.col())
+            {
+                m_precon_matrix.coeffRef(it.row(), it.col()) = 0;
+            }
+        }
+    }
 }
 
 void AdaptivePreconditioner::preconditionerErrorCheck()

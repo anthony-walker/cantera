@@ -38,7 +38,7 @@ void MoleReactor::initialize(double t0)
 {
     Reactor::initialize(t0);
     m_nv -= 2; // moles gives the state one fewer variables
-    m_reaction_derivative_mgr.initialize(*this);
+    // m_reaction_derivative_mgr.initialize(*this);
 }
 
 void MoleReactor::updateSurfaceState(double* N)
@@ -64,7 +64,7 @@ double MoleReactor::evalSurfaces(double t, double* Ndot)
         double wallarea = S->area();
         size_t nk = surf->nSpecies();
         surf->setTemperature(m_state[0]);
-        S->syncCoverages();
+        S->syncState();
         kin->getNetProductionRates(&m_work[0]);
         size_t ns = kin->surfacePhaseIndex();
         size_t surfloc = kin->kineticsSpeciesIndex(0,ns);
@@ -114,45 +114,6 @@ std::string MoleReactor::componentName(size_t k) {
     }
     throw CanteraError("MoleReactor::componentName",
                        "Index is out of bounds.");
-}
-
-void MoleReactor::reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* N, double* Ndot, double* params)
-{
-    // strictly positive composition
-    vector_fp NCopy(m_nv);
-    preconditioner.getStrictlyPositiveComposition(m_nv, N, NCopy.data());
-    updateState(NCopy.data());
-    // species derivatives
-    SpeciesSpeciesDerivatives(preconditioner, NCopy.data());
-    // state derivatives
-    if (m_energy)
-    {
-        StateDerivatives(preconditioner, t, NCopy.data(), Ndot, params);
-    }
-}
-
-void MoleReactor::SpeciesSpeciesDerivatives(AdaptivePreconditioner& preconditioner, double* N)
-{
-    // getting rate constant data
-    size_t numberOfReactions = m_kin->nReactions();
-    std::vector<double> kForward (numberOfReactions, 0.0);
-    std::vector<double> kBackward (numberOfReactions, 0.0);
-    m_kin->getFwdRateConstants(kForward.data());
-    m_kin->getRevRateConstants(kBackward.data());
-    m_kin->processThirdBodies(kForward.data());
-    m_kin->processThirdBodies(kBackward.data());
-    // getting concentrations for derivatives
-    std::vector<double> concs(m_nv, 0.0);
-    m_thermo->getConcentrations(concs.data() + m_sidx);
-    // calculating derivatives with reaction manager
-    double* derivatives = preconditioner.m_values.data() +  preconditioner.m_sizes[preconditioner.m_ctr];
-    m_reaction_derivative_mgr.getDerivatives(concs.data(), derivatives, kForward.data(), kBackward.data());
-}
-
-size_t MoleReactor::nonzero_jacobian_elements()
-{
-    size_t nonzeros = 2 * m_sidx * m_nv - m_sidx;
-    return nonzeros + m_reaction_derivative_mgr.getNumNonzeros();
 }
 
 }

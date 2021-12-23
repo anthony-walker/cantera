@@ -78,32 +78,27 @@ public:
         throw NotImplementedError("PreconditionerBase::printPreconditioner");
     };
 
-    //! Get sparsity percentage of system based on preconditioner
-    virtual double getSparsityPercentage(){
-        throw NotImplementedError("PreconditionerBase::getSparsityPercentage");
-    };
-
     //! This function is for a visitor design pattern to determine
     //! preconditioner type with Reactor
-    virtual void acceptReactor(Reactor& reactor, double t, double* N, double* Ndot, double* params){
+    virtual void acceptReactor(Reactor& reactor, double t, double* LHS, double* RHS){
         throw NotImplementedError("PreconditionerBase::acceptReactor");
     };
 
     //! This function is for a visitor design pattern to determine
     //! preconditioner type with MoleReactor
-    virtual void acceptReactor(MoleReactor& reactor, double t, double* N, double* Ndot, double* params){
+    virtual void acceptReactor(MoleReactor& reactor, double t, double* LHS, double* RHS){
         throw NotImplementedError("PreconditionerBase::acceptReactor");
     };
 
     //! This function is for a visitor design pattern to determine
     //! preconditioner type with IdealGasMoleReactor
-    virtual void acceptReactor(IdealGasMoleReactor& reactor, double t, double* N, double* Ndot, double* params){
+    virtual void acceptReactor(IdealGasMoleReactor& reactor, double t, double* LHS, double* RHS){
         throw NotImplementedError("PreconditionerBase::acceptReactor");
     };
 
     //! This function is for a visitor design pattern to determine
     //! preconditioner type with IdealGasConstPressureMoleReactor
-    virtual void acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* N, double* Ndot, double* params){
+    virtual void acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* LHS, double* RHS){
         throw NotImplementedError("PreconditionerBase::acceptReactor");
     };
 
@@ -143,7 +138,7 @@ public:
     double getAbsoluteTolerance(){return m_atol;};
 
     //! A counter variable
-    size_t m_ctr = 0;
+    size_t m_rctr = 0;
 
 protected:
     //! a size_t vector of dimensions

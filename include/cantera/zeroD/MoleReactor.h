@@ -9,7 +9,6 @@
 
 #include "Reactor.h"
 #include "cantera/numerics/AdaptivePreconditioner.h"
-#include "cantera/kinetics/ReactionDerivativeManager.h"
 
 namespace Cantera
 {
@@ -60,8 +59,8 @@ public:
     //! @param N state vector in moles
     //! @param Ndot derivative vector in moles per second
     //! @param params sensitivity parameters
-    virtual void preconditionerSetup(PreconditionerBase& preconditioner, double t, double* N, double* Ndot, double* params){
-        preconditioner.acceptReactor(*this, t, N, Ndot, params);
+    virtual void preconditionerSetup(PreconditionerBase& preconditioner, double t, double* LHS, double* RHS){
+        preconditioner.acceptReactor(*this, t, LHS, RHS);
     }
 
     //! This function is the next level of preconditioner setup used in
@@ -69,43 +68,16 @@ public:
     //! specific types of both the reactor and preconditioner object
     //! @param preconditioner the preconditioner being used by cvodes
     //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* N, double* Ndot, double* params);
-
-    //! Use this function to precondition the supplied preconditioner
-    //! with species variable related derivatives. It can be overloaded
-    //! for multiple derivative types.
-    //! @param preconditioner the preconditioner being used by cvodes
-    //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void SpeciesSpeciesDerivatives(AdaptivePreconditioner& preconditioner, double* N);
-
-    //! Use this function to precondition the supplied preconditioner
-    //! with state variable related derivatives. It can be overloaded
-    //! for multiple derivative types.
-    //! @param preconditioner the preconditioner being used by cvodes
-    //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void StateDerivatives(AdaptivePreconditioner& preconditioner, double t, double* N, double* Ndot, double* params)
+    //! @param LHS state vector in moles
+    //! @param RHS derivative vector in moles per second
+    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* LHS, double* RHS)
     {
-        throw NotImplementedError("MoleReactor::StateDerivatives");
+        throw NotImplementedError("MoleReactor::reactorPreconditionerSetup");
     }
-
-    //! Return the associated ReactionDerivativeManager object
-    virtual ReactionDerivativeManager& reaction_derivative_manager() {return m_reaction_derivative_mgr;};
 
     //! Return species start in state
     virtual size_t species_start() {
         return m_sidx;};
-
-    //! Return number of nonzero jacobian elements
-    virtual size_t nonzero_jacobian_elements();
 
 protected:
     //! TODO: Fix for mole based reactors
@@ -126,9 +98,6 @@ protected:
 
     //! const value for the species start index
     const int m_sidx = 1;
-
-    //! Reaction derivative manager
-    ReactionDerivativeManager m_reaction_derivative_mgr;
 };
 
 }

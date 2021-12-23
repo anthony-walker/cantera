@@ -58,7 +58,7 @@ public:
     //! @param[out] ydot rate of change of solution vector, length neq()
     //! @param[in] params sensitivity parameters
     //! @param gamma the gamma in M=I-gamma*J
-    virtual void preconditionerSetup(double t, double* y, double* ydot, double* params, double gamma){
+    virtual void preconditionerSetup(double t, double* y, double* ydot, double gamma){
         throw NotImplementedError("FuncEval::preconditionerSetup");
     }
 
