@@ -55,6 +55,7 @@ void IdealGasConstPressureMoleReactor::getState(double* N)
 void IdealGasConstPressureMoleReactor::initialize(double t0)
 {
     MoleReactor::initialize(t0);
+    m_nv -= 1; // const pressure system loses 1 more variable from MoleReactor
     m_hk.resize(m_nsp, 0.0);
 }
 
@@ -226,5 +227,40 @@ void IdealGasConstPressureMoleReactor::reactorPreconditionerSetup(AdaptivePrecon
     }
 }
 
+
+size_t IdealGasConstPressureMoleReactor::componentIndex(const string& nm) const
+{
+    size_t k = speciesIndex(nm);
+    if (k != npos) {
+        return k + m_sidx;
+    } else if (nm == "temperature") {
+        return 0;
+    } else {
+        return npos;
+    }
+}
+
+std::string IdealGasConstPressureMoleReactor::componentName(size_t k) {
+    if (k == 0) {
+        return "temperature";
+    } else if (k >= 1 && k < neq()) {
+        k -= 1;
+        if (k < m_thermo->nSpecies()) {
+            return m_thermo->speciesName(k);
+        } else {
+            k -= m_thermo->nSpecies();
+        }
+        for (auto& S : m_surfaces) {
+            ThermoPhase* th = S->thermo();
+            if (k < th->nSpecies()) {
+                return th->speciesName(k);
+            } else {
+                k -= th->nSpecies();
+            }
+        }
+    }
+    throw CanteraError("IdealGasConstPressureMoleReactor::componentName",
+                       "Index is out of bounds.");
+}
 
 }

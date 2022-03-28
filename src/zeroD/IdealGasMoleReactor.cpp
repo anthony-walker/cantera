@@ -38,8 +38,13 @@ void IdealGasMoleReactor::getState(double* N)
 
     // get mass for calculations
     m_mass = m_thermo->density() * m_vol;
-    // set the second component to the temperature
+
+    // set the first component to the temperature
     N[0] = m_thermo->temperature();
+
+    // set the second component to the volume
+    N[1] = m_vol;
+
     // use inverse molecular weights
     const double* Y = m_thermo->massFractions();
     const vector_fp& imw = m_thermo->inverseMolecularWeights();
@@ -61,7 +66,7 @@ void IdealGasMoleReactor::initialize(double t0)
 
 void IdealGasMoleReactor::updateState(double* N)
 {
-    // the components of N are: [0] the temperature, [1...K+1) are the
+    // the components of N are: [0] the temperature, [1] the volume, [2...K+1) are the
     // moles of each species, and [K+1...] are the coverages of surface
     // species on each wall. get mass
     vector_fp mass(m_nv-m_sidx);
@@ -70,6 +75,7 @@ void IdealGasMoleReactor::updateState(double* N)
     transform(mass.begin(), mass.end(), mw.begin(),
               mass.begin(), multiplies<double>());
     m_mass = accumulate(mass.begin(), mass.end(), 0.0);
+    m_vol = N[1];
     // set state
     m_thermo->setMolesNoNorm(N + m_sidx);
     m_thermo->setState_TR(N[0], m_mass / m_vol);
@@ -80,7 +86,7 @@ void IdealGasMoleReactor::updateState(double* N)
 void IdealGasMoleReactor::eval(double time, double* LHS,
                                    double* RHS)
 {
-    double mcvdTdt = 0.0; // m * c_v * dT/dt
+    double mcvdTdt = RHS[0]; // m * c_v * dT/dt
     double* dNdt = RHS + m_sidx; // kmol per s
 
     evalWalls(time);
@@ -128,6 +134,7 @@ void IdealGasMoleReactor::eval(double time, double* LHS,
         }
     }
 
+    RHS[1] = m_vdot;
     if (m_energy) {
         RHS[0] = mcvdTdt / (m_mass * m_thermo->cv_mass());
     } else {

@@ -38,6 +38,16 @@ public:
         return "IdealGasConstPressureMoleReactor";
     };
 
+    //! Return the index in the solution vector for this MoleReactor of
+    //! the component named *nm*. Possible values for *nm* are "mass",
+    //! "volume", "int_energy", the name of a homogeneous phase species,
+    //! or the name of a surface species.
+    virtual size_t componentIndex(const std::string& nm) const;
+
+    //! Return the name of the solution component with index *i*.
+    //! @see componentIndex()
+    virtual std::string componentName(size_t k);
+
     //! Use this function to set the thermo manager of this reactor
     virtual void setThermoMgr(ThermoPhase& thermo);
 
@@ -67,6 +77,9 @@ public:
 
 protected:
     vector_fp m_hk; //!< Species molar enthalpies
+
+    //! const value for the species start index
+    const int m_sidx = 1;
 };
 
 }

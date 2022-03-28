@@ -66,11 +66,11 @@ public:
     }
     virtual double sensitivity(size_t k, size_t p);
 
-    //! Use this to get nonlinear solver stats from cvodes
+    //! Use this function to get nonlinear solver stats from cvodes
     //! @param stats a long int pointer with at least two spaces
     virtual void getNonlinSolvStats(long int* stats) const;
 
-    //! Use this to get linear solver stats from cvodes
+    //! Use this function to get linear solver stats from cvodes
     //! @param stats a long int pointer with at least eight spaces
     virtual void getLinSolvStats(long int* stats) const;
 
@@ -78,7 +78,7 @@ public:
     //! invalid problem type
     virtual void preconditionerError();
 
-    //! Use this to set the preconditioner type used by the integrator
+    //! Use this function to set the preconditioner type used by the integrator
     virtual void setPreconditionerType(PreconditionerType prectype) {
         m_prec_type = prectype;
     }
@@ -93,6 +93,7 @@ public:
     //! This information can be used to identify which variables are
     //! responsible for integrator failures or unexpected small timesteps.
     virtual std::string getErrorInfo(int N);
+
     //! Error message information provide by CVodes
     std::string m_error_message;
 
@@ -115,7 +116,7 @@ private:
     N_Vector m_y, m_abstol;
     N_Vector m_dky;
     int m_type;
-    PreconditionerType m_prec_type = NO_PRECONDITION;
+    PreconditionerType m_prec_type = NO_PRECONDITION; //!< Used in applyOptions
     int m_itol;
     int m_method;
     int m_maxord;

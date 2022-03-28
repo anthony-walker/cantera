@@ -245,14 +245,14 @@ public:
         return 0.0;
     }
 
-    //! Use this to get nonlinear solver stats from cvodes
+    //! Use this function to get nonlinear solver stats from cvodes
     //! @param stats a long int pointer with at least two spaces
     virtual void getNonlinSolvStats(long int* stats) const
     {
         warn("getNonlinSolvStats");
     }
 
-    //! Use this to get linear solver stats from cvodes
+    //! Use this function to get linear solver stats from cvodes
     //! @param stats a long int pointer with at least eight spaces
     virtual void getLinSolvStats(long int* stats) const
     {

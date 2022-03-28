@@ -26,6 +26,7 @@ void AdaptivePreconditioner::operator= (const AdaptivePreconditioner &externalPr
     m_identity = externalPrecon.m_identity;
     m_precon_matrix = externalPrecon.m_precon_matrix;
     m_threshold = externalPrecon.m_threshold;
+    m_prune_precon = externalPrecon.m_prune_precon;
     m_perturb = externalPrecon.m_perturb;
     m_dimensions = externalPrecon.m_dimensions;
     m_atol = externalPrecon.m_atol;
@@ -42,7 +43,7 @@ void AdaptivePreconditioner::operator() (size_t row, size_t col, double value)
 
 void AdaptivePreconditioner::initialize(ReactorNet& network)
 {
-    //! don't use legacy rate constants
+    // don't use legacy rate constants
     use_legacy_rate_constants(false);
     // reset arrays in case of re-initialization
     m_dimensions.clear();
@@ -51,11 +52,11 @@ void AdaptivePreconditioner::initialize(ReactorNet& network)
     size_t totalColLen = network.neq();
     m_dimensions.push_back(totalColLen);
     m_dimensions.push_back(totalColLen);
-    // Derivative settings
+    // derivative settings
     AnyMap m_settings;
     m_settings["skip-third-bodies"] = true;
     m_settings["skip-falloff"] = true;
-    // Loop through reactors
+    // loop through reactors
     for (size_t i = 0; i < network.nreactors(); i++)
     {
         // apply settings to each reactor

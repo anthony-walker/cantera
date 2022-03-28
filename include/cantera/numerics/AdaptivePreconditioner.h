@@ -51,7 +51,7 @@ public:
         m_jac_trips.clear();
     };
 
-    //! This function performs preconditioner specific post-reactor
+    //! Use this function to perform preconditioner specific post-reactor
     //! setup operations such as factorize.
     void setup();
 
@@ -67,15 +67,15 @@ public:
     //! preconditioner type with IdealGasConstPressureMoleReactor
     void acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* LHS, double* RHS);
 
-    //! This function checks if there was an error with eigen and throws
+    //! Use this function to check if there was an error in eigen methods and throw
     //! it if so.
     void preconditionerErrorCheck();
 
-    //!Use this function to transform Jacobian vector and write into
-    //!preconditioner
+    //! Use this function to transform Jacobian vector and write into
+    //! preconditioner
     void transformJacobianToPreconditioner();
 
-    //!Use this function to prune preconditioner elements
+    //! Use this function to prune preconditioner elements
     void prunePreconditioner();
 
     //! Function to solve a linear system Ax=b where A is the
@@ -85,13 +85,13 @@ public:
     //! @param[out] output output vector "z" sent back to cvodes
     void solve(const size_t state_len, double *rhs_vector, double* output);
 
-    //! This function returns the preconditioning method as an integer
+    //! Use this function to return the preconditioning method as an integer
     size_t getPreconditionerMethod(){return ADAPTIVE_MECHANISM_PRECON_MATRIX;};
 
-    //! This function returns preconditioning type as an integer
+    //! Use this function to return the preconditioning type as an integer
     PreconditionerType getPreconditionerType(){return LEFT_PRECONDITION;};
 
-    //! Function used to return pointer to preconditioner matrix
+    //! Use this function to return pointer to the preconditioner matrix
     Eigen::SparseMatrix<double>* getMatrix(){return &(m_precon_matrix);};
 
     //! Function used to return semi-analytical jacobian matrix
@@ -150,11 +150,6 @@ public:
     //! @param externalPrecon the preconditioner becoming this object
     void operator= (const AdaptivePreconditioner &externalPrecon);
 
-    // //! Overloading of the [] operator to assign values to the jacobian
-    // //! this function assumes that the index is in the index map
-    // //! @param index the flattened index of the point to be accessed
-    // double& operator[] (int index){return m_values[m_state_indices[index]];};
-
     //! Overloading of the () operator to assign values to the jacobian
     //! this function does not assume that index is index map
     //! @param row row index of jacobian
@@ -162,34 +157,34 @@ public:
     //! @param value to place in jacobian vector
     void operator() (size_t row, size_t col, double value);
 
-    //! Print preconditioner contents
+    //! Use this function to print preconditioner contents
     void printPreconditioner(){
         Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
         std::cout<<Eigen::MatrixXd(m_precon_matrix).format(HeavyFmt)<<std::endl;
     };
 
-    //! Print jacobian contents
+    //! Use this function to print jacobian contents
     void printJacobian(){
         Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
         jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
         std::cout<<Eigen::MatrixXd(jacobian)<<std::endl;
     };
 
-    //! Set the fill factor for factorizing the ILUT preconditioner
+    //! Use this function to set the fill factor for factorizing the ILUT preconditioner
     void setFillFactor(int n) {
         m_solver.setFillfactor(n);
     }
 
-    //! Set the tolerance for dropping elements when factorizing the ILUT preconditioner
+    //! Use this function to set the tolerance for dropping elements when factorizing the ILUT preconditioner
     void setDropTol(double tol) {
         m_solver.setDroptol(tol);
     }
 
 protected:
-    //! Container for the values that are mapped to m_jacobian
+    //! Vector of triples representing the jacobian used in preconditioning
     std::vector<Eigen::Triplet<double>> m_jac_trips;
 
-    //! Container that is the sparse preconditioner
+    //! Storage of appropriately sized identity matrix for making the preconditioner
     Eigen::SparseMatrix<double> m_identity;
 
     //! Container that is the sparse preconditioner
@@ -203,7 +198,7 @@ protected:
     double m_threshold = DBL_EPSILON; // default
 
     //! Perturbation constant that is multiplied by temperature for
-    //! perturbation
+    //! perturbation and finite difference calculations
     double m_perturb = std::sqrt(DBL_EPSILON);
 
     //! Bool set whether to prune the matrix or not

@@ -231,49 +231,6 @@ TEST(MoleReactorTestSet, test_reinitialize_preconditioned_mole_reactors)
     ASSERT_NEAR(T2a, T2b, 1e-8);
 }
 
-TEST(DISABLED_MoleReactorTestSet, test_preconditioned_ideal_network_integrations)
-{
-    //! TODO: This test needs fixed. It consistently fails on other operating systems.
-    // Network 1
-    auto sol1 = newSolution("h2o2.yaml");
-    sol1->thermo()->setState_TP(1100.0, 10 * OneAtm);
-    sol1->thermo()->setEquivalenceRatio(1, "H2", "O2:0.21, N2:0.78, AR:0.09");
-    IdealGasMoleReactor r1;
-    IdealGasConstPressureMoleReactor r2;
-    r1.insert(sol1);
-    r2.insert(sol1);
-    ReactorNet net1;
-    net1.addReactor(r1);
-    net1.addReactor(r2);
-    AdaptivePreconditioner precon;
-    net1.setProblemType(GMRES);
-    net1.setPreconditioner(precon);
-    net1.initialize();
-    // Network 2
-    ReactorNet net2;
-    auto sol2 = newSolution("h2o2.yaml");
-    sol2->thermo()->setState_TP(1100.0, 10 * OneAtm);
-    sol2->thermo()->setEquivalenceRatio(1, "H2", "O2:0.21, N2:0.78, AR:0.09");
-    IdealGasMoleReactor r3;
-    IdealGasConstPressureMoleReactor r4;
-    r3.insert(sol1);
-    r4.insert(sol1);
-    net2.addReactor(r3);
-    net2.addReactor(r4);
-    net2.setProblemType(GMRES);
-    net2.initialize();
-    // Advancing
-    net1.advance(0.1);
-    net2.advance(0.1);
-    // Comparison
-    vector_fp state1(net1.neq(), 0.0);
-    vector_fp state2(net2.neq(), 0.0);
-    for (size_t i = 0; i < net1.neq(); i++)
-    {
-        EXPECT_NEAR(state1[i], state2[i], net1.atol());
-    }
-}
-
 int main(int argc, char** argv)
 {
     printf("Running main() from test_zeroD.cpp\n");

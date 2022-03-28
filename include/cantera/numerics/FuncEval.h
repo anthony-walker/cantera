@@ -52,7 +52,7 @@ public:
      */
     int eval_nothrow(double t, double* y, double* ydot);
 
-    //!  Evaluate the setup processes for the Jacobian preconditioner.
+    //! Evaluate the setup processes for the Jacobian preconditioner.
     //! @param[in] t time.
     //! @param[in] y solution vector, length neq()
     //! @param[out] ydot rate of change of solution vector, length neq()
@@ -132,7 +132,6 @@ protected:
 
     //! Pointer to preconditioner - nullptr unless otherwise set
     PreconditionerBase *m_preconditioner = nullptr;
-
 };
 
 }

@@ -37,8 +37,7 @@ void MoleReactor::getSurfaceInitialConditions(double* N)
 void MoleReactor::initialize(double t0)
 {
     Reactor::initialize(t0);
-    m_nv -= 2; // moles gives the state one fewer variables
-    // m_reaction_derivative_mgr.initialize(*this);
+    m_nv -= 1; // moles gives the state one fewer variables
 }
 
 void MoleReactor::updateSurfaceState(double* N)
@@ -88,6 +87,8 @@ size_t MoleReactor::componentIndex(const string& nm) const
         return k + m_sidx;
     } else if (nm == "temperature") {
         return 0;
+    } else if (nm == "volume") {
+        return 1;
     } else {
         return npos;
     }
@@ -96,7 +97,11 @@ size_t MoleReactor::componentIndex(const string& nm) const
 std::string MoleReactor::componentName(size_t k) {
     if (k == 0) {
         return "temperature";
-    } else if (k >= 1 && k < neq()) {
+    }
+    else if (k == 1){
+        return "volume";
+    }
+    else if (k >= 2 && k < neq()) {
         k -= 1;
         if (k < m_thermo->nSpecies()) {
             return m_thermo->speciesName(k);

@@ -35,13 +35,13 @@ public:
     PreconditionerBase(/* args */){}
     ~PreconditionerBase(){}
 
-    //! This function returns zero for preconditioner not set
+    //! Use this function to return zero for preconditioner not set
     virtual size_t getPreconditionerMethod(){return PRECONDITIONER_NOT_SET;};
 
     //! Use this function to the "type" for CVODES
     virtual PreconditionerType getPreconditionerType(){return NO_PRECONDITION;};
 
-    //! Function to solve a linear system Ax=b where A is the
+    //! Use this function to solve a linear system Ax=b where A is the
     //! preconditioner contained in this matrix
     //! @param[in] state_len length of the rhs and output vectors
     //! @param[in] rhs_vector right hand side vector used in linear
@@ -51,7 +51,7 @@ public:
         throw NotImplementedError("PreconditionerBase::solve");
     };
 
-    //! This function performs preconditioner specific post-reactor
+    //! Use this function to perform preconditioner specific post-reactor
     //! setup operations such as factorize.
     virtual void setup()
     {
@@ -73,7 +73,7 @@ public:
         throw NotImplementedError("PreconditionerBase::initialize");
     };
 
-    //! Print preconditioner contents
+    //! Use this function to print preconditioner contents
     virtual void printPreconditioner(){
         throw NotImplementedError("PreconditionerBase::printPreconditioner");
     };
@@ -102,13 +102,13 @@ public:
         throw NotImplementedError("PreconditionerBase::acceptReactor");
     };
 
-    //! Function used to set gamma
+    //! Use this function to set gamma
     //! @param gamma used in M = I - gamma*J
     virtual void setGamma(double gamma){
         m_gamma = gamma;
     };
 
-    //! Function used to get gamma
+    //! Use this function to get gamma
     virtual double getGamma(){
         return m_gamma;
     };
@@ -118,7 +118,7 @@ public:
     //! @param atol the specified tolerance
     void setAbsoluteTolerance(double atol){m_atol = atol;};
 
-    //! Function used to set dimensions of the preconditioner
+    //! Use this function to set dimensions of the preconditioner
     //! @param dims A pointer to a vector of the dimensions
     void setDimensions(std::vector<size_t> *dims){
         this->m_dimensions.clear();
@@ -128,7 +128,7 @@ public:
         }
     };
 
-    //! Function to return pointer to dimensions
+    //! Use this function to return pointer to dimensions
     std::vector<size_t>* getDimensions(){
         return &(this->m_dimensions);
     };
@@ -137,7 +137,7 @@ public:
     //! preconditioner
     double getAbsoluteTolerance(){return m_atol;};
 
-    //! A counter variable
+    //! A counter variable used by network to identify the current reactor index during setup
     size_t m_rctr = 0;
 
 protected:
