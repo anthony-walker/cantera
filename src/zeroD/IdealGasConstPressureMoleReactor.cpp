@@ -87,7 +87,6 @@ void IdealGasConstPressureMoleReactor::eval(double time, double* LHS,
     evalWalls(time);
 
     m_thermo->restoreState(m_state);
-    evalSurfaces(time, dNdt + m_nsp);
 
     m_thermo->getPartialMolarEnthalpies(&m_hk[0]);
     const vector_fp& imw = m_thermo->inverseMolecularWeights();
@@ -95,6 +94,9 @@ void IdealGasConstPressureMoleReactor::eval(double time, double* LHS,
     if (m_chem) {
         m_kin->getNetProductionRates(&m_wdot[0]); // "omega dot"
     }
+
+    // evaluate surfaces
+    evalSurfaces(LHS + m_nsp + m_sidx, RHS + m_nsp + m_sidx, m_sdot.data());
 
     // external heat transfer
     mcpdTdt -= m_Q;

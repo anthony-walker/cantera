@@ -50,34 +50,12 @@ void MoleReactor::updateSurfaceState(double* N)
     }
 }
 
-double MoleReactor::evalSurfaces(double t, double* Ndot)
+void MoleReactor::evalSurfaces(double* LHS, double* RHS, double* sdot)
 {
-    const vector_fp& mw = m_thermo->molecularWeights();
-    fill(m_sdot.begin(), m_sdot.end(), 0.0);
-    size_t loc = 0; // offset into ydot
-    double mdot_surf = 0.0; // net mass flux from surface
-
-    for (auto S : m_surfaces) {
-        Kinetics* kin = S->kinetics();
-        SurfPhase* surf = S->thermo();
-        double wallarea = S->area();
-        size_t nk = surf->nSpecies();
-        surf->setTemperature(m_state[0]);
-        S->syncState();
-        kin->getNetProductionRates(&m_work[0]);
-        size_t ns = kin->surfacePhaseIndex();
-        size_t surfloc = kin->kineticsSpeciesIndex(0,ns);
-        for (size_t k = 0; k < nk; k++) {
-            Ndot[loc + k] = m_work[surfloc+k] * wallarea;
-        }
-        loc += nk;
-        size_t bulkloc = kin->kineticsSpeciesIndex(m_thermo->speciesName(0));
-        for (size_t k = 0; k < m_nsp; k++) {
-            m_sdot[k] += m_work[bulkloc + k] * wallarea;
-            mdot_surf += m_sdot[k] * mw[k];
-        }
+    if (!m_surfaces.empty())
+    {
+        warn_user("MoleReactor::evalSurfaces", "evalSurfaces not currently implemented for MoleReactors");
     }
-    return mdot_surf;
 }
 
 size_t MoleReactor::componentIndex(const string& nm) const

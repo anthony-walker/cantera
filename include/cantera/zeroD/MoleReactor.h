@@ -80,13 +80,13 @@ public:
         return m_sidx;};
 
 protected:
-    //! TODO: Fix for mole based reactors
-    //! Evaluate terms related to surface reactions. Calculates #m_sdot
-    //! and rate of change in surface species coverages.
-    //! @param t          the current time
-    //! @param[out] ydot  array of d(coverage)/dt for surface species
-    //! @returns          Net mass flux from surfaces
-    virtual double evalSurfaces(double t, double* ydot);
+    //! Evaluate terms related to surface reactions.
+    //! @param[out] LHS   Multiplicative factor on the left hand side of ODE for surface
+    //!                   species coverages
+    //! @param[out] RHS   Right hand side of ODE for surface species coverages
+    //! @param[out] sdot  array of production rates of bulk phase species on surfaces
+    //!                   [kmol/s]
+    virtual void evalSurfaces(double* LHS, double* RHS, double* sdot);
 
     //! Update the state of SurfPhase objects attached to this
     //! MoleReactor
