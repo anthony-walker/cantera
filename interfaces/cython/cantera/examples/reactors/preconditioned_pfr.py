@@ -25,7 +25,7 @@ def preconditioner_pfr(fuel="CH4:1", air="O2:1, N2:3.76", mech="gri30.yaml", phi
     net1 = ct.ReactorNet([reactor1,])
     # setup preconditioner
     precon1 = ct.AdaptivePreconditioner()
-    precon1.set_threshold(1e-8)
+    precon1.threshold = 1e-8
     net1.preconditioner = precon1
     net1.problem_type = "GMRES"
     # approximate a time step to achieve a similar resolution as in

@@ -1047,10 +1047,10 @@ class TestIdealGasConstPressureMoleReactor(TestIdealGasConstPressureReactor):
         self.net1.rtol = self.net2.rtol = 1e-9
         self.integrate(surf=True)
 
-    def test_preconditioned_integration(self):
+    def test_adaptive_precon_integration(self):
         self.create_reactors()
         self.precon = ct.AdaptivePreconditioner()
-        self.precon.set_threshold(1e-8)
+        self.precon.threshold = 1e-8
         self.net2.problem_type = "GMRES"
         self.net2.preconditioner = self.precon
         self.integrate()

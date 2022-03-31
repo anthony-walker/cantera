@@ -196,7 +196,7 @@ void IdealGasConstPressureMoleReactor::reactorPreconditionerSetup(AdaptivePrecon
         {
             preconditioner(j, 0, (NdotNext[j] - NdotCurrent[j]) / deltaTemp);
         }
-        // d T_dot/dcj
+        // d T_dot/dnj
         vector_fp specificHeat (m_nsp);
         vector_fp netProductionRates (m_nsp);
         vector_fp enthalpy (m_nsp);
@@ -205,7 +205,7 @@ void IdealGasConstPressureMoleReactor::reactorPreconditionerSetup(AdaptivePrecon
         m_thermo->getPartialMolarEnthalpies(enthalpy.data());
         m_kin->getNetProductionRates(netProductionRates.data());
         // getting perturbed changes w.r.t temperature
-        double hknkSum = 0;
+        double hkndotksum = 0;
         double inverseVolume = 1/volume();
         double NtotalCp = accumulate(LHSCopy.begin() + m_sidx, LHSCopy.end(), 0.0) * m_thermo->cp_mole();
         // scale net production rates by inverse of volume to get molar rate
@@ -213,7 +213,7 @@ void IdealGasConstPressureMoleReactor::reactorPreconditionerSetup(AdaptivePrecon
         // determine a sum in derivative
         for (size_t i = 0; i < m_nsp; i++)
         {
-            hknkSum += enthalpy[i] * netProductionRates[i];
+            hkndotksum += enthalpy[i] * netProductionRates[i];
         }
         // determine derivatives
         for (size_t j = 0; j < m_nsp; j++) // spans columns
@@ -224,7 +224,7 @@ void IdealGasConstPressureMoleReactor::reactorPreconditionerSetup(AdaptivePrecon
                 hkdnkdnjSum += enthalpy[k] * speciesDervs.coeff(k, j);
             }
             // set appropriate column of preconditioner
-            preconditioner(0, j + m_sidx, (-hkdnkdnjSum * NtotalCp + specificHeat[j] * hknkSum) / (NtotalCp * NtotalCp));
+            preconditioner(0, j + m_sidx, (-hkdnkdnjSum * NtotalCp + specificHeat[j] * hkndotksum) / (NtotalCp * NtotalCp));
         }
     }
 }

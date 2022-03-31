@@ -1,15 +1,12 @@
 #include "gtest/gtest.h"
-#include "cantera/base/Solution.h"
+// #include "cantera/base/Solution.h"
+// #include "cantera/base/utilities.h"
 #include "cantera/thermo.h"
 #include "cantera/kinetics.h"
-#include "cantera/kinetics/GasKinetics.h"
-#include "cantera/transport.h"
-#include "cantera/numerics/AdaptivePreconditioner.h"
-#include "cantera/base/utilities.h"
 #include "cantera/zerodim.h"
+#include "cantera/numerics/AdaptivePreconditioner.h"
 #include <stdlib.h>
 #include <time.h>
-#include <queue>
 
 using namespace Cantera;
 
@@ -18,141 +15,6 @@ bool isclose(double a, double b, double tol)
     return std::abs(a-b)<tol;
 }
 
-
-// void twoStepManualPrecondition(AdaptivePreconditioner& externalPrecon, MoleReactor& reactor, double* N, double* Ndot, double t=0.0, size_t loc=0)
-//     {
-//         const ThermoPhase& thermo = reactor.contents();
-//         auto kinetics = reactor.getKineticsMgr();
-//         double volInv = 1/reactor.volume();
-//         double vol = reactor.volume();
-//         // Getting data for manual calculations
-//         size_t numberOfReactions = kinetics->nReactions();
-//         size_t numberOfSpecies = kinetics->nTotalSpecies();
-//         double moles = std::accumulate(N + 1, N + numberOfSpecies, 0.0);
-//         // volume portion of constant pressure system
-//         vector_fp omega(numberOfSpecies, 0.0);
-//         kinetics->getNetProductionRates(omega.data());
-//         size_t sidx = reactor.species_start();
-//         for (size_t i = 0; i < numberOfSpecies; i++)
-//         {
-//             for (size_t j = 0; j < numberOfSpecies; j++)
-//             {
-//                 externalPrecon(i + sidx, j + sidx, vol / moles * omega[i]);
-//             }
-//         }
-//         // vectors for manual calcs
-//         vector_fp kf(numberOfReactions, 0.0);
-//         vector_fp kr(numberOfReactions, 0.0);
-//         // getting actual data
-//         vector_fp C(thermo.nSpecies(), 0.0);
-//         thermo.getConcentrations(C.data());
-//         kinetics->getFwdRateConstants(kf.data());
-//         kinetics->getRevRateConstants(kr.data());
-//         // Assign concentrations to species
-//         double O2 = C[0];
-//         double CH4 = C[2];
-//         double CO = C[4];
-//         // Setting elements with manual rop derivatives
-//         // O2
-//         externalPrecon(1 + loc, 1 + loc, (- 2.25 * kf[0] * CH4 * std::pow(O2, 0.5) - 0.25 * kf[1] * CO * std::pow(O2, -0.5)) * volInv); // dO2/dO2
-//         externalPrecon(1 + loc, 3 + loc, - 1.5 * kf[0] * std::pow(O2, 1.5) * volInv); // dO2/dCH4
-//         externalPrecon(1 + loc, 4 + loc, 0.5 * kr[1] * volInv); // dO2/dCO2
-//         externalPrecon(1 + loc, 5 + loc, - 0.5 * kf[1] * std::pow(O2, 0.5) * volInv); // dO2/dCO
-//         // H2O
-//         externalPrecon(2 + loc, 1 + loc, 3 * kf[0] * CH4 * std::pow(O2, 0.5) * volInv); // dH2O/dO2
-//         externalPrecon(2 + loc, 3 + loc, 2 * kf[0] * std::pow(O2, 1.5) * volInv); // dH2O/dCH4
-//         // CH4
-//         externalPrecon(3 + loc, 1 + loc, - 1.5 * kf[0] * CH4 * std::pow(O2, 0.5) * volInv); // dCH4/dO2
-//         externalPrecon(3 + loc, 3 + loc, - kf[0] * std::pow(O2, 1.5) * volInv); // dCH4/dCH4
-//         // CO2
-//         externalPrecon(4 + loc, 1 + loc, (0.5 * kf[1] * CO * std::pow(O2, -0.5)) * volInv); // dCO2/dO2
-//         externalPrecon(4 + loc, 4 + loc, -kr[1] * volInv); // dCO2/dCO2
-//         externalPrecon(4 + loc, 5 + loc, kf[1] * std::pow(O2, 0.5) * volInv); // dCO2/CO
-//         //CO
-//         externalPrecon(5 + loc, 1 + loc, (1.5 * kf[0] * CH4 * std::pow(O2, 0.5) - 0.5 * kf[1] * CO * std::pow(O2, -0.5)) * volInv); // dCO/dO2
-//         externalPrecon(5 + loc, 3 + loc, kf[0] * std::pow(O2, 1.5) * volInv); // dCO/dCH4
-//         externalPrecon(5 + loc, 4 + loc, kr[1] * volInv); // dCO/dCO2
-//         externalPrecon(5 + loc, 5 + loc, -kf[1] * std::pow(O2,0.5) * volInv); // dCO/CO
-//         // temperature derivatives
-//         // rop derivatives w.r.t temperature
-//         // vector_fp dwdot(numberOfSpecies, 0.0);
-//         // kinetics->getNetProductionRates_ddT(dwdot.data());
-//         // for (size_t i = 0; i < numberOfSpecies; i++)
-//         // {
-//         //     externalPrecon(i + sidx, 0, dwdot[i] * vol);
-//         // }
-//         // temperature derivatives w.r.t species
-
-//     };
-
-
-// TEST(AdaptivePreconditionerTestSet, test_manual_two_step_mechanism)
-// {
-//     // Constants
-//     double volume = 0.2;
-//     double gamma = 0.1;
-//     double threshold = 0;
-//     // Setting up solution object and thermo/kinetics pointers
-//     auto sol = newSolution("methane_twostep.yaml");
-//     auto thermo = sol->thermo();
-//     auto kinetics = sol->kinetics();
-//     thermo->setEquivalenceRatio(1, "CH4", "O2:1");
-//     thermo->setState_TP(1000, 101325);
-//     // Set up reactor object
-//     IdealGasConstPressureMoleReactor reactor;
-//     reactor.insert(sol);
-//     reactor.setInitialVolume(volume);
-//     reactor.initialize();
-//     // Setup network
-//     ReactorNet network;
-//     // Internal preconditioner
-//     AdaptivePreconditioner internalPrecon;
-//     internalPrecon.setGamma(gamma);
-//     internalPrecon.setThreshold(threshold);
-//     // Create and add preconditioner
-//     network.addReactor(reactor); //Adding reactor to network
-//     network.setProblemType(GMRES);
-//     network.setPreconditioner(internalPrecon);
-//     network.initialize();
-//     // State produced within CVODES for this example
-//     vector_fp N(reactor.neq(), 0.0);
-//     vector_fp Ndot(reactor.neq(), 0.0);
-//     vector_fp NCopy(reactor.neq(), 0.0);
-//     // Creating external preconditioner for comparison
-//     AdaptivePreconditioner externalPrecon;
-//     externalPrecon.setGamma(gamma);
-//     externalPrecon.setThreshold(threshold);
-//     externalPrecon.initialize(network);
-//     // Compare the preconditioners while stepping
-//     double ct = 0.0;
-//     for (size_t i = 0; i < 1; i++)
-//     {
-//         // Get reactor state
-//         reactor.getState(N.data());
-//         // reset preconditioner
-//         internalPrecon.reset();
-//         // precondition from reactor object
-//         network.preconditionerSetup(ct, N.data(), Ndot.data(), gamma);
-//         // manual precondition
-//         // set state to strictly positive composition for manual comparison
-//         externalPrecon.getStrictlyPositiveComposition(reactor.neq(), N.data(), NCopy.data());
-//         reactor.updateState(NCopy.data());
-//         // reset external preconditioner
-//         externalPrecon.reset();
-//         twoStepManualPrecondition(externalPrecon, reactor, NCopy.data(), Ndot.data(), ct);
-//         internalPrecon.printJacobian();
-//         std::cout<< "----------------" <<std::endl;
-//         externalPrecon.printJacobian();
-//         // // post setup processes
-//         // externalPrecon.setup();
-//         // // check that the two are equal
-//         // EXPECT_EQ(externalPrecon == internalPrecon, true);
-//         // // reset state
-//         // reactor.updateState(N.data());
-//         // // step the network
-//         // ct = network.step();
-//     }
-// }
 
 TEST(AdaptivePreconditionerTestSet, test_is_close_to_jacobian)
 {
@@ -226,7 +88,7 @@ TEST(AdaptivePreconditionerTestSet, test_run_sim)
     auto sol = newSolution("methane_twostep.yaml");
     sol->thermo()->setState_TPX(300.0, 101325, "CH4:1.0, O2:1.0, H2O:0, CO2:0");
     // Set up reactor object
-    IdealGasMoleReactor reactor;
+    IdealGasConstPressureMoleReactor reactor;
     reactor.insert(sol);
     reactor.setInitialVolume(1.0);
     // Creating inlet reservoir object and adding gas
@@ -247,14 +109,14 @@ TEST(AdaptivePreconditionerTestSet, test_run_sim)
     inletMassFlowController.setMassFlowRate(1.0);
     // Creating reactor network
     ReactorNet network;
+    network.addReactor(reactor); // Adding reactor to network
     // Create and add preconditioner
     AdaptivePreconditioner precon;
-    network.addReactor(reactor); //Adding reactor to network
     network.setProblemType(GMRES);
     network.setPreconditioner(precon);
-    // Setting up simulation
+    // Running simulation
     network.initialize();
-    network.step();
+    network.advance(0.1);
 }
 
 TEST(AdaptivePreconditionerTestSet, test_preconditioned_hydrogen_auto_ignition)

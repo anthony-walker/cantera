@@ -11,13 +11,10 @@
 #ifndef ADAPTIVEPRECONDITIONER_H
 #define ADAPTIVEPRECONDITIONER_H
 
-#include "cantera/numerics/eigen_sparse.h"
 #include "cantera/numerics/PreconditionerBase.h"
-#include "cantera/zeroD/ReactorNet.h"
-#include "cantera/thermo/ThermoPhase.h"
-#include "cantera/kinetics/Kinetics.h"
+#include "cantera/numerics/eigen_sparse.h"
+#include "cantera/base/AnyMap.h"
 #include "float.h"
-#include <unordered_map>
 #include <iostream>
 
 namespace Cantera
@@ -101,6 +98,11 @@ public:
         return jacobian;
     };
 
+    //! Use this function to get derivative settings
+    void getPreconditionerDerivativeSettings(AnyMap& settings){
+        settings = m_settings;
+    }
+
     //! Use this function to get the threshold value for setting
     //! elements
     double getThreshold(){return m_threshold;};
@@ -116,22 +118,27 @@ public:
         }
     };
 
+    //! Use this function to set derivative settings
+    void setPreconditionerDerivativeSettings(AnyMap& settings){
+        m_settings = settings;
+    }
+
     //! Use this function to set the threshold value to compare elements
     //! against
     //! @param threshold double value used in setting by threshold
-    void setThreshold(double threshold)
-    {
+    void setThreshold(double threshold){
         m_threshold = threshold;
         m_prune_precon = (threshold <= 0) ? false : true;
     };
 
     //! Use this function to set drop tolerance for ILUT
     //! @param droptol double value used in setting solver drop tolerance
-    void setDropTolILUT(double droptol = 1e-10){m_solver.setDroptol(droptol);};
+    void setDropTolILUT(double droptol = 1e-10){
+        m_solver.setDroptol(droptol);
+        };
 
     //! Use this function to set the fill factor for ILUT
-    void setFillFactorILUT(int fillfactor = -1)
-    {
+    void setFillFactorILUT(int fillfactor = -1){
         int newfillfactor = (fillfactor < 0) ? m_dimensions[0]/4 : fillfactor;
         m_solver.setFillfactor(newfillfactor);
     }
@@ -139,7 +146,9 @@ public:
     //! Use this function to set the perturbation constant used in
     //! finite difference calculations.
     //! @param perturb the new pertubation constant
-    void setPerturbationConst(double perturb){m_perturb = perturb;};
+    void setPerturbationConst(double perturb){
+        m_perturb = perturb;
+    };
 
     //! Overloading of the == operator to compare values strictly inside
     //! preconditioner matrix
@@ -170,16 +179,6 @@ public:
         std::cout<<Eigen::MatrixXd(jacobian)<<std::endl;
     };
 
-    //! Use this function to set the fill factor for factorizing the ILUT preconditioner
-    void setFillFactor(int n) {
-        m_solver.setFillfactor(n);
-    }
-
-    //! Use this function to set the tolerance for dropping elements when factorizing the ILUT preconditioner
-    void setDropTol(double tol) {
-        m_solver.setDroptol(tol);
-    }
-
 protected:
     //! Vector of triples representing the jacobian used in preconditioning
     std::vector<Eigen::Triplet<double>> m_jac_trips;
@@ -203,6 +202,9 @@ protected:
 
     //! Bool set whether to prune the matrix or not
     double m_prune_precon = true;
+
+    //! Bool for derivative settings
+    AnyMap m_settings;
 };
 
 }

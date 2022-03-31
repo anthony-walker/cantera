@@ -5,11 +5,11 @@
 // copyright information.
 
 #include "cantera/numerics/AdaptivePreconditioner.h"
-#include "cantera/zeroD/MoleReactor.h"
 #include "cantera/zeroD/IdealGasConstPressureMoleReactor.h"
 #include "cantera/zeroD/IdealGasMoleReactor.h"
+#include "cantera/zeroD/MoleReactor.h"
+#include "cantera/zeroD/ReactorNet.h"
 #include "cantera/base/global.h"
-#include <iostream>
 
 namespace Cantera
 {
@@ -53,9 +53,11 @@ void AdaptivePreconditioner::initialize(ReactorNet& network)
     m_dimensions.push_back(totalColLen);
     m_dimensions.push_back(totalColLen);
     // derivative settings
-    AnyMap m_settings;
-    m_settings["skip-third-bodies"] = true;
-    m_settings["skip-falloff"] = true;
+    if (m_settings.empty())
+    {
+        m_settings["skip-third-bodies"] = true;
+        m_settings["skip-falloff"] = true;
+    }
     // loop through reactors
     for (size_t i = 0; i < network.nreactors(); i++)
     {
