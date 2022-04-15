@@ -17,7 +17,7 @@ if localenv['OS'] == 'Linux':
 else:
     cantera_libs = localenv['cantera_libs']
 
-localenv.Prepend(CPPPATH=['#include', '#include/cantera/ext'],
+localenv.Prepend(CPPPATH=['#include'],
                  LIBPATH='#build/lib')
 localenv.Append(LIBS=cantera_libs,
                 CCFLAGS=env['warning_flags'])
@@ -290,7 +290,6 @@ addTestProgram('equil', 'equil')
 addTestProgram('kinetics', 'kinetics')
 addTestProgram('transport', 'transport')
 addTestProgram('zeroD', 'zeroD')
-addTestProgram('numerics', 'numerics')
 
 python_subtests = ['']
 test_root = '#interfaces/cython/cantera/test'

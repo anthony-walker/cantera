@@ -56,9 +56,8 @@ public:
     //! @param[in] t time.
     //! @param[in] y solution vector, length neq()
     //! @param[out] ydot rate of change of solution vector, length neq()
-    //! @param[in] params sensitivity parameters
     //! @param gamma the gamma in M=I-gamma*J
-    virtual void preconditionerSetup(double t, double* y, double* ydot, double gamma){
+    virtual void preconditionerSetup(double t, double* y, double* ydot, double gamma) {
         throw NotImplementedError("FuncEval::preconditionerSetup");
     }
 
@@ -68,20 +67,20 @@ public:
     //! @param[out] ydot rate of change of solution vector, length neq()
     //! @param[in] rhs right hand side vector used in linear system
     //! @param[out] output guess vector used by GMRES
-    virtual void preconditionerSolve(double t, double* y, double* ydot, double* rhs, double* output){
+    virtual void preconditionerSolve(double t, double* y, double* ydot, double* rhs, double* output) {
         throw NotImplementedError("FuncEval::preconditionerSolve");
     }
 
     //! preconditioner setup that doesn't throw an error but returns a
     //! CVODES flag. It also helps as a first level of polymorphism
     //! which identifies the specific FuncEval, e.g., ReactorNet.
-    //! Parameters are the same as preconditionerSetup
+    //! Parameters are the same as preconditionerSetup()
     int preconditioner_setup_nothrow(double t, double* y, double* ydot, double gamma);
 
     //! preconditioner setup that doesn't throw an error but returns a
     //! CVODES flag. It also helps as a first level of polymorphism
     //! which identifies the specific FuncEval, e.g., ReactorNet.
-    //! Parameters are the same as preconditionerSolve
+    //! Parameters are the same as preconditionerSolve()
     int preconditioner_solve_nothrow(double t, double* y, double* ydot, double* rhs, double* output);
 
     //! Fill in the vector *y* with the current state of the system
@@ -131,7 +130,7 @@ protected:
     std::vector<std::string> m_errors;
 
     //! Pointer to preconditioner - nullptr unless otherwise set
-    PreconditionerBase *m_preconditioner = nullptr;
+    PreconditionerBase* m_preconditioner = nullptr;
 };
 
 }

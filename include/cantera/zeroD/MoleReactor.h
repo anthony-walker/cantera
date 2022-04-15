@@ -1,14 +1,12 @@
 //! @file MoleReactor.h
 
-// This file is part of Cantera. See License.txt in the top-level
-// directory or at https://cantera.org/license.txt for license and
-// copyright information.
+// This file is part of Cantera. See License.txt in the top-level directory or
+// at https://cantera.org/license.txt for license and copyright information.
 
 #ifndef CT_MOLEREACTOR_H
 #define CT_MOLEREACTOR_H
 
 #include "Reactor.h"
-#include "cantera/numerics/AdaptivePreconditioner.h"
 
 namespace Cantera
 {
@@ -24,60 +22,33 @@ namespace Cantera
 class MoleReactor : public Reactor
 {
 public:
-    MoleReactor(){};
+    MoleReactor() {}
 
-    //! Deprecated function for returning type as a string
-    virtual std::string typeStr() const {
-        warn_deprecated("MoleReactor::typeStr",
-                        "To be removed after Cantera 2.6. Use type() instead.");
-        return "MoleReactor";
-    }
-
-    //! Use this function to return a string of reactor type
+    //! Return a string of reactor type
     virtual std::string type() const {
         return "MoleReactor";
     }
 
-    //! Use this function to run reactor specific initialization
+    //! Run reactor specific initialization
     virtual void initialize(double t0 = 0.0);
 
-    //! Return the index in the solution vector for this MoleReactor of
-    //! the component named *nm*. Possible values for *nm* are "mass",
-    //! "volume", "int_energy", the name of a homogeneous phase species,
-    //! or the name of a surface species.
-    virtual size_t componentIndex(const std::string& nm) const;
-
-    //! Return the name of the solution component with index *i*.
-    //! @see componentIndex()
-    virtual std::string componentName(size_t k);
-
-    //! This is a function to setup an associated portion of the
-    //! preconditioner for this reactor and is part of the visitor
-    //! design pattern.
-    //! @param preconditioner the preconditioner being used by cvodes
-    //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void preconditionerSetup(PreconditionerBase& preconditioner, double t, double* LHS, double* RHS){
-        preconditioner.acceptReactor(*this, t, LHS, RHS);
-    }
-
-    //! This function is the next level of preconditioner setup used in
-    //! the visitor design pattern. This is necessary for determining
-    //! specific types of both the reactor and preconditioner object
-    //! @param preconditioner the preconditioner being used by cvodes
+    //! Right hand side function used to integrate by CVODES
     //! @param t current time of the simulation
     //! @param LHS state vector in moles
     //! @param RHS derivative vector in moles per second
-    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* LHS, double* RHS)
-    {
-        throw NotImplementedError("MoleReactor::reactorPreconditionerSetup");
+    virtual void eval(double t, double* LHS, double* RHS) {
+        throw NotImplementedError("MoleReactor::eval()");
     }
 
-    //! Return species start in state
-    virtual size_t species_start() {
-        return m_sidx;};
+    //! Return the index in the solution vector the component named
+    //! *nm*. Possible values for *nm* are "int_energy", "volume", the
+    //! name of a homogeneous phase species, or the name of a surface
+    //! species.
+    virtual size_t componentIndex(const std::string& nm) const;
+
+    //! Return the name of the solution component with index *k*.
+    //! @see componentIndex()
+    virtual std::string componentName(size_t k);
 
 protected:
     //! Evaluate terms related to surface reactions.
@@ -86,7 +57,9 @@ protected:
     //! @param[out] RHS   Right hand side of ODE for surface species coverages
     //! @param[out] sdot  array of production rates of bulk phase species on surfaces
     //!                   [kmol/s]
-    virtual void evalSurfaces(double* LHS, double* RHS, double* sdot);
+    virtual void evalSurfaces(double* LHS, double* RHS, double* sdot) {
+        throw NotImplementedError("MoleReactor::evalSurfaces");
+    }
 
     //! Update the state of SurfPhase objects attached to this
     //! MoleReactor

@@ -28,7 +28,7 @@ ReactorNet::ReactorNet() :
     // use backward differencing, with a full Jacobian computed
     // numerically, and use a Newton linear iterator
     m_integ->setMethod(BDF_Method);
-    m_integ->setProblemType(DENSE + NOJAC);
+    m_integ->setLinSolverType(DENSE + NOJAC);
 }
 
 ReactorNet::~ReactorNet()
@@ -114,12 +114,12 @@ void ReactorNet::initialize()
         writelog("Number of equations: {:d}\n", neq());
         writelog("Maximum time step:   {:14.6g}\n", m_maxstep);
     }
-    // Initialize preconditioner if it isn't null
-    if (m_integ->getPreconditionerType() != NO_PRECONDITION)
-    {
-        m_preconditioner->initialize(*this);
-    }
     m_integ->initialize(m_time, *this);
+    // apply preconditioner options if any
+    if (m_integ->preconditionerType() != PreconditionerType::NO_PRECONDITION)
+    {
+        applyPreconditionerOptions();
+    }
     m_integrator_init = true;
     m_init = true;
 }
@@ -129,9 +129,10 @@ void ReactorNet::reinitialize()
     if (m_init) {
         debuglog("Re-initializing reactor network.\n", m_verbose);
         m_integ->reinitialize(m_time, *this);
-        if (m_integ->getPreconditionerType() != NO_PRECONDITION)
+        // apply preconditioner options if any
+        if (m_integ->preconditionerType() != PreconditionerType::NO_PRECONDITION)
         {
-            m_preconditioner->initialize(*this);
+            applyPreconditionerOptions();
         }
         m_integrator_init = true;
     } else {
@@ -139,16 +140,15 @@ void ReactorNet::reinitialize()
     }
 }
 
-void ReactorNet::setProblemType(int probtype)
+void ReactorNet::setLinSolverType(int linSolverType)
 {
-    m_integ->setProblemType(probtype);
+    m_integ->setLinSolverType(linSolverType);
     m_integrator_init = false;
 }
 
 void ReactorNet::setPreconditioner(PreconditionerBase& preconditioner)
 {
-    m_preconditioner=&preconditioner;
-    m_integ->setPreconditionerType(m_preconditioner->getPreconditionerType());
+    m_integ->setPreconditioner(preconditioner);
     m_integrator_init = false;
 }
 
@@ -420,20 +420,51 @@ size_t ReactorNet::registerSensitivityParameter(
     return m_sens_params.size() - 1;
 }
 
-void ReactorNet::preconditionerSetup(double t, double* N,
-                      double* Ndot, double gamma)
+void ReactorNet::getPositiveState(double* out, double atol)
 {
+    // Get state of reactor
+    getState(out);
+    // Only keep positive composition based on given tol
+    for (size_t i = 0; i < m_nv; i++) {
+        out[i] = std::max(out[i], atol);
+    }
+}
+
+void ReactorNet::preconditionerSetup(double t, double* y, double* ydot, double gamma)
+{
+    auto precon = m_integ->preconditioner();
     // Reset preconditioner
-    m_preconditioner->reset();
+    precon->reset();
     // Set gamma value for M =I - gamma*J
-    m_preconditioner->setGamma(gamma);
-    for (size_t i = 0; i < m_reactors.size(); i++)
-    {
-        m_preconditioner->m_rctr = m_start[i];
-        m_reactors[i]->preconditionerSetup(*m_preconditioner, t, N + m_start[i], Ndot + m_start[i]);
+    precon->setGamma(gamma);
+    // Get preconditioner settings
+    AnyMap preconSettings;
+    precon->preconSettings(preconSettings);
+    // strictly positive composition
+    vector_fp yCopy(m_nv);
+    getPositiveState(yCopy.data(), precon->absoluteTolerance());
+    updateState(yCopy.data());
+    // Get jacobians and give elements to preconditioners
+    for (size_t i = 0; i < m_reactors.size(); i++) {
+        Eigen::SparseMatrix<double> reactorJac = m_reactors[i]->jacobian(t, y + m_start[i], ydot + m_start[i]);
+        for (int k=0; k<reactorJac.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(reactorJac, k); it; ++it) {
+                precon->operator()(it.row() + m_start[i], it.col() + m_start[i], it.value());
+            }
+        }
     }
     // post reactor setup operations
-    m_preconditioner->setup();
+    precon->setup();
+}
+
+void ReactorNet::applyPreconditionerOptions()
+{
+    AnyMap preconSettings;
+    auto precon = m_integ->preconditioner();
+    precon->preconSettings(preconSettings);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        m_reactors[n]->setDerivativeSettings(preconSettings);
+    }
 }
 
 }

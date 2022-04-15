@@ -611,15 +611,7 @@ void Phase::setConcentrationsNoNorm(const double* const conc)
     compositionChanged();
 }
 
-vector_fp Phase::getMoles(double vol) const
-{
-    vector_fp moles(m_kk);
-    getConcentrations(moles.data());
-    scale(moles.begin(), moles.end(), moles.begin(), vol);
-    return moles;
-}
-
-void Phase::setMolesNoNorm(const double* const N)
+void Phase::setMolesNoTruncate(const double* const N)
 {
     // get total moles
     copy(N, N + m_kk, m_ym.begin());

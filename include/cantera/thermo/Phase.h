@@ -559,11 +559,8 @@ public:
     virtual void setConcentrationsNoNorm(const double* const conc);
     //! @}
 
-    //! Get the state in moles
-    virtual vector_fp getMoles(double vol) const;
-
     //! Set the state of the object with moles in [kmol]
-    virtual void setMolesNoNorm(const double* const N);
+    virtual void setMolesNoTruncate(const double* const N);
 
     //! Elemental mass fraction of element m
     /*!

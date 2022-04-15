@@ -17,12 +17,7 @@ std::mutex PreconditionerFactory::precon_mutex;
 
 PreconditionerFactory::PreconditionerFactory()
 {
-    reg("AdaptivePreconditioner", []() { return new AdaptivePreconditioner(); });
-}
-
-PreconditionerBase* PreconditionerFactory::newPreconditioner(const std::string& preconType)
-{
-    return create(preconType);
+    reg("Adaptive", []() { return new AdaptivePreconditioner(); });
 }
 
 }

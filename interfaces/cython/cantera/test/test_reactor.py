@@ -1041,25 +1041,34 @@ class TestIdealGasConstPressureMoleReactor(TestIdealGasConstPressureReactor):
     reactorClass = ct.IdealGasConstPressureMoleReactor
 
     @unittest.expectedFailure
+    # This test currently fails because the reactor implementation of
+    # `evalSurfaces`` does not work with the mole based state vector
+    # @todo implement evalSurfaces for the `MoleReactor`` class
     def test_with_surface_reactions(self):
         self.create_reactors(add_surf=True)
         self.net1.atol = self.net2.atol = 1e-18
         self.net1.rtol = self.net2.rtol = 1e-9
         self.integrate(surf=True)
 
+    def test_component_index(self):
+        self.create_reactors(add_surf=False)
+        for (gas,net,r) in ((self.gas1, self.net1, self.r1),
+                                  (self.gas2, self.net2, self.r2)):
+            net.step()
+            N0 = net.n_vars - gas.n_species
+            for i, name in enumerate(gas.species_names):
+                self.assertEqual(i + N0, r.component_index(name))
+
     def test_adaptive_precon_integration(self):
         self.create_reactors()
-        self.precon = ct.AdaptivePreconditioner()
-        self.precon.threshold = 1e-8
-        self.net2.problem_type = "GMRES"
-        self.net2.preconditioner = self.precon
+        self.net2.preconditioner = ct.AdaptivePreconditioner()
         self.integrate()
 
 
 class TestIdealGasMoleReactor(TestReactor):
     reactorClass = ct.IdealGasMoleReactor
 
-    def test_preconditioned_integration(self):
+    def test_adaptive_precon_integration(self):
         # Network one with non-mole reactor
         net1 = ct.ReactorNet()
         gas1 = ct.Solution('h2o2.yaml', transport_model=None)
@@ -1075,16 +1084,16 @@ class TestIdealGasMoleReactor(TestReactor):
         r2 = ct.IdealGasMoleReactor(gas2)
         net2.add_reactor(r2)
         # add preconditioner
-        precon = ct.AdaptivePreconditioner()
-        net2.problem_type = "GMRES"
-        net2.preconditioner = precon
+        net2.preconditioner = ct.AdaptivePreconditioner()
         # integrate
-        net1.advance(1.0)
-        net2.advance(1.0)
-        self.assertNear(r1.T, r2.T)
-        self.assertNear(r1.thermo.density, r2.thermo.density)
-        self.assertNear(r1.thermo.P, r1.thermo.P)
-        self.assertArrayNear(r1.thermo.X, r1.thermo.X)
+        for i in range(1, 11, 1):
+            adv_time = i * 0.1
+            net1.advance(adv_time)
+            net2.advance(adv_time)
+            self.assertNear(r1.T, r2.T)
+            self.assertNear(r1.thermo.density, r2.thermo.density)
+            self.assertNear(r1.thermo.P, r1.thermo.P)
+            self.assertArrayNear(r1.thermo.X, r1.thermo.X)
 
 
 class TestFlowReactor(utilities.CanteraTest):

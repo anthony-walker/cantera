@@ -4,24 +4,18 @@
  *   for preconditioners used by sundials
  */
 
-// This file is part of Cantera. See License.txt in the top-level
-// directory or at https://cantera.org/license.txt for license and
-// copyright information.
+// This file is part of Cantera. See License.txt in the top-level directory or
+// at https://cantera.org/license.txt for license and copyright information.
 
 #ifndef ADAPTIVEPRECONDITIONER_H
 #define ADAPTIVEPRECONDITIONER_H
 
 #include "cantera/numerics/PreconditionerBase.h"
 #include "cantera/numerics/eigen_sparse.h"
-#include "cantera/base/AnyMap.h"
-#include "float.h"
 #include <iostream>
 
 namespace Cantera
 {
-
-//! Flag to indicate adaptive preconditioner is set
-const int ADAPTIVE_MECHANISM_PRECON_MATRIX = 1;
 
 //! AdaptivePreconditioner a preconditioner designed for use with large
 //! mechanisms that leverages sparse solvers. It does this by pruning
@@ -31,133 +25,84 @@ const int ADAPTIVE_MECHANISM_PRECON_MATRIX = 1;
 class AdaptivePreconditioner : public PreconditionerBase
 {
 public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Required for mis-alignment of EIGEN matrix
-    AdaptivePreconditioner(){};
-    ~AdaptivePreconditioner(){};
-    AdaptivePreconditioner(const AdaptivePreconditioner &externalPrecon){};
+    AdaptivePreconditioner() {}
 
     //! This function is called during setup for any processes that need
     //! to be completed prior to setup functions used in sundials.
     //! @param network A pointer to the reactor net object associated
     //! with the integration
-    void initialize(ReactorNet& network);
+    void initialize(size_t networkSize);
 
-    //! Use this function to reset arrays within preconditioner object
-    void reset(){
+    //! Reset arrays within preconditioner object
+    void reset() {
         m_precon_matrix.setZero();
         m_jac_trips.clear();
     };
 
-    //! Use this function to perform preconditioner specific post-reactor
+    //! Perform preconditioner specific post-reactor
     //! setup operations such as factorize.
     void setup();
 
-    //! This function is for a visitor design pattern to determine
-    //! preconditioner type with MoleReactor
-    void acceptReactor(MoleReactor& reactor, double t, double* LHS, double* RHS);
-
-    //! This function is for a visitor design pattern to determine
-    //! preconditioner type with IdealGasMoleReactor
-    void acceptReactor(IdealGasMoleReactor& reactor, double t, double* LHS, double* RHS);
-
-    //! This function is for a visitor design pattern to determine
-    //! preconditioner type with IdealGasConstPressureMoleReactor
-    void acceptReactor(IdealGasConstPressureMoleReactor& reactor, double t, double* LHS, double* RHS);
-
-    //! Use this function to check if there was an error in eigen methods and throw
-    //! it if so.
-    void preconditionerErrorCheck();
-
-    //! Use this function to transform Jacobian vector and write into
+    //! Transform Jacobian vector and write into
     //! preconditioner
     void transformJacobianToPreconditioner();
 
-    //! Use this function to prune preconditioner elements
+    //! Prune preconditioner elements
     void prunePreconditioner();
 
-    //! Function to solve a linear system Ax=b where A is the
-    //! preconditioner contained in this matrix
-    //! @param[in] state_len length of vectors supplied
-    //! @param[in] rhs_vector right hand side vector supplied by cvodes
-    //! @param[out] output output vector "z" sent back to cvodes
-    void solve(const size_t state_len, double *rhs_vector, double* output);
+    //! Solve a linear system Ax=b where A is the preconditioner
+    //! @param[in] stateSize length of the rhs and output vectors
+    //! @param[in] rhs_vector right hand side vector used in linear system
+    //! @param[out] output output vector for solution
+    void solve(const size_t stateSize, double *rhs_vector, double* output);
 
-    //! Use this function to return the preconditioning method as an integer
-    size_t getPreconditionerMethod(){return ADAPTIVE_MECHANISM_PRECON_MATRIX;};
-
-    //! Use this function to return the preconditioning type as an integer
-    PreconditionerType getPreconditionerType(){return LEFT_PRECONDITION;};
-
-    //! Use this function to return pointer to the preconditioner matrix
-    Eigen::SparseMatrix<double>* getMatrix(){return &(m_precon_matrix);};
+    //! Return the preconditioning type as an integer
+    PreconditionerType preconditionerType() { return PreconditionerType::LEFT_PRECONDITION; }
 
     //! Function used to return semi-analytical jacobian matrix
-    Eigen::SparseMatrix<double> getJacobian(){
+    Eigen::SparseMatrix<double> getJacobian() {
         Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
         jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
         return jacobian;
-    };
-
-    //! Use this function to get derivative settings
-    void getPreconditionerDerivativeSettings(AnyMap& settings){
-        settings = m_settings;
     }
 
-    //! Use this function to get the threshold value for setting
+    //! Get the threshold value for setting
     //! elements
-    double getThreshold(){return m_threshold;};
+    double threshold() { return m_threshold; }
 
-    //! Use this function to get the pertubation constant
-    double getPerturbationConst(){return m_perturb;};
+    //! Get ilut fill factor
+    double ilutFillFactor() { return m_fill_factor; }
 
-    //! Use this function to get a strictly positive composition
-    void getStrictlyPositiveComposition(size_t vlen, double* in, double* out){
-        for (size_t i = 0; i < vlen; i++)
-        {
-            out[i] = std::max(in[i], m_atol);
-        }
-    };
+    //! Get ilut drop tolerance
+    double ilutDropTol() { return m_drop_tol; }
 
-    //! Use this function to set derivative settings
-    void setPreconditionerDerivativeSettings(AnyMap& settings){
-        m_settings = settings;
-    }
-
-    //! Use this function to set the threshold value to compare elements
-    //! against
+    //! Set the threshold value to compare elements against
     //! @param threshold double value used in setting by threshold
-    void setThreshold(double threshold){
+    void setThreshold(double threshold) {
         m_threshold = threshold;
         m_prune_precon = (threshold <= 0) ? false : true;
-    };
-
-    //! Use this function to set drop tolerance for ILUT
-    //! @param droptol double value used in setting solver drop tolerance
-    void setDropTolILUT(double droptol = 1e-10){
-        m_solver.setDroptol(droptol);
-        };
-
-    //! Use this function to set the fill factor for ILUT
-    void setFillFactorILUT(int fillfactor = -1){
-        int newfillfactor = (fillfactor < 0) ? m_dimensions[0]/4 : fillfactor;
-        m_solver.setFillfactor(newfillfactor);
     }
 
-    //! Use this function to set the perturbation constant used in
-    //! finite difference calculations.
-    //! @param perturb the new pertubation constant
-    void setPerturbationConst(double perturb){
-        m_perturb = perturb;
-    };
+    //! Set drop tolerance for ILUT
+    //! @param droptol double value used in setting solver drop tolerance
+    void setIlutDropTol(double droptol) {
+        m_drop_tol = droptol;
+        m_solver.setDroptol(droptol);
+        }
 
-    //! Overloading of the == operator to compare values strictly inside
-    //! preconditioner matrix
-    //! @param externalPrecon == comparison with this object
-    bool operator== (const AdaptivePreconditioner &externalPrecon);
-    //! Overloading of the = operator to copy one preconditioner to
-    //! another
-    //! @param externalPrecon the preconditioner becoming this object
-    void operator= (const AdaptivePreconditioner &externalPrecon);
+    //! Set the fill factor for ILUT solver
+    //! @param fillFactor fill in factor for ILUT solver
+    void setIlutFillFactor(int fillFactor) {
+        m_fill_factor = fillFactor;
+        m_solver.setFillfactor(fillFactor);
+    }
+
+    //! Overloading of the () operator to assign values to the jacobian
+    //! this function does not assume that index is index map
+    //! @param row row index of jacobian
+    //! @param col column index of jacobian
+    //! @param value to place in jacobian vector
+    const double& operator() (size_t row, size_t col);
 
     //! Overloading of the () operator to assign values to the jacobian
     //! this function does not assume that index is index map
@@ -166,20 +111,26 @@ public:
     //! @param value to place in jacobian vector
     void operator() (size_t row, size_t col, double value);
 
-    //! Use this function to print preconditioner contents
-    void printPreconditioner(){
+    //! Print preconditioner contents
+    void printPreconditioner() {
         Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
         std::cout<<Eigen::MatrixXd(m_precon_matrix).format(HeavyFmt)<<std::endl;
-    };
+    }
 
-    //! Use this function to print jacobian contents
-    void printJacobian(){
+    //! Print jacobian contents
+    void printJacobian() {
         Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
         jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
         std::cout<<Eigen::MatrixXd(jacobian)<<std::endl;
-    };
+    }
 
 protected:
+    //! ilut fill factor
+    double m_fill_factor = 0;
+
+    //! ilut drop tolerance
+    double m_drop_tol = 0;
+
     //! Vector of triples representing the jacobian used in preconditioning
     std::vector<Eigen::Triplet<double>> m_jac_trips;
 
@@ -194,17 +145,10 @@ protected:
 
     //! Minimum value a non-diagonal element must be to be included in
     //! the preconditioner
-    double m_threshold = DBL_EPSILON; // default
-
-    //! Perturbation constant that is multiplied by temperature for
-    //! perturbation and finite difference calculations
-    double m_perturb = std::sqrt(DBL_EPSILON);
+    double m_threshold = 1e-8;
 
     //! Bool set whether to prune the matrix or not
     double m_prune_precon = true;
-
-    //! Bool for derivative settings
-    AnyMap m_settings;
 };
 
 }

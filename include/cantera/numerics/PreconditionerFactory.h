@@ -1,8 +1,7 @@
 //! @file PreconditionerFactory.h
 
-// This file is part of Cantera. See License.txt in the top-level
-// directory or at https://cantera.org/license.txt for license and
-// copyright information.
+// This file is part of Cantera. See License.txt in the top-level directory or
+// at https://cantera.org/license.txt for license and copyright information.
 
 #ifndef PRECONDITIONER_FACTORY_H
 #define PRECONDITIONER_FACTORY_H
@@ -13,8 +12,7 @@
 namespace Cantera
 {
 
-//! PreconditionerFactory created for use with the python interface to
-//! create preconditioners based on a string type
+//! Factory class to create preconditioner objects
 class PreconditionerFactory : public Factory<PreconditionerBase>
 {
 public:
@@ -33,12 +31,6 @@ public:
         s_factory = 0;
     };
 
-    //! Create a new preconditioner by type name.
-    /*!
-     * @param preconType the type to be created.
-     */
-    virtual PreconditionerBase* newPreconditioner(const std::string& preconType);
-
 private:
     static PreconditionerFactory* s_factory;
     static std::mutex precon_mutex;
@@ -48,7 +40,7 @@ private:
 //! Create a Preconditioner object of the specified type
 inline PreconditionerBase* newPreconditioner(const std::string& precon)
 {
-    return PreconditionerFactory::factory()->newPreconditioner(precon);
+    return PreconditionerFactory::factory()->create(precon);
 };
 
 }

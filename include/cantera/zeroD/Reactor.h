@@ -8,14 +8,14 @@
 
 #include "ReactorBase.h"
 #include "cantera/base/AnyMap.h"
+#include "cantera/numerics/eigen_sparse.h"
 #include "cantera/numerics/PreconditionerBase.h"
+
 
 namespace Cantera
 {
 
-//! Forward Declaration
 class Solution;
-class AdaptivePreconditioner;
 
 /**
  * Class Reactor is a general-purpose class for stirred reactors. The reactor
@@ -41,7 +41,6 @@ class AdaptivePreconditioner;
  *
  * @ingroup ZeroD
  */
-
 class Reactor : public ReactorBase
 {
 public:
@@ -65,9 +64,7 @@ public:
 
     virtual void setKineticsMgr(Kinetics& kin);
 
-    virtual Kinetics* getKineticsMgr();
-
-    virtual void setChemistry(bool cflag = true) {
+    void setChemistry(bool cflag=true) {
         m_chem = cflag;
     }
 
@@ -160,49 +157,18 @@ public:
     //! @param limit value for step size limit
     void setAdvanceLimit(const std::string& nm, const double limit);
 
-    //! This is a function to setup an associated portion of the
-    //! preconditioner for this reactor and is part of the visitor
-    //! design pattern.
-    //! @param preconditioner the preconditioner being used by cvodes
+    //! Method to calculate the reactor specific jacobian
     //! @param t current time of the simulation
     //! @param LHS state vector in moles
     //! @param RHS derivative vector in moles per second
-    virtual void preconditionerSetup(PreconditionerBase& preconditioner, double t, double* LHS, double* RHS)
-    {
-        throw NotImplementedError("Reactor::preconditionerSetup");
-    }
-
-    //! This function is the next level of preconditioner setup used in
-    //! the visitor design pattern. This is necessary for determining
-    //! specific types of both the reactor and preconditioner object
-    //! @param preconditioner the preconditioner being used by cvodes
-    //! @param t current time of the simulation
-    //! @param N state vector in moles
-    //! @param Ndot derivative vector in moles per second
-    //! @param params sensitivity parameters
-    virtual void reactorPreconditionerSetup(PreconditionerBase& preconditioner, double t, double* LHS, double* RHS)
-    {
-        throw NotImplementedError("Reactor::reactorPreconditionerSetup");
-    }
-
-    //! This function is the next level of preconditioner setup used in
-    //! the visitor design pattern. This is necessary for determining
-    //! specific types of both the reactor and preconditioner object
-    //! @param preconditioner the preconditioner being used by cvodes
-    //! @param t current time of the simulation
-    //! @param LHS state vector in moles
-    //! @param RHS derivative vector in moles per second
-    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* LHS, double* RHS)
-    {
-        throw NotImplementedError("Reactor::reactorPreconditionerSetup");
+    //! @warning  This method is an experimental part of the %Cantera
+    //! API and may be changed or removed without notice.
+    virtual Eigen::SparseMatrix<double> jacobian(double t, double* LHS, double* RHS) {
+        throw NotImplementedError("Reactor::jacobian");
     }
 
     //! Use this to set the kinetics objects derivative settings
-    virtual void setKineticsDerivativeSettings(AnyMap& settings);
-
-    //! Return species start in state
-    virtual size_t species_start() {
-        throw NotImplementedError("Reactor::species_start");};
+    virtual void setDerivativeSettings(AnyMap& settings);
 
     //! Set reaction rate multipliers based on the sensitivity variables in
     //! *params*.
@@ -230,12 +196,6 @@ protected:
     //! @param[out] sdot  array of production rates of bulk phase species on surfaces
     //!                   [kmol/s]
     virtual void evalSurfaces(double* LHS, double* RHS, double* sdot);
-
-    //! Evaluate terms related to surface reactions. Calculates #m_sdot and rate
-    //! of change in surface species coverages - via concentrations which are set in updateState before hand
-    //! @param t          the current time
-    //! @returns          Net mass flux from surfaces
-    virtual double evalSurfaces(double t);
 
     //! Update the state of SurfPhase objects attached to this reactor
     virtual void updateSurfaceState(double* y);
@@ -275,6 +235,9 @@ protected:
 
     // Data associated each sensitivity parameter
     std::vector<SensitivityParameter> m_sensParams;
+
+    //! Vector of triplets representing the jacobian
+    std::vector<Eigen::Triplet<double>> m_jac_trips;
 };
 }
 

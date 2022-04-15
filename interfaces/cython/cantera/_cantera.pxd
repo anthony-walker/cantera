@@ -796,13 +796,15 @@ cdef extern from "cantera/numerics/AdaptivePreconditioner.h" namespace "Cantera"
     cdef cppclass CxxAdaptivePreconditioner "Cantera::AdaptivePreconditioner" (CxxPreconditionerBase):
         CxxAdaptivePreconditioner() except +
         void setThreshold(double threshold)
-        double getThreshold()
-        void setPreconditionerDerivativeSettings(CxxAnyMap&) except + translate_exception
-        void getPreconditionerDerivativeSettings(CxxAnyMap&) except + translate_exception
-        void setPerturbationConst(double)
-        double getPerturbationConst()
-        void setFillFactorILUT(int fillfactor)
-        void setDropTolILUT(double droptol)
+        double threshold()
+        void setPreconSettings(CxxAnyMap&) except + translate_exception
+        void preconSettings(CxxAnyMap&) except + translate_exception
+        void setPerturbation(double)
+        double perturbation()
+        void setIlutFillFactor(int fillfactor)
+        double ilutFillFactor()
+        void setIlutDropTol(double droptol)
+        double ilutDropTol()
         void printPreconditioner()
 
 cdef extern from "cantera/numerics/PreconditionerFactory.h" namespace "Cantera":
@@ -976,10 +978,11 @@ cdef extern from "cantera/zerodim.h" namespace "Cantera":
         double sensitivity(string&, size_t, int) except +translate_exception
         size_t nparams()
         string sensitivityParameterName(size_t) except +translate_exception
-        void setProblemType(int integratorType)
+        void setLinSolverType(int integratorType)
+        int linearSolverType()
         void setPreconditioner(CxxPreconditionerBase& preconditioner)
-        void getLinSolverStats(long int* stats)
-        void getNonlinSolverStats(long int* stats)
+        CxxAnyMap linearSolverStats()
+        CxxAnyMap nonlinearSolverStats()
 
 cdef extern from "cantera/zeroD/ReactorDelegator.h" namespace "Cantera":
     cdef cppclass CxxReactorAccessor "Cantera::ReactorAccessor":
@@ -1481,9 +1484,6 @@ cdef class IdealGasReactor(Reactor):
     pass
 
 cdef class IdealGasConstPressureReactor(Reactor):
-    pass
-
-cdef class IdealGasConstPressureMoleReactor(Reactor):
     pass
 
 cdef class FlowReactor(Reactor):

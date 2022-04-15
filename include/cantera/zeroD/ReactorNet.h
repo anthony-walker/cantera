@@ -36,7 +36,7 @@ public:
     //! @{
 
     //! Set the type of linear solver used in the integration.
-    //! @param probtype type of linear solver. Default type: DENSE + NOJAC.
+    //! @param linSolverType type of linear solver. Default type: DENSE + NOJAC.
     //! Other options:
     //!     const int DIAG = 1;
     //!    const int DENSE = 2;
@@ -44,7 +44,7 @@ public:
     //!     const int JAC = 8;
     //!     const int GMRES = 16;
     //!     const int BAND = 32;
-    void setProblemType(int probtype = DENSE + NOJAC);
+    void setLinSolverType(int linSolverType = DENSE + NOJAC);
 
     //! Set preconditioner used by the linear solver
     //! @param preconditioner preconditioner object used for the linear solver
@@ -100,6 +100,11 @@ public:
         return m_atolsens;
     }
 
+    //! Problem type of integrator
+    int linearSolverType() {
+        return m_integ->linearSolverType();
+    }
+
     /**
      * Advance the state of all reactors in time. Take as many internal
      * timesteps as necessary to reach *time*.
@@ -130,9 +135,6 @@ public:
     Reactor& reactor(int n) {
         return *m_reactors[n];
     }
-
-    //! Return the start of the ith reactor in the state
-    size_t reactor_start(int i){return m_start[i];};
 
     //! Returns `true` if verbose logging output is enabled.
     bool verbose() const {
@@ -198,7 +200,7 @@ public:
         return m_nv;
     }
 
-    virtual size_t nreactors() {
+    size_t nReactors() {
         return m_reactors.size();
     }
 
@@ -277,12 +279,21 @@ public:
     //! Retrieve absolute step size limits during advance
     bool getAdvanceLimits(double* limits);
 
+    //! Apply options provided to the preconditioner to other objects
+    void applyPreconditionerOptions();
+
+    //! Get a strictly positive composition
+    //! @param out output vector for strictly positive composition
+    //! @param atol absolute tolerance for keeping elements in composition
+    virtual void getPositiveState(double* out, double atol);
+
     //!  Evaluate the setup processes for the preconditioner.
     //! @param[in] t time.
     //! @param[in] y solution vector, length neq()
     //! @param[out] ydot rate of change of solution vector, length neq()
-    //! @param[in] params sensitivity parameters
     //! @param gamma the gamma in M=I-gamma*J
+    //! @warning  This method is an experimental part of the %Cantera
+    //! API and may be changed or removed without notice.
     virtual void preconditionerSetup(double t, double* y, double* ydot, double gamma);
 
     //! Evaluate the preconditioned linear system used by the nonlinear
@@ -291,16 +302,16 @@ public:
     //! @param[in] y solution vector, length neq()
     //! @param[out] ydot rate of change of solution vector, length neq()
     //! @param[in] rhs right hand side vector used in linear system
-    //! @param[out] output guess vector used by GMRES
-    virtual void preconditionerSolve(double t, double* y, double* ydot, double* rhs, double* output){m_preconditioner->solve(m_nv, rhs, output);}
+    //! @param[out] output vector for solution of preconditioner solve
+    //! @warning  This method is an experimental part of the %Cantera
+    //! API and may be changed or removed without notice.
+    virtual void preconditionerSolve(double t, double* y, double* ydot, double* rhs, double* output) { m_integ->preconditionerSolve(m_nv, rhs, output); }
 
-    //! Use this to get nonlinear solver stats from cvodes
-    //! @param stats a long int pointer with at least two spaces
-    void getNonlinSolverStats(long int* stats){m_integ->getNonlinSolvStats(stats);};
+    //! Use this to get nonlinear solver stats from Integrator
+    AnyMap nonlinearSolverStats() { return m_integ->nonlinearSolverStats(); }
 
-    //! Use this to get linear solver stats from cvodes
-    //! @param stats a long int pointer with at least eight spaces
-    void getLinSolverStats(long int* stats){m_integ->getLinSolvStats(stats);};
+    //! Get linear solver stats from integrator
+    AnyMap linearSolverStats() { return m_integ->linearSolverStats(); }
 
 protected:
     //! Estimate a future state based on current derivatives.
@@ -346,9 +357,6 @@ protected:
 
     bool m_checked_eval_deprecation; //!< @todo Remove after Cantera 2.6
     std::vector<bool> m_have_deprecated_eval; //!< @todo Remove after Cantera 2.6
-
-    //! Pointer to preconditioner
-    PreconditionerBase *m_preconditioner;
 };
 }
 

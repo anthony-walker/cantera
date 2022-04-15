@@ -35,7 +35,7 @@ void Reactor::insert(shared_ptr<Solution> sol) {
     setKineticsMgr(*sol->kinetics());
 }
 
-void Reactor::setKineticsDerivativeSettings(AnyMap& settings)
+void Reactor::setDerivativeSettings(AnyMap& settings)
 {
     m_kin->setDerivativeSettings(settings);
 }
@@ -48,11 +48,6 @@ void Reactor::setKineticsMgr(Kinetics& kin)
     } else {
         setChemistry(true);
     }
-}
-
-Kinetics* Reactor::getKineticsMgr()
-{
-    return m_kin;
 }
 
 void Reactor::getState(double* y)
@@ -315,27 +310,6 @@ void Reactor::evalSurfaces(double* LHS, double* RHS, double* sdot)
             sdot[k] += m_work[bulkloc + k] * wallarea;
         }
     }
-}
-
-double Reactor::evalSurfaces(double t)
-{
-    const vector_fp& mw = m_thermo->molecularWeights();
-    fill(m_sdot.begin(), m_sdot.end(), 0.0);
-    double mdot_surf = 0.0; // net mass flux from surface
-
-    for (auto S : m_surfaces) {
-        Kinetics* kin = S->kinetics();
-        SurfPhase* surf = S->thermo();
-        surf->setTemperature(m_state[0]);
-        kin->getNetProductionRates(&m_work[0]);
-        size_t bulkloc = kin->kineticsSpeciesIndex(m_thermo->speciesName(0));
-        double wallarea = S->area();
-        for (size_t k = 0; k < m_nsp; k++) {
-            m_sdot[k] += m_work[bulkloc + k] * wallarea;
-            mdot_surf += m_sdot[k] * mw[k];
-        }
-    }
-    return mdot_surf;
 }
 
 void Reactor::addSensitivityReaction(size_t rxn)

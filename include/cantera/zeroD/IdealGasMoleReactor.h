@@ -25,25 +25,24 @@ class IdealGasMoleReactor : public MoleReactor
 public:
     IdealGasMoleReactor() {}
 
-    //! Deprecated function for returning type as a string
-    virtual std::string typeStr() const {
-        warn_deprecated("IdealGasMoleReactor::typeStr",
-                        "To be removed after Cantera 2.6. Use type() instead.");
-        return "IdealGasMoleReactor";
-    }
-
-    //! Use this function to return a string of reactor type
+    //! Return a string of reactor type
     virtual std::string type() const {
         return "IdealGasMoleReactor";
     }
 
-    //! Use this function to set the thermo manager of this reactor
+    //! Return the index in the solution vector the component named
+    //! *nm*. Possible values for *nm* are "temperature", "volume", the
+    //! name of a homogeneous phase species, or the name of a surface
+    //! species.
+    virtual size_t componentIndex(const std::string& nm) const;
+
+    //! Set the thermo manager of this reactor
     virtual void setThermoMgr(ThermoPhase& thermo);
 
-    //! Use this function to get the state in moles
-    virtual void getState(double* N);
+    //! Get the state in moles
+    virtual void getState(double* y);
 
-    //! Use this function to initialize the reactor
+    //! Initialize the reactor
     virtual void initialize(double t0 = 0.0);
 
     //! Right hand side function used to integrate by CVODES
@@ -52,20 +51,19 @@ public:
     //! @param RHS derivative vector in moles per second
     virtual void eval(double t, double* LHS, double* RHS);
 
-    //! Use to update state vector N
-    virtual void updateState(double* N);
+    //! Use to update state vector y
+    virtual void updateState(double* y);
 
-    //! This function is the next level of preconditioner setup used in
-    //! the visitor design pattern. This is necessary for determining
-    //! specific types of both the reactor and preconditioner object
-    //! @param preconditioner the preconditioner being used by cvodes
+    //! Method to calculate the reactor specific jacobian
     //! @param t current time of the simulation
     //! @param LHS state vector in moles
     //! @param RHS derivative vector in moles per second
-    virtual void reactorPreconditionerSetup(AdaptivePreconditioner& preconditioner, double t, double* LHS, double* RHS);
+    //! @warning  This method is an experimental part of the %Cantera
+    //! API and may be changed or removed without notice.
+    virtual Eigen::SparseMatrix<double> jacobian(double t, double* LHS, double* RHS);
 
 protected:
-    vector_fp m_uk; //!< Species molar enthalpies
+    vector_fp m_uk; //!< Species molar internal energies
 };
 
 }

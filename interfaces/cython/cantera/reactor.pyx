@@ -384,7 +384,7 @@ cdef class IdealGasConstPressureMoleReactor(Reactor):
     """
     A homogeneous, constant pressure, zero-dimensional reactor for ideal gas
     mixtures. The volume of the reactor changes as a function of time in order
-    to keep the pressure constant.
+    to keep the pressure constant. This reactor also uses a mole based state vector.
     """
     reactor_type = "IdealGasConstPressureMoleReactor"
 
@@ -1474,30 +1474,48 @@ cdef class ReactorNet:
         raise NotImplementedError('ReactorNet object is not copyable')
 
     property preconditioner:
-        """Associated preconditioner"""
+        """Preconditioner associated with integrator"""
         def __set__(self, PreconditionerBase precon):
+            # set preconditioner
             self.net.setPreconditioner(deref(precon.pbase))
+            # set problem type as default of preconditioner
+            self.lin_solver_type = precon.precon_prob_type
 
-    property problem_type:
-        """Associated problem type"""
-        def __set__(self, problem_type):
-            if (problem_type == "GMRES"):
-                self.net.setProblemType(CxxGMRES)
-            elif (problem_type == "DIAG"):
-                self.net.setProblemType(CxxDIAG)
-            elif (problem_type == "BAND + NOJAC"):
-                self.net.setProblemType(CxxBAND + CxxNOJAC)
+    property lin_solver_type:
+        """Associated linear solver type"""
+        def __set__(self, lin_solver_type):
+            if (lin_solver_type == "GMRES"):
+                self.net.setLinSolverType(CxxGMRES)
+            elif (lin_solver_type == "DIAG"):
+                self.net.setLinSolverType(CxxDIAG)
+            elif (lin_solver_type == "BAND + NOJAC"):
+                self.net.setLinSolverType(CxxBAND + CxxNOJAC)
             else:
-                self.net.setProblemType(CxxDENSE + CxxNOJAC)
-                if (problem_type != "DENSE + NOJAC"):
+                self.net.setLinSolverType(CxxDENSE + CxxNOJAC)
+                if (lin_solver_type != "DENSE + NOJAC"):
                     warnings.warn("Problem type not found, set to \"DENSE + NOJAC\"")
 
-    def get_nonlin_solver_stats(self):
-        cdef np.ndarray[np.int_t, ndim=1, mode="c"] stats = np.zeros((2,), dtype=long)
-        self.net.getNonlinSolverStats(<long int*> stats.data)
-        return stats        
+        def __get__(self):
+            lin_solver_type = self.net.linearSolverType()
+            if (lin_solver_type == CxxGMRES):
+                return "GMRES"
+            elif (lin_solver_type == CxxDIAG):
+                return "DIAG"
+            elif (lin_solver_type == CxxBAND + CxxNOJAC):
+                return "BAND + NOJAC"
+            elif (lin_solver_type == CxxDENSE + CxxNOJAC):
+                return "DENSE + NOJAC"
 
-    def get_lin_solver_stats(self):
-        cdef np.ndarray[np.int_t, ndim=1, mode="c"] stats = np.zeros((8,), dtype=long)
-        self.net.getLinSolverStats(<long int*> stats.data)
-        return stats
+    property linear_stats:
+        """Linear solver stats from integrator"""
+        def __get__(self):
+            cdef CxxAnyMap stats
+            stats = self.net.linearSolverStats()
+            return anymap_to_dict(stats)
+
+    property nonlinear_stats:
+        """Nonlinear solver stats from integrator"""
+        def __get__(self):
+            cdef CxxAnyMap stats
+            stats = self.net.nonlinearSolverStats()
+            return anymap_to_dict(stats)

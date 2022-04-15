@@ -35,7 +35,6 @@ public:
     virtual void setTolerances(double reltol, size_t n, double* abstol);
     virtual void setTolerances(double reltol, double abstol);
     virtual void setSensitivityTolerances(double reltol, double abstol);
-    virtual void setProblemType(int probtype);
     virtual void initialize(double t0, FuncEval& func);
     virtual void reinitialize(double t0, FuncEval& func);
     virtual void integrate(double tout);
@@ -66,26 +65,24 @@ public:
     }
     virtual double sensitivity(size_t k, size_t p);
 
-    //! Use this function to get nonlinear solver stats from cvodes
-    //! @param stats a long int pointer with at least two spaces
-    virtual void getNonlinSolvStats(long int* stats) const;
+    //! Get nonlinear solver stats from integrator
+    virtual AnyMap nonlinearSolverStats() const;
 
-    //! Use this function to get linear solver stats from cvodes
+    //! Get linear solver stats from integrator
     //! @param stats a long int pointer with at least eight spaces
-    virtual void getLinSolvStats(long int* stats) const;
+    virtual AnyMap linearSolverStats() const;
 
-    //! Use this function to throw an error if preconditioning is specified with an
-    //! invalid problem type
-    virtual void preconditionerError();
-
-    //! Use this function to set the preconditioner type used by the integrator
-    virtual void setPreconditionerType(PreconditionerType prectype) {
-        m_prec_type = prectype;
+    //! Set the linear solver type. Default is DENSE+NOJAC.
+    /*!
+     * @param linSolverType    Type of the linear solver.
+     */
+    void setLinSolverType(int linSolverType) {
+        m_type = linSolverType;
     }
 
-    //! Use this function to get the preconditioner type
-    virtual PreconditionerType getPreconditionerType() {
-        return m_prec_type;
+    //! Return the integrator problem type
+    virtual int linearSolverType() {
+        return m_type;
     }
 
     //! Returns a string listing the weighted error estimates associated
@@ -116,7 +113,6 @@ private:
     N_Vector m_y, m_abstol;
     N_Vector m_dky;
     int m_type;
-    PreconditionerType m_prec_type = NO_PRECONDITION; //!< Used in applyOptions
     int m_itol;
     int m_method;
     int m_maxord;
@@ -130,7 +126,6 @@ private:
     N_Vector* m_yS;
     size_t m_np;
     int m_mupper, m_mlower;
-
     //! Indicates whether the sensitivities stored in m_yS have been updated
     //! for at the current integrator time.
     bool m_sens_ok;
