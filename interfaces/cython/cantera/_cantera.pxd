@@ -797,8 +797,6 @@ cdef extern from "cantera/numerics/AdaptivePreconditioner.h" namespace "Cantera"
         CxxAdaptivePreconditioner() except +
         void setThreshold(double threshold)
         double threshold()
-        void setPreconSettings(CxxAnyMap&) except + translate_exception
-        void preconSettings(CxxAnyMap&) except + translate_exception
         void setPerturbation(double)
         double perturbation()
         void setIlutFillFactor(int fillfactor)
@@ -981,6 +979,7 @@ cdef extern from "cantera/zerodim.h" namespace "Cantera":
         void setLinSolverType(int integratorType)
         int linearSolverType()
         void setPreconditioner(CxxPreconditionerBase& preconditioner)
+        void setDerivativeSettings(CxxAnyMap&)
         CxxAnyMap linearSolverStats()
         CxxAnyMap nonlinearSolverStats()
 

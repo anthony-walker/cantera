@@ -109,16 +109,6 @@ public:
     //! Get the absolute tolerance from the preconditioner
     virtual double absoluteTolerance() { return m_atol; };
 
-    //! Set derivative settings
-    virtual void setPreconSettings(AnyMap& settings) {
-        m_settings = settings;
-    }
-
-    //! Get derivative settings from kinetics objects
-    virtual void preconSettings(AnyMap& settings) {
-        settings = m_settings;
-    }
-
     //! Set the perturbation constant used in finite difference calculations
     //! @param perturb the new pertubation constant
     virtual void setPerturbation(double perturb) {
@@ -150,9 +140,6 @@ protected:
 
     //! Perturbation for numerical calculations
     double m_perturb = std::sqrt(DBL_EPSILON);
-
-    //! Derivative settings to be passed to reactors
-    AnyMap m_settings;
 };
 
 }

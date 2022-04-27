@@ -115,11 +115,6 @@ void ReactorNet::initialize()
         writelog("Maximum time step:   {:14.6g}\n", m_maxstep);
     }
     m_integ->initialize(m_time, *this);
-    // apply preconditioner options if any
-    if (m_integ->preconditionerType() != PreconditionerType::NO_PRECONDITION)
-    {
-        applyPreconditionerOptions();
-    }
     m_integrator_init = true;
     m_init = true;
 }
@@ -130,10 +125,6 @@ void ReactorNet::reinitialize()
         debuglog("Re-initializing reactor network.\n", m_verbose);
         m_integ->reinitialize(m_time, *this);
         // apply preconditioner options if any
-        if (m_integ->preconditionerType() != PreconditionerType::NO_PRECONDITION)
-        {
-            applyPreconditionerOptions();
-        }
         m_integrator_init = true;
     } else {
         initialize();
@@ -430,6 +421,14 @@ void ReactorNet::getPositiveState(double* out, double atol)
     }
 }
 
+void ReactorNet::setDerivativeSettings(AnyMap& settings)
+{
+    // Apply given settings to all reactors
+    for (size_t i = 0; i < m_reactors.size(); i++) {
+        m_reactors[i]->setDerivativeSettings(settings);
+    }
+}
+
 void ReactorNet::preconditionerSetup(double t, double* y, double* ydot, double gamma)
 {
     auto precon = m_integ->preconditioner();
@@ -437,9 +436,6 @@ void ReactorNet::preconditionerSetup(double t, double* y, double* ydot, double g
     precon->reset();
     // Set gamma value for M =I - gamma*J
     precon->setGamma(gamma);
-    // Get preconditioner settings
-    AnyMap preconSettings;
-    precon->preconSettings(preconSettings);
     // strictly positive composition
     vector_fp yCopy(m_nv);
     getPositiveState(yCopy.data(), precon->absoluteTolerance());
@@ -455,16 +451,6 @@ void ReactorNet::preconditionerSetup(double t, double* y, double* ydot, double g
     }
     // post reactor setup operations
     precon->setup();
-}
-
-void ReactorNet::applyPreconditionerOptions()
-{
-    AnyMap preconSettings;
-    auto precon = m_integ->preconditioner();
-    precon->preconSettings(preconSettings);
-    for (size_t n = 0; n < m_reactors.size(); n++) {
-        m_reactors[n]->setDerivativeSettings(preconSettings);
-    }
 }
 
 }

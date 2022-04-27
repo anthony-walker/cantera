@@ -82,33 +82,5 @@ cdef class AdaptivePreconditioner(PreconditionerBase):
         def __get__(self):
             return self.preconditioner.ilutDropTol()
 
-    property derv_settings:
-        """
-        Property setting behavior of preconditioner derivative evaluation.
-
-        the following keyword/value pairs are supported:
-
-        -  ``skip-third-bodies`` (boolean) ... if `False` (default), third body
-           concentrations are considered for the evaluation of derivatives
-
-        -  ``skip-falloff`` (boolean) ... if `True` (default), third-body effects
-           on reaction rates are not considered.
-
-        -  ``rtol-delta`` (double) ... relative tolerance used to perturb properties
-           when calculating numerical derivatives. The default value is 1e-8.
-
-        Derivative settings are updated using a dictionary::
-            >>> precon.derivative_settings = {"skip-falloff": True}
-
-        Passing an empty dictionary will reset all values to their defaults.
-        """
-        def __get__(self):
-            cdef CxxAnyMap settings
-            self.preconditioner.preconSettings(settings)
-            return anymap_to_dict(settings)
-
-        def __set__(self, settings):
-            self.preconditioner.setPreconSettings(dict_to_anymap(settings))
-
     def print_contents(self):
         self.preconditioner.printPreconditioner()

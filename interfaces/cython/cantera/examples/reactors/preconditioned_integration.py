@@ -22,6 +22,7 @@ def compare_preconditioned_integration(preconditioner=True):
     sim = ct.ReactorNet([r])
     # Add preconditioner
     if preconditioner:
+        sim.set_derivative_settings({"skip-third-bodies":True, "skip-falloff":True})
         sim.preconditioner = ct.AdaptivePreconditioner()
     # Advance to final time
     integ_time = default_timer()

@@ -279,9 +279,6 @@ public:
     //! Retrieve absolute step size limits during advance
     bool getAdvanceLimits(double* limits);
 
-    //! Apply options provided to the preconditioner to other objects
-    void applyPreconditionerOptions();
-
     //! Get a strictly positive composition
     //! @param out output vector for strictly positive composition
     //! @param atol absolute tolerance for keeping elements in composition
@@ -312,6 +309,10 @@ public:
 
     //! Get linear solver stats from integrator
     AnyMap linearSolverStats() { return m_integ->linearSolverStats(); }
+
+    //! Set derivative settings of all reactors
+    //! @param settings the settings map propagated to all reactors and kinetics objects
+    virtual void setDerivativeSettings(AnyMap& settings);
 
 protected:
     //! Estimate a future state based on current derivatives.

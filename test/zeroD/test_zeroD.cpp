@@ -104,7 +104,7 @@ TEST(AdaptivePreconditionerTestSet, test_is_close_to_jacobian)
     thermo1->setState_TP(1000, 101325);
     r1.insert(sol1);
     r1.setInitialVolume(vol);
-    // Constant volume reactor
+    // constant volume reactor
     IdealGasMoleReactor r2;
     auto sol2 = newSolution("gri30.yaml");
     auto thermo2 = sol2->thermo();
@@ -112,13 +112,18 @@ TEST(AdaptivePreconditionerTestSet, test_is_close_to_jacobian)
     thermo2->setState_TP(1000, 101325);
     r2.insert(sol2);
     r2.setInitialVolume(vol);
-    // Network
+    // create and add preconditioner
+    AdaptivePreconditioner precon;
+    precon.setThreshold(sharedThreshold);
+    // create derivative settings
+    AnyMap settings;
+    settings["skip-third-bodies"] = true;
+    settings["skip-falloff"] = true;
+    // network
     ReactorNet network;
     network.addReactor(r1);
     network.addReactor(r2);
-    // Create and add preconditioner
-    AdaptivePreconditioner precon;
-    precon.setThreshold(sharedThreshold);
+    network.setDerivativeSettings(settings);
     network.setLinSolverType(GMRES);
     network.setPreconditioner(precon);
     network.initialize();
@@ -164,9 +169,14 @@ TEST(AdaptivePreconditionerTestSet, test_preconditioned_hydrogen_auto_ignition)
     r.insert(sol);
     // create preconditioner
     AdaptivePreconditioner precon;
+    // create derivative settings
+    AnyMap settings;
+    settings["skip-third-bodies"] = true;
+    settings["skip-falloff"] = true;
     // create reactor network and set to use preconditioner
     ReactorNet sim;
     sim.addReactor(r);
+    sim.setDerivativeSettings(settings);
     sim.setLinSolverType(GMRES);
     sim.setPreconditioner(precon);
     // main loop

@@ -1519,3 +1519,7 @@ cdef class ReactorNet:
             cdef CxxAnyMap stats
             stats = self.net.nonlinearSolverStats()
             return anymap_to_dict(stats)
+
+    def set_derivative_settings(self, settings):
+        """Apply derivative settings to all reactors in the network"""
+        self.net.setDerivativeSettings(dict_to_anymap(settings))

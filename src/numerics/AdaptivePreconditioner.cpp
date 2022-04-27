@@ -30,12 +30,6 @@ void AdaptivePreconditioner::initialize(size_t networkSize)
     // set dimensions of preconditioner from network
     m_dimensions.push_back(networkSize);
     m_dimensions.push_back(networkSize);
-    // derivative settings
-    if (m_settings.empty()) {
-        m_settings["approximate-energy-derv"] = true;
-        m_settings["skip-third-bodies"] = true;
-        m_settings["skip-falloff"] = true;
-    }
     // reserve maximum space for vectors making up SparseMatrix
     m_jac_trips.reserve(networkSize * networkSize);
     // reserve space for preconditioner
