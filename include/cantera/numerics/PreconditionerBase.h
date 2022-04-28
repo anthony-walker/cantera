@@ -109,15 +109,6 @@ public:
     //! Get the absolute tolerance from the preconditioner
     virtual double absoluteTolerance() { return m_atol; };
 
-    //! Set the perturbation constant used in finite difference calculations
-    //! @param perturb the new pertubation constant
-    virtual void setPerturbation(double perturb) {
-        m_perturb = perturb;
-    }
-
-    //! Get the pertubation constant
-    virtual double perturbation() { return m_perturb; }
-
     //! Update counter variable for use with identifying current reactor
     virtual size_t& counter() { return m_rctr; }
 
@@ -138,8 +129,6 @@ protected:
     //! Absolute tolerance of the ODE solver
     double m_atol = 0;
 
-    //! Perturbation for numerical calculations
-    double m_perturb = std::sqrt(DBL_EPSILON);
 };
 
 }

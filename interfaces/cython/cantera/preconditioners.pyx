@@ -33,21 +33,6 @@ cdef class AdaptivePreconditioner(PreconditionerBase):
         def __set__(self, val):
             self.preconditioner.setThreshold(val)
 
-    property perturb_const:
-        """
-        Property for setting the perturbation constant used in finite difference calculations for temperature.
-
-        Update the threshold to a desired value as:
-            >>> precon.perturb_const = 1e-8
-
-        Default is DBL_EPSILON.
-        """
-        def __get__(self):
-            return self.preconditioner.perturbation()
-
-        def __set__(self, val):
-            self.preconditioner.setPerturbation(val)
-
     property ilut_fill_factor:
         """
         Property setting the linear solvers fill factor.

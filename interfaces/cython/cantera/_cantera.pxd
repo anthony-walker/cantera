@@ -797,8 +797,6 @@ cdef extern from "cantera/numerics/AdaptivePreconditioner.h" namespace "Cantera"
         CxxAdaptivePreconditioner() except +
         void setThreshold(double threshold)
         double threshold()
-        void setPerturbation(double)
-        double perturbation()
         void setIlutFillFactor(int fillfactor)
         double ilutFillFactor()
         void setIlutDropTol(double droptol)
