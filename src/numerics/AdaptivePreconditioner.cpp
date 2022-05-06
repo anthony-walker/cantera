@@ -30,8 +30,8 @@ void AdaptivePreconditioner::initialize(size_t networkSize)
     // set dimensions of preconditioner from network
     m_dimensions.push_back(networkSize);
     m_dimensions.push_back(networkSize);
-    // reserve maximum space for vectors making up SparseMatrix
-    m_jac_trips.reserve(networkSize * networkSize);
+    // reserve some space for vectors making up SparseMatrix
+    m_jac_trips.reserve(3 * networkSize);
     // reserve space for preconditioner
     m_precon_matrix.resize(m_dimensions[0], m_dimensions[1]);
     // creating sparse identity matrix

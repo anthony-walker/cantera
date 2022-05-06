@@ -103,7 +103,7 @@ void IdealGasConstPressureMoleReactor::eval(double time, double* LHS, double* RH
         mcpdTdt -= m_wdot[n] * m_hk[n] * m_vol;
         mcpdTdt -= m_sdot[n] * m_hk[n];
         // production in gas phase and from surfaces
-        dydt[n] = (m_wdot[n] * m_vol + m_sdot[n]);
+        dydt[n] = m_wdot[n] * m_vol + m_sdot[n];
     }
 
     // add terms for outlets

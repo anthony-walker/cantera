@@ -53,8 +53,8 @@ public:
 protected:
     //! Evaluate terms related to surface reactions.
     //! @param[out] LHS   Multiplicative factor on the left hand side of ODE for surface
-    //!                   species coverages
-    //! @param[out] RHS   Right hand side of ODE for surface species coverages
+    //!                   species moles
+    //! @param[out] RHS   Right hand side of ODE for surface species moles
     //! @param[out] sdot  array of production rates of bulk phase species on surfaces
     //!                   [kmol/s]
     virtual void evalSurfaces(double* LHS, double* RHS, double* sdot);

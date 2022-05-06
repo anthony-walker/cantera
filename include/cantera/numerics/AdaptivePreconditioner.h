@@ -113,15 +113,19 @@ public:
 
     //! Print preconditioner contents
     void printPreconditioner() {
+        std::stringstream ss;
         Eigen::IOFormat HeavyFmt(Eigen::FullPrecision, 0, ", ", ";\n", "[", "]", "[", "]");
-        std::cout<<Eigen::MatrixXd(m_precon_matrix).format(HeavyFmt)<<std::endl;
+        ss << Eigen::MatrixXd(m_precon_matrix).format(HeavyFmt);
+        writelog(ss.str());
     }
 
     //! Print jacobian contents
     void printJacobian() {
+        std::stringstream ss;
         Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
         jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
-        std::cout<<Eigen::MatrixXd(jacobian)<<std::endl;
+        ss << Eigen::MatrixXd(jacobian);
+        writelog(ss.str());
     }
 
 protected:
