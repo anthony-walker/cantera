@@ -1040,25 +1040,6 @@ class TestIdealGasConstPressureReactor(TestConstPressureReactor):
 class TestIdealGasConstPressureMoleReactor(TestIdealGasConstPressureReactor):
     reactorClass = ct.IdealGasConstPressureMoleReactor
 
-    @unittest.expectedFailure
-    # This test currently fails because the reactor implementation of
-    # `evalSurfaces`` does not work with the mole based state vector
-    # @todo implement evalSurfaces for the `MoleReactor`` class
-    def test_with_surface_reactions(self):
-        self.create_reactors(add_surf=True)
-        self.net1.atol = self.net2.atol = 1e-18
-        self.net1.rtol = self.net2.rtol = 1e-9
-        self.integrate(surf=True)
-
-    def test_component_index(self):
-        self.create_reactors(add_surf=False)
-        for (gas,net,r) in ((self.gas1, self.net1, self.r1),
-                                  (self.gas2, self.net2, self.r2)):
-            net.step()
-            N0 = net.n_vars - gas.n_species
-            for i, name in enumerate(gas.species_names):
-                self.assertEqual(i + N0, r.component_index(name))
-
     def test_adaptive_precon_integration(self):
         self.create_reactors()
         self.net2.preconditioner = ct.AdaptivePreconditioner()

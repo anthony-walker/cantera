@@ -46,8 +46,7 @@ void IdealGasConstPressureMoleReactor::getState(double* y)
     for (size_t i = 0; i < m_nsp; i++) {
         ys[i] = m_mass * imw[i] * Y[i];
     }
-    // set the remaining components to the surface species coverages on
-    // the walls
+    // set the remaining components to the surface species moles on the walls
     getSurfaceInitialConditions(y + m_nsp + m_sidx);
 }
 
@@ -61,7 +60,7 @@ void IdealGasConstPressureMoleReactor::initialize(double t0)
 void IdealGasConstPressureMoleReactor::updateState(double* y)
 {
     // the components of y are: [0] the temperature, [1...K+1) are the
-    // moles of each species, and [K+1...] are the coverages of surface
+    // moles of each species, and [K+1...] are the moles of surface
     // species on each wall.
     m_thermo->setMolesNoTruncate(y + m_sidx);
     m_thermo->setState_TP(y[0], m_pressure);
@@ -69,12 +68,12 @@ void IdealGasConstPressureMoleReactor::updateState(double* y)
     const vector_fp& mw = m_thermo->molecularWeights();
     // calculate mass from moles
     m_mass = 0;
-    for (size_t i = 0; i < m_nv - m_sidx; i++) {
+    for (size_t i = 0; i < m_nsp; i++) {
         m_mass += y[i + m_sidx] * mw[i];
     }
     m_vol = m_mass / m_thermo->density();
-    updateSurfaceState(y + m_nsp + m_sidx);
     updateConnected(false);
+    updateSurfaceState(y + m_nsp + m_sidx);
 }
 
 void IdealGasConstPressureMoleReactor::eval(double time, double* LHS, double* RHS)
@@ -93,7 +92,8 @@ void IdealGasConstPressureMoleReactor::eval(double time, double* LHS, double* RH
         m_kin->getNetProductionRates(&m_wdot[0]); // "omega dot"
     }
 
-    //! @todo add surface evaluation
+    //! evaluate reactor surfaces
+    evalSurfaces(LHS + m_nsp + m_sidx, RHS + m_nsp + m_sidx, m_sdot.data());
 
     // external heat transfer
     mcpdTdt -= m_Q;

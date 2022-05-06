@@ -57,9 +57,7 @@ protected:
     //! @param[out] RHS   Right hand side of ODE for surface species coverages
     //! @param[out] sdot  array of production rates of bulk phase species on surfaces
     //!                   [kmol/s]
-    virtual void evalSurfaces(double* LHS, double* RHS, double* sdot) {
-        throw NotImplementedError("MoleReactor::evalSurfaces");
-    }
+    virtual void evalSurfaces(double* LHS, double* RHS, double* sdot);
 
     //! Update the state of SurfPhase objects attached to this
     //! MoleReactor

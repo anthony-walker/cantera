@@ -52,7 +52,7 @@ void IdealGasMoleReactor::getState(double* y)
     for (size_t i = 0; i < m_nsp; i++) {
         ys[i] = m_mass * imw[i] * Y[i];
     }
-    // set the remaining components to the surface species coverages on
+    // set the remaining components to the surface species moles on
     // the walls
     getSurfaceInitialConditions(y + m_nsp + m_sidx);
 }
@@ -80,8 +80,8 @@ void IdealGasMoleReactor::initialize(double t0)
 void IdealGasMoleReactor::updateState(double* y)
 {
     // the components of y are: [0] the temperature, [1] the volume, [2...K+1) are the
-    // moles of each species, and [K+1...] are the coverages of surface
-    // species on each wall. get mass
+    // moles of each species, and [K+1...] are the moles of surface
+    // species on each wall.
     const vector_fp& mw = m_thermo->molecularWeights();
     // calculate mass from moles
     m_mass = 0;
@@ -92,8 +92,8 @@ void IdealGasMoleReactor::updateState(double* y)
     // set state
     m_thermo->setMolesNoTruncate(y + m_sidx);
     m_thermo->setState_TR(y[0], m_mass / m_vol);
-    updateSurfaceState(y + m_nsp + m_sidx);
     updateConnected(true);
+    updateSurfaceState(y + m_nsp + m_sidx);
 }
 
 void IdealGasMoleReactor::eval(double time, double* LHS, double* RHS)
@@ -112,7 +112,8 @@ void IdealGasMoleReactor::eval(double time, double* LHS, double* RHS)
         m_kin->getNetProductionRates(&m_wdot[0]); // "omega dot"
     }
 
-    //! @todo add surface evaluation
+    // evaluate surfaces
+    evalSurfaces(LHS + m_nsp + m_sidx, RHS + m_nsp + m_sidx, m_sdot.data());
 
     // external heat transfer
     mcvdTdt += - m_pressure * m_vdot - m_Q;

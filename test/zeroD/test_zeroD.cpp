@@ -2,6 +2,7 @@
 #include "cantera/thermo.h"
 #include "cantera/kinetics.h"
 #include "cantera/zerodim.h"
+#include "cantera/base/Interface.h"
 #include "cantera/numerics/AdaptivePreconditioner.h"
 
 using namespace Cantera;
