@@ -77,66 +77,8 @@ TEST(MoleReactorTestSet, test_mole_reactor_get_state)
     EXPECT_NEAR(state[reactor.componentIndex("H2")], H2_Moles, tol);
     EXPECT_NEAR(state[reactor.componentIndex("O2")], O2_Moles, tol);
     // test updateState
-    reactor.updateState(state.data());
-    reactor.getState(updatedState.data());
     EXPECT_NEAR(reactor.volume(), 0.5, tol);
     EXPECT_NEAR(reactor.pressure(), OneAtm, tol);
-    for (size_t i = 0; i < reactor.neq(); i++) {
-       EXPECT_NEAR(state[i], updatedState[i], tol);
-    }
-}
-
-TEST(AdaptivePreconditionerTestSet, test_preconditioned_hydrogen_auto_ignition)
-{
-    // create an ideal gas mixture that corresponds to GRI-Mech 3.0
-    auto sol = newSolution("gri30.yaml", "gri30", "None");
-    auto gas = sol->thermo();
-    // set the state
-    gas->setState_TPX(1001.0, OneAtm, "H2:2.0, O2:1.0, N2:4.0");
-    // create a reactor
-    IdealGasConstPressureMoleReactor r;
-    // 'insert' the gas into the reactor and environment.
-    r.insert(sol);
-    // create preconditioner
-    AdaptivePreconditioner precon;
-    // create derivative settings
-    AnyMap settings;
-    settings["skip-third-bodies"] = true;
-    settings["skip-falloff"] = true;
-    // create reactor network and set to use preconditioner
-    ReactorNet sim;
-    sim.addReactor(r);
-    sim.setDerivativeSettings(settings);
-    sim.setLinSolverType(GMRES);
-    sim.setPreconditioner(precon);
-    // main loop
-    double dt = 1.e-5; // interval at which output is written
-    int nsteps = 100; // number of intervals
-    for (int i = 1; i <= nsteps; i++) {
-        double tm = i*dt;
-        sim.advance(tm);
-    }
-}
-
-TEST(AdaptivePreconditionerTestSet, test_utilities_get_set)
-{
-    // seed random number generator
-    size_t testDim = 20;
-    std::vector<size_t> dims{testDim, testDim};
-    // create preconditioner object
-    AdaptivePreconditioner precon;
-    // set dimensions randomly
-    precon.setDimensions(&dims);
-    // get dimensions newly
-    std::vector<size_t> *preconDims = precon.dimensions();
-    // test that the dimensions are set properly via setDimensions
-    EXPECT_EQ (dims.at(0), preconDims->at(0));
-    EXPECT_EQ (dims.at(1), preconDims->at(1));
-    // testing some get/set utilities
-    precon.setThreshold(1e-5);
-    EXPECT_EQ(precon.threshold(), 1e-5);
-    precon.setAbsoluteTolerance(1e-10);
-    EXPECT_EQ(precon.absoluteTolerance(), 1e-10);
 }
 
 int main(int argc, char** argv)

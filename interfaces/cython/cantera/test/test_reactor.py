@@ -1040,12 +1040,15 @@ class TestIdealGasConstPressureReactor(TestConstPressureReactor):
 class TestIdealGasConstPressureMoleReactor(TestIdealGasConstPressureReactor):
     reactorClass = ct.IdealGasConstPressureMoleReactor
 
-    def test_adaptive_precon_integration(self):
-        self.create_reactors()
-        self.net2.preconditioner = ct.AdaptivePreconditioner()
-        self.net2.set_derivative_settings({"skip-third-bodies":True, "skip-falloff":True})
-        self.integrate()
+    def create_reactors(self, **kwargs):
+        super().create_reactors(**kwargs)
+        if "add_surf" not in kwargs.keys():
+            self.net2.preconditioner = ct.AdaptivePreconditioner()
+            self.net2.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
 
+    def test_get_solver_type(self):
+        self.create_reactors()
+        self.assertEqual(self.net2.linear_solver_type, "GMRES")
 
 class TestIdealGasMoleReactor(TestReactor):
     reactorClass = ct.IdealGasMoleReactor
@@ -1067,7 +1070,7 @@ class TestIdealGasMoleReactor(TestReactor):
         net2.add_reactor(r2)
         # add preconditioner
         net2.preconditioner = ct.AdaptivePreconditioner()
-        net2.set_derivative_settings({"skip-third-bodies":True, "skip-falloff":True})
+        net2.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
         # integrate
         for i in range(1, 11, 1):
             adv_time = i * 0.1

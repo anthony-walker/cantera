@@ -100,7 +100,7 @@ extern "C" {
             if (!jok) {
                 FuncEval* f = (FuncEval*) f_data;
                 *jcurPtr = true; // jacobian data was recomputed
-                return f->preconditioner_setup_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot), gamma);
+                return f->preconditioner_setup_nothrow(t, NV_DATA_S(y), gamma);
             } else {
                 *jcurPtr = false; // indicates that Jacobian data was not recomputed
                 return 0; // no error because not recomputed
@@ -108,13 +108,16 @@ extern "C" {
         }
 
     #if CT_SUNDIALS_VERSION >= 30
-        static int cvodes_prec_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *f_data)
+        static int cvodes_prec_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r,
+        N_Vector z, realtype gamma, realtype delta, int lr, void *f_data)
+
     #else
-        static int cvodes_prec_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r, N_Vector z, realtype gamma, realtype delta, int lr, void *f_data, N_Vector tmp)
+        static int cvodes_prec_solve(realtype t, N_Vector y, N_Vector ydot, N_Vector r,
+        N_Vector z, realtype gamma, realtype delta, int lr, void *f_data, N_Vector tmp)
     #endif
         {
             FuncEval* f = (FuncEval*) f_data;
-            return f->preconditioner_solve_nothrow(t, NV_DATA_S(y), NV_DATA_S(ydot),NV_DATA_S(r),NV_DATA_S(z));
+            return f->preconditioner_solve_nothrow(NV_DATA_S(r),NV_DATA_S(z));
         }
 }
 
@@ -128,7 +131,7 @@ CVodesIntegrator::CVodesIntegrator() :
     m_y(0),
     m_abstol(0),
     m_dky(0),
-    m_type(DENSE+NOJAC),
+    m_type("DENSE"),
     m_itol(CV_SS),
     m_method(CV_BDF),
     m_maxord(0),
@@ -418,7 +421,7 @@ void CVodesIntegrator::reinitialize(double t0, FuncEval& func)
 
 void CVodesIntegrator::applyOptions()
 {
-    if (m_type == DENSE + NOJAC) {
+    if (m_type == "DENSE") {
         sd_size_t N = static_cast<sd_size_t>(m_neq);
         #if CT_SUNDIALS_VERSION >= 30
             SUNLinSolFree((SUNLinearSolver) m_linsol);
@@ -469,16 +472,16 @@ void CVodesIntegrator::applyOptions()
 
         #endif
         // throw preconditioner error for DENSE + NOJAC
-        if (m_prec_type!=PreconditionerType::NO_PRECONDITION) {
+        if (m_prec_type != PreconditionerType::NO_PRECONDITION) {
             throw CanteraError("CVodesIntegrator::applyOptions", "Preconditioning is not available with the specified problem type.");
         }
-    } else if (m_type == DIAG) {
+    } else if (m_type == "DIAG") {
         CVDiag(m_cvode_mem);
         // throw preconditioner error for DIAG
-        if (m_prec_type!=PreconditionerType::NO_PRECONDITION) {
+        if (m_prec_type != PreconditionerType::NO_PRECONDITION) {
             throw CanteraError("CVodesIntegrator::applyOptions", "Preconditioning is not available with the specified problem type.");
         }
-    } else if (m_type == GMRES) {
+    } else if (m_type == "GMRES") {
         #if CT_SUNDIALS_VERSION >= 30
             #if CT_SUNDIALS_VERSION >= 60
                 m_linsol = SUNLinSol_SPGMR(m_y, PREC_NONE, 0, m_sundials_ctx.get());
@@ -509,7 +512,7 @@ void CVodesIntegrator::applyOptions()
                 CVSpgmr(m_cvode_mem, PREC_NONE, 0);
             }
         #endif
-    } else if (m_type == BAND + NOJAC) {
+    } else if (m_type == "BAND") {
         sd_size_t N = static_cast<sd_size_t>(m_neq);
         long int nu = m_mupper;
         long int nl = m_mlower;
@@ -647,54 +650,51 @@ int CVodesIntegrator::nEvals() const
 
 AnyMap CVodesIntegrator::nonlinearSolverStats() const
 {
-    // long int stats array to interface with cvodes
-    long int stats_arr[8];
-    long int* stats_ptr;
-    stats_ptr = stats_arr;
+    long int iters, conv_fails;
     // AnyMap to return stats
     AnyMap stats;
     #if CT_SUNDIALS_VERSION >= 40
-        CVodeGetNonlinSolvStats(m_cvode_mem, stats_ptr, stats_ptr+1);
+        CVodeGetNonlinSolvStats(m_cvode_mem, &iters, &conv_fails);
     #else
-        throw CanteraError("CVodesIntegrator::nonLinearSolverStats", "Function not supported with sundials versions less than 4.");
+        throw CanteraError("CVodesIntegrator::nonLinearSolverStats", "Function not" "supported with sundials versions less than 4.");
     #endif
     // Add values to AnyMap
-    stats["nonlinear_iters"] = stats_arr[0];
-    stats["nonlinear_conv_fails"] = stats_arr[1];
+    stats["nonlinear_iters"] = iters;
+    stats["nonlinear_conv_fails"] = conv_fails;
     return stats;
 }
 
 AnyMap CVodesIntegrator::linearSolverStats() const
 {
     // long int stats array to interface with cvodes
-    long int stats_arr[8];
-    long int* stats_ptr;
-    stats_ptr = stats_arr;
+    long int jacEvals, linRhsEvals, linIters, linConvFails, precEvals, precSolves,
+    jtSetupEvals, jTimesEvals;
     // AnyMap to return stats
     AnyMap stats;
     #if CT_SUNDIALS_VERSION >= 60
-        CVodeGetLinSolveStats(m_cvode_mem, stats_ptr, stats_ptr+1, stats_ptr+2, stats_ptr+3, stats_ptr+4, stats_ptr+5, stats_ptr+6, stats_ptr+7);
+        CVodeGetLinSolveStats(m_cvode_mem, &jacEvals, &linRhsEvals, &linIters, &linConvFails, &precEvals, &precSolves, &jtSetupEvals, &jTimesEvals);
     #elif CT_SUNDIALS_VERSION >= 40
-        CVodeGetNumJacEvals(m_cvode_mem, stats_ptr);
-        CVodeGetNumLinRhsEvals(m_cvode_mem, stats_ptr + 1);
-        CVodeGetNumLinIters(m_cvode_mem, stats_ptr + 2);
-        CVodeGetNumLinConvFails(m_cvode_mem, stats_ptr + 3);
-        CVodeGetNumPrecEvals(m_cvode_mem, stats_ptr + 4);
-        CVodeGetNumPrecSolves(m_cvode_mem, stats_ptr + 5);
-        CVodeGetNumJTSetupEvals(m_cvode_mem, stats_ptr + 6);
-        CVodeGetNumJtimesEvals(m_cvode_mem, stats_ptr + 7);
+        CVodeGetNumJacEvals(m_cvode_mem, &jacEvals);
+        CVodeGetNumLinRhsEvals(m_cvode_mem, &linRhsEvals);
+        CVodeGetNumLinIters(m_cvode_mem, &linIters);
+        CVodeGetNumLinConvFails(m_cvode_mem, &linConvFails);
+        CVodeGetNumPrecEvals(m_cvode_mem, &precEvals);
+        CVodeGetNumPrecSolves(m_cvode_mem, &precSolves);
+        CVodeGetNumJTSetupEvals(m_cvode_mem, &jtSetupEvals);
+        CVodeGetNumJtimesEvals(m_cvode_mem, &jTimesEvals);
     #else
-        throw CanteraError("CVodesIntegrator::linearSolverStats", "Function not supported with sundials versions less than 4.");
+        throw CanteraError("CVodesIntegrator::linearSolverStats", "Function not"
+        "supported with sundials versions less than 4.");
     #endif
     // Add data to AnyMap
-    stats["jac_evals"] = stats_arr[0];
-    stats["lin_rhs_evals"] = stats_arr[1];
-    stats["lin_iters"] = stats_arr[2];
-    stats["lin_conv_fails"] = stats_arr[3];
-    stats["prec_evals"] = stats_arr[4];
-    stats["prec_solves"] = stats_arr[5];
-    stats["jt_vec_setup_evals"] = stats_arr[6];
-    stats["jt_vec_prod_evals"] = stats_arr[7];
+    stats["jac_evals"] = jacEvals;
+    stats["lin_rhs_evals"] = linRhsEvals;
+    stats["lin_iters"] = linIters;
+    stats["lin_conv_fails"] = linConvFails;
+    stats["prec_evals"] = precEvals;
+    stats["prec_solves"] = precSolves;
+    stats["jt_vec_setup_evals"] = jtSetupEvals;
+    stats["jt_vec_prod_evals"] = jTimesEvals;
     return stats;
 }
 

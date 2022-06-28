@@ -9,15 +9,16 @@
 namespace Cantera
 {
 
-const double& AdaptivePreconditioner::operator() (size_t row, size_t col)
+void AdaptivePreconditioner::setValue(size_t row, size_t col, double value)
 {
-    m_jac_trips.push_back(Eigen::Triplet<double>(row + m_rctr, col + m_rctr, 0.0));
-    return m_jac_trips.back().value();
+    m_jac_trips.emplace_back(row, col, value);
 }
 
-void AdaptivePreconditioner::operator() (size_t row, size_t col, double value)
-{
-    m_jac_trips.push_back(Eigen::Triplet<double>(row + m_rctr, col + m_rctr, value));
+void AdaptivePreconditioner::stateAdjustment(vector_fp& state) {
+    // Only keep positive composition based on given tol
+    for (size_t i = 0; i < state.size(); i++) {
+        state[i] = std::max(state[i], m_atol);
+    }
 }
 
 void AdaptivePreconditioner::initialize(size_t networkSize)
@@ -25,17 +26,15 @@ void AdaptivePreconditioner::initialize(size_t networkSize)
     // don't use legacy rate constants
     use_legacy_rate_constants(false);
     // reset arrays in case of re-initialization
-    m_dimensions.clear();
     m_jac_trips.clear();
     // set dimensions of preconditioner from network
-    m_dimensions.push_back(networkSize);
-    m_dimensions.push_back(networkSize);
+    m_dim = networkSize;
     // reserve some space for vectors making up SparseMatrix
     m_jac_trips.reserve(3 * networkSize);
     // reserve space for preconditioner
-    m_precon_matrix.resize(m_dimensions[0], m_dimensions[1]);
+    m_precon_matrix.resize(m_dim, m_dim);
     // creating sparse identity matrix
-    m_identity.resize(m_dimensions[0], m_dimensions[1]);
+    m_identity.resize(m_dim, m_dim);
     m_identity.setIdentity();
     m_identity.makeCompressed();
     // setting default ILUT parameters
@@ -43,7 +42,7 @@ void AdaptivePreconditioner::initialize(size_t networkSize)
         setIlutDropTol(1e-10);
     }
     if (m_drop_tol == 0) {
-        setIlutFillFactor(m_dimensions[0]/4);
+        setIlutFillFactor(m_dim/4);
     }
     // update initialized status
     m_init = true;

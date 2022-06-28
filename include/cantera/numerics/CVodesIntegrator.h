@@ -56,6 +56,14 @@ public:
     virtual void setMaxSteps(int nmax);
     virtual int maxSteps();
     virtual void setMaxErrTestFails(int n);
+    virtual AnyMap nonlinearSolverStats() const;
+    virtual AnyMap linearSolverStats() const;
+    void setLinearSolverType(std::string linSolverType) {
+        m_type = linSolverType;
+    }
+    virtual std::string linearSolverType() {
+        return m_type;
+    }
     virtual void setBandwidth(int N_Upper, int N_Lower) {
         m_mupper = N_Upper;
         m_mlower = N_Lower;
@@ -64,25 +72,22 @@ public:
         return static_cast<int>(m_np);
     }
     virtual double sensitivity(size_t k, size_t p);
-
-    //! Get nonlinear solver stats from integrator
-    virtual AnyMap nonlinearSolverStats() const;
-
-    //! Get linear solver stats from integrator
-    //! @param stats a long int pointer with at least eight spaces
-    virtual AnyMap linearSolverStats() const;
-
-    //! Set the linear solver type. Default is DENSE+NOJAC.
-    /*!
-     * @param linSolverType    Type of the linear solver.
-     */
-    void setLinSolverType(int linSolverType) {
-        m_type = linSolverType;
-    }
-
-    //! Return the integrator problem type
-    virtual int linearSolverType() {
-        return m_type;
+    virtual void setProblemType(int probtype)
+    {
+        warn_deprecated("CVodesIntegrator::setProblemType()",
+            "To be removed. Set linear solver type with setLinearSolverType");
+        if (probtype == DIAG)
+        {
+            setLinearSolverType("DIAG");
+        } else if (probtype == DENSE + NOJAC) {
+            setLinearSolverType("DENSE");
+        } else if (probtype == BAND + NOJAC) {
+            setLinearSolverType("BAND");
+        } else if (probtype == GMRES) {
+            setLinearSolverType("GMRES");
+        } else {
+            setLinearSolverType("Invalid Option");
+        }
     }
 
     //! Returns a string listing the weighted error estimates associated
@@ -112,7 +117,7 @@ private:
     double m_time; //!< The current integrator time
     N_Vector m_y, m_abstol;
     N_Vector m_dky;
-    int m_type;
+    std::string m_type;
     int m_itol;
     int m_method;
     int m_maxord;

@@ -4,7 +4,6 @@
 // at https://cantera.org/license.txt for license and copyright information.
 
 #include "cantera/numerics/PreconditionerFactory.h"
-#include "cantera/numerics/PreconditionerBase.h"
 #include "cantera/numerics/AdaptivePreconditioner.h"
 
 

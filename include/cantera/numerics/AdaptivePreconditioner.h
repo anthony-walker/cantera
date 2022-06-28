@@ -27,21 +27,22 @@ class AdaptivePreconditioner : public PreconditionerBase
 public:
     AdaptivePreconditioner() {}
 
-    //! This function is called during setup for any processes that need
-    //! to be completed prior to setup functions used in sundials.
-    //! @param network A pointer to the reactor net object associated
-    //! with the integration
     void initialize(size_t networkSize);
 
-    //! Reset arrays within preconditioner object
     void reset() {
         m_precon_matrix.setZero();
         m_jac_trips.clear();
     };
 
-    //! Perform preconditioner specific post-reactor
-    //! setup operations such as factorize.
     void setup();
+
+    void solve(const size_t stateSize, double *rhs_vector, double* output);
+
+    PreconditionerType preconditionerType() { return PreconditionerType::LEFT_PRECONDITION; }
+
+    void setValue(size_t row, size_t col, double value);
+
+    virtual void stateAdjustment(vector_fp& state);
 
     //! Transform Jacobian vector and write into
     //! preconditioner
@@ -50,24 +51,14 @@ public:
     //! Prune preconditioner elements
     void prunePreconditioner();
 
-    //! Solve a linear system Ax=b where A is the preconditioner
-    //! @param[in] stateSize length of the rhs and output vectors
-    //! @param[in] rhs_vector right hand side vector used in linear system
-    //! @param[out] output output vector for solution
-    void solve(const size_t stateSize, double *rhs_vector, double* output);
-
-    //! Return the preconditioning type as an integer
-    PreconditionerType preconditionerType() { return PreconditionerType::LEFT_PRECONDITION; }
-
     //! Function used to return semi-analytical jacobian matrix
     Eigen::SparseMatrix<double> getJacobian() {
-        Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
+        Eigen::SparseMatrix<double> jacobian(m_dim, m_dim);
         jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
         return jacobian;
     }
 
-    //! Get the threshold value for setting
-    //! elements
+    //! Get the threshold value for setting elements
     double threshold() { return m_threshold; }
 
     //! Get ilut fill factor
@@ -97,20 +88,6 @@ public:
         m_solver.setFillfactor(fillFactor);
     }
 
-    //! Overloading of the () operator to assign values to the jacobian
-    //! this function does not assume that index is index map
-    //! @param row row index of jacobian
-    //! @param col column index of jacobian
-    //! @param value to place in jacobian vector
-    const double& operator() (size_t row, size_t col);
-
-    //! Overloading of the () operator to assign values to the jacobian
-    //! this function does not assume that index is index map
-    //! @param row row index of jacobian
-    //! @param col column index of jacobian
-    //! @param value to place in jacobian vector
-    void operator() (size_t row, size_t col, double value);
-
     //! Print preconditioner contents
     void printPreconditioner() {
         std::stringstream ss;
@@ -122,7 +99,7 @@ public:
     //! Print jacobian contents
     void printJacobian() {
         std::stringstream ss;
-        Eigen::SparseMatrix<double> jacobian(m_dimensions[0], m_dimensions[1]);
+        Eigen::SparseMatrix<double> jacobian(m_dim, m_dim);
         jacobian.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
         ss << Eigen::MatrixXd(jacobian);
         writelog(ss.str());

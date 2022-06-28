@@ -6,11 +6,12 @@
 #ifndef PRECONDITIONER_FACTORY_H
 #define PRECONDITIONER_FACTORY_H
 
-#include "cantera/numerics/PreconditionerBase.h"
 #include "cantera/base/FactoryBase.h"
 
 namespace Cantera
 {
+
+class PreconditionerBase;
 
 //! Factory class to create preconditioner objects
 class PreconditionerFactory : public Factory<PreconditionerBase>

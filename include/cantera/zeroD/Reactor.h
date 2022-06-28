@@ -7,15 +7,14 @@
 #define CT_REACTOR_H
 
 #include "ReactorBase.h"
-#include "cantera/base/AnyMap.h"
 #include "cantera/numerics/eigen_sparse.h"
-#include "cantera/numerics/PreconditionerBase.h"
 
 
 namespace Cantera
 {
 
 class Solution;
+class AnyMap;
 
 /**
  * Class Reactor is a general-purpose class for stirred reactors. The reactor
@@ -159,13 +158,10 @@ public:
 
     //! Method to calculate the reactor specific jacobian
     //! @param t current time of the simulation
-    //! @param[out] LHS pointer to start of vector of left-hand side
-    //! coefficients for governing equations, length m_nv, default values 1
-    //! @param[out] RHS pointer to start of vector of right-hand side
-    //! coefficients for governing equations, length m_nv, default values 0
+    //! @param y pointer to state vector
     //! @warning  This method is an experimental part of the %Cantera
     //! API and may be changed or removed without notice.
-    virtual Eigen::SparseMatrix<double> jacobian(double t, double* LHS, double* RHS) {
+    virtual Eigen::SparseMatrix<double> jacobian(double t, double* y) {
         throw NotImplementedError("Reactor::jacobian");
     }
 

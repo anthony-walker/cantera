@@ -6,14 +6,14 @@ cdef class PreconditionerBase:
     Common base class for preconditioners.
     """
     precon_type = "PreconditionerBase"
-    precon_prob_type = "DENSE + NOJAC"
+    precon_linear_solver_type = "GMRES"
 
     def __cinit__(self, *args, **kwargs):
         self.pbase = newPreconditioner(stringify(self.precon_type))
 
 cdef class AdaptivePreconditioner(PreconditionerBase):
     precon_type = "Adaptive"
-    precon_prob_type = "GMRES"
+    precon_linear_solver_type = "GMRES"
 
     def __cinit__(self, *args, **kwargs):
         self.preconditioner = <CxxAdaptivePreconditioner*>(self.pbase)

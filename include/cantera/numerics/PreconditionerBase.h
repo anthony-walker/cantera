@@ -11,8 +11,6 @@
 #define PRECONDITIONERBASE_H
 
 #include "cantera/base/ctexceptions.h"
-#include "cantera/base/AnyMap.h"
-#include "float.h"
 
 namespace Cantera
 {
@@ -34,12 +32,18 @@ class PreconditionerBase
 public:
     PreconditionerBase() {}
 
-    virtual const double& operator() (size_t row, size_t col) {
-        throw NotImplementedError("PreconditionerBase::operator()");
+    //! Set a value at the specified row and column of the jacobian triplet vector
+    //! @param row row in the jacobian matrix
+    //! @param col column in the jacobian matrix
+    //! @param value value of the element at row and col
+    virtual void setValue(size_t row, size_t col, double value) {
+        throw NotImplementedError("PreconditionerBase::setValue");
     }
 
-    virtual void operator() (size_t row, size_t col, double value) {
-        throw NotImplementedError("PreconditionerBase::operator()");
+    //! Adjust the state vector based on the preconditioner
+    //! @param state a vector containing the state to be updated
+    virtual void stateAdjustment(vector_fp& state) {
+        throw NotImplementedError("PreconditionerBase::stateAdjustment");
     }
 
     //! Get preconditioner type for CVODES
@@ -58,15 +62,14 @@ public:
         throw NotImplementedError("PreconditionerBase::setup");
     };
 
-    //! Function to reset preconditioner parameters as needed
+    //! Reset preconditioner parameters as needed
     virtual void reset() {
         throw NotImplementedError("PreconditionerBase::reset");
     };
 
-    //! This function is called during setup for any processes that need to be completed
-    //! prior to setup functions
-    //! @param network A pointer to the reactor net object associated with the
-    //! integration
+    //! Called during setup for any processes that need
+    //! to be completed prior to setup functions used in sundials.
+    //! @param networkSize the number of variables in the associated reactor network
     virtual void initialize(size_t networkSize) {
         throw NotImplementedError("PreconditionerBase::initialize");
     };
@@ -94,31 +97,9 @@ public:
         m_atol = atol;
     }
 
-    //! Set dimensions of the preconditioner
-    //! @param dims A pointer to a vector of the dimensions
-    virtual void setDimensions(std::vector<size_t> *dims) {
-        this->m_dimensions.clear();
-        for (auto it = dims->begin(); it != dims->end(); ++it) {
-            this->m_dimensions.push_back(*it);
-        }
-    };
-
-    //! Return pointer to dimensions
-    virtual std::vector<size_t>* dimensions() { return &(this->m_dimensions); }
-
-    //! Get the absolute tolerance from the preconditioner
-    virtual double absoluteTolerance() { return m_atol; };
-
-    //! Update counter variable for use with identifying current reactor
-    virtual size_t& counter() { return m_rctr; }
-
 protected:
-
-    //! A counter variable used by network to identify the current reactor during setup
-    size_t m_rctr = 0;
-
-    //! a size_t vector of dimensions
-    std::vector<size_t> m_dimensions;
+    //! Dimension of the preconditioner
+    size_t m_dim;
 
     //! gamma value used in M = I - gamma*J
     double m_gamma = 1.0;

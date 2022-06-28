@@ -28,6 +28,9 @@ void MoleReactor::getSurfaceInitialConditions(double* y)
         auto currPhase = S->thermo();
         double tempLoc = currPhase->nSpecies();
         double surfDensity = currPhase->siteDensity();
+        // get coverages
+        S->getCoverages(y + loc);
+        // convert coverages to moles
         for (size_t i = 0; i < tempLoc; i++) {
             y[i + loc] = y[i + loc] * area * surfDensity / currPhase->size(i);
         }
@@ -56,47 +59,6 @@ void MoleReactor::updateSurfaceState(double* y)
         S->setCoverages(coverages.data()+loc);
         loc += tempLoc;
     }
-}
-
-size_t MoleReactor::componentIndex(const string& nm) const
-{
-    size_t k = speciesIndex(nm);
-    if (k != npos) {
-        return k + m_sidx;
-    } else if (nm == "int_energy") {
-        return 0;
-    } else if (nm == "volume") {
-        return 1;
-    } else {
-        return npos;
-    }
-}
-
-std::string MoleReactor::componentName(size_t k) {
-    if (k == 0) {
-        return "int_energy";
-    }
-    else if (k == 1) {
-        return "volume";
-    }
-    else if (k >= m_sidx && k < neq()) {
-        k -= m_sidx;
-        if (k < m_thermo->nSpecies()) {
-            return m_thermo->speciesName(k);
-        } else {
-            k -= m_thermo->nSpecies();
-        }
-        for (auto& S : m_surfaces) {
-            ThermoPhase* th = S->thermo();
-            if (k < th->nSpecies()) {
-                return th->speciesName(k);
-            } else {
-                k -= th->nSpecies();
-            }
-        }
-    }
-    throw CanteraError("MoleReactor::componentName",
-                       "Index is out of bounds.");
 }
 
 void MoleReactor::evalSurfaces(double* LHS, double* RHS, double* sdot)

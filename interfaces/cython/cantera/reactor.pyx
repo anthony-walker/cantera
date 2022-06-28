@@ -368,7 +368,10 @@ cdef class IdealGasReactor(Reactor):
 
 
 cdef class IdealGasMoleReactor(Reactor):
-    """ A constant volume, zero-dimensional reactor for ideal gas mixtures with a mole based state vector"""
+    """
+    A constant volume, zero-dimensional reactor for ideal gas mixtures with a mole
+    based state vector
+    """
     reactor_type = "IdealGasMoleReactor"
 
 
@@ -1479,47 +1482,43 @@ cdef class ReactorNet:
             # set preconditioner
             self.net.setPreconditioner(deref(precon.pbase))
             # set problem type as default of preconditioner
-            self.lin_solver_type = precon.precon_prob_type
+            self.linear_solver_type = precon.precon_linear_solver_type
 
-    property lin_solver_type:
-        """Associated linear solver type"""
-        def __set__(self, lin_solver_type):
-            if (lin_solver_type == "GMRES"):
-                self.net.setLinSolverType(CxxGMRES)
-            elif (lin_solver_type == "DIAG"):
-                self.net.setLinSolverType(CxxDIAG)
-            elif (lin_solver_type == "BAND + NOJAC"):
-                self.net.setLinSolverType(CxxBAND + CxxNOJAC)
-            else:
-                self.net.setLinSolverType(CxxDENSE + CxxNOJAC)
-                if (lin_solver_type != "DENSE + NOJAC"):
-                    warnings.warn("Problem type not found, set to \"DENSE + NOJAC\"")
+    property linear_solver_type:
+        """
+            The type of linear solver used in integration.
+
+            Options for this property include:
+            "DENSE"
+            "GMRES"
+            "BAND"
+            "DIAG"
+        """
+        def __set__(self, linear_solver_type):
+            self.net.setLinearSolverType(stringify(linear_solver_type))
 
         def __get__(self):
-            lin_solver_type = self.net.linearSolverType()
-            if (lin_solver_type == CxxGMRES):
-                return "GMRES"
-            elif (lin_solver_type == CxxDIAG):
-                return "DIAG"
-            elif (lin_solver_type == CxxBAND + CxxNOJAC):
-                return "BAND + NOJAC"
-            elif (lin_solver_type == CxxDENSE + CxxNOJAC):
-                return "DENSE + NOJAC"
+            return pystr(self.net.linearSolverType())
 
-    property linear_stats:
+
+    property linear_solver_stats:
         """Linear solver stats from integrator"""
         def __get__(self):
             cdef CxxAnyMap stats
             stats = self.net.linearSolverStats()
             return anymap_to_dict(stats)
 
-    property nonlinear_stats:
+    property nonlinear_solver_stats:
         """Nonlinear solver stats from integrator"""
         def __get__(self):
             cdef CxxAnyMap stats
             stats = self.net.nonlinearSolverStats()
             return anymap_to_dict(stats)
 
-    def set_derivative_settings(self, settings):
-        """Apply derivative settings to all reactors in the network"""
-        self.net.setDerivativeSettings(dict_to_anymap(settings))
+    property derivative_settings:
+        """
+        Apply derivative settings to all reactors in the network. See also Kinetics.
+        derivative_settings.
+        """
+        def __set__(self, settings):
+            self.net.setDerivativeSettings(dict_to_anymap(settings))

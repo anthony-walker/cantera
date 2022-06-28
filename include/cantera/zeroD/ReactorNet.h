@@ -8,13 +8,14 @@
 
 #include "Reactor.h"
 #include "cantera/numerics/FuncEval.h"
-#include "cantera/numerics/Integrator.h"
 
 
 namespace Cantera
 {
 
 class Array2D;
+class Integrator;
+class PreconditionerBase;
 
 //! A class representing a network of connected reactors.
 /*!
@@ -36,15 +37,9 @@ public:
     //! @{
 
     //! Set the type of linear solver used in the integration.
-    //! @param linSolverType type of linear solver. Default type: DENSE + NOJAC.
-    //! Other options:
-    //!     const int DIAG = 1;
-    //!    const int DENSE = 2;
-    //!     const int NOJAC = 4;
-    //!     const int JAC = 8;
-    //!     const int GMRES = 16;
-    //!     const int BAND = 32;
-    void setLinSolverType(int linSolverType = DENSE + NOJAC);
+    //! @param linSolverType type of linear solver. Default type: "DENSE"
+    //! Other options include: "DIAG", "DENSE", "GMRES", "BAND"
+    void setLinearSolverType(std::string linSolverType = "DENSE");
 
     //! Set preconditioner used by the linear solver
     //! @param preconditioner preconditioner object used for the linear solver
@@ -101,9 +96,7 @@ public:
     }
 
     //! Problem type of integrator
-    int linearSolverType() {
-        return m_integ->linearSolverType();
-    }
+    std::string linearSolverType();
 
     /**
      * Advance the state of all reactors in time. Take as many internal
@@ -279,36 +272,28 @@ public:
     //! Retrieve absolute step size limits during advance
     bool getAdvanceLimits(double* limits);
 
-    //! Get a strictly positive composition
-    //! @param out output vector for strictly positive composition
-    //! @param atol absolute tolerance for keeping elements in composition
-    virtual void getPositiveState(double* out, double atol);
+    /*! Evaluate the setup processes for the Jacobian preconditioner.
+     * @param[in] t time.
+     * @param[in] y solution vector, length neq()
+     * @param gamma the gamma in M=I-gamma*J
+     * @warning This function is an experimental part of the %Cantera API and may be
+     * changed or removed without notice.
+     */
+    virtual void preconditionerSetup(double t, double* y, double gamma);
 
-    //!  Evaluate the setup processes for the preconditioner.
-    //! @param[in] t time.
-    //! @param[in] y solution vector, length neq()
-    //! @param[out] ydot rate of change of solution vector, length neq()
-    //! @param gamma the gamma in M=I-gamma*J
-    //! @warning  This method is an experimental part of the %Cantera
-    //! API and may be changed or removed without notice.
-    virtual void preconditionerSetup(double t, double* y, double* ydot, double gamma);
-
-    //! Evaluate the preconditioned linear system used by the nonlinear
-    //! integrator.
-    //! @param[in] t time.
-    //! @param[in] y solution vector, length neq()
-    //! @param[out] ydot rate of change of solution vector, length neq()
-    //! @param[in] rhs right hand side vector used in linear system
-    //! @param[out] output vector for solution of preconditioner solve
-    //! @warning  This method is an experimental part of the %Cantera
-    //! API and may be changed or removed without notice.
-    virtual void preconditionerSolve(double t, double* y, double* ydot, double* rhs, double* output) { m_integ->preconditionerSolve(m_nv, rhs, output); }
+    /*! Evaluate the linear system Ax=b where A is the preconditioner.
+     * @param[in] rhs right hand side vector used in linear system
+     * @param[out] output output vector for solution
+     * @warning This function is an experimental part of the %Cantera API and may be
+     * changed or removed without notice.
+     */
+    virtual void preconditionerSolve(double* rhs, double* output);
 
     //! Use this to get nonlinear solver stats from Integrator
-    AnyMap nonlinearSolverStats() { return m_integ->nonlinearSolverStats(); }
+    AnyMap nonlinearSolverStats() const;
 
     //! Get linear solver stats from integrator
-    AnyMap linearSolverStats() { return m_integ->linearSolverStats(); }
+    AnyMap linearSolverStats() const;
 
     //! Set derivative settings of all reactors
     //! @param settings the settings map propagated to all reactors and kinetics objects

@@ -974,8 +974,8 @@ cdef extern from "cantera/zerodim.h" namespace "Cantera":
         double sensitivity(string&, size_t, int) except +translate_exception
         size_t nparams()
         string sensitivityParameterName(size_t) except +translate_exception
-        void setLinSolverType(int integratorType)
-        int linearSolverType()
+        void setLinearSolverType(string integratorType) except +translate_exception
+        string linearSolverType()
         void setPreconditioner(CxxPreconditionerBase& preconditioner)
         void setDerivativeSettings(CxxAnyMap&)
         CxxAnyMap linearSolverStats()

@@ -51,10 +51,10 @@ std::string FuncEval::getErrors() const {
     return errs.str();
 }
 
-int FuncEval::preconditioner_setup_nothrow(double t, double* y, double* ydot, double gamma)
+int FuncEval::preconditioner_setup_nothrow(double t, double* y, double gamma)
 {
     try {
-        preconditionerSetup(t, y, ydot, gamma);
+        preconditionerSetup(t, y, gamma);
     } catch (CanteraError& err) {
         if (suppressErrors()) {
             m_errors.push_back(err.what());
@@ -84,10 +84,10 @@ int FuncEval::preconditioner_setup_nothrow(double t, double* y, double* ydot, do
     return 0; // successful evaluation
 }
 
-int FuncEval::preconditioner_solve_nothrow(double t, double* y, double* ydot, double* rhs, double* output)
+int FuncEval::preconditioner_solve_nothrow(double* rhs, double* output)
 {
     try {
-        preconditionerSolve(t, y, ydot, rhs, output); // perform preconditioner solve
+        preconditionerSolve(rhs, output); // perform preconditioner solve
     } catch (CanteraError& err) {
         if (suppressErrors()) {
             m_errors.push_back(err.what());
