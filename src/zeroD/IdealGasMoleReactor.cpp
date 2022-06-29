@@ -98,9 +98,8 @@ void IdealGasMoleReactor::updateState(double* y)
 
 void IdealGasMoleReactor::eval(double time, double* LHS, double* RHS)
 {
-    double mcvdTdt = RHS[0]; // m * c_v * dT/dt
+    double& mcvdTdt = RHS[0]; // m * c_v * dT/dt
     double* dydt = RHS + m_sidx; // kmol per s
-    LHS[0] = m_mass * m_thermo->cv_mass();
 
     evalWalls(time);
 
@@ -116,7 +115,7 @@ void IdealGasMoleReactor::eval(double time, double* LHS, double* RHS)
     // evaluate surfaces
     evalSurfaces(LHS + m_nsp + m_sidx, RHS + m_nsp + m_sidx, m_sdot.data());
 
-    // external heat transfer
+    // external heat transfer and compression work
     mcvdTdt += - m_pressure * m_vdot + m_Qdot;
 
     for (size_t n = 0; n < m_nsp; n++) {
@@ -151,9 +150,9 @@ void IdealGasMoleReactor::eval(double time, double* LHS, double* RHS)
 
     RHS[1] = m_vdot;
     if (m_energy) {
-        RHS[0] = mcvdTdt / (m_mass * m_thermo->cv_mass());
+        LHS[0] = m_mass * m_thermo->cv_mass();
     } else {
-        RHS[0] = 0.0;
+        RHS[0] = 0;
     }
 }
 

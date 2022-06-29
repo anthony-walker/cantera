@@ -78,7 +78,7 @@ void IdealGasConstPressureMoleReactor::updateState(double* y)
 
 void IdealGasConstPressureMoleReactor::eval(double time, double* LHS, double* RHS)
 {
-    double mcpdTdt = 0.0; // m * c_p * dT/dt
+    double& mcpdTdt = RHS[0]; // m * c_p * dT/dt
     double* dydt = RHS + m_sidx; // kmol per s
 
     evalWalls(time);
@@ -127,7 +127,7 @@ void IdealGasConstPressureMoleReactor::eval(double time, double* LHS, double* RH
     }
 
     if (m_energy) {
-        RHS[0] = mcpdTdt / (m_mass * m_thermo->cp_mass());
+        LHS[0] = m_mass * m_thermo->cp_mass();
     } else {
         RHS[0] = 0.0;
     }
