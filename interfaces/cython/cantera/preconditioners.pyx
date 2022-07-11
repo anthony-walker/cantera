@@ -1,6 +1,8 @@
 # This file is part of Cantera. See License.txt in the top-level directory or
 # at https://cantera.org/license.txt for license and copyright information.
 
+from ._utils cimport stringify, pystr, dict_to_anymap, anymap_to_dict
+
 cdef class PreconditionerBase:
     """
     Common base class for preconditioners.

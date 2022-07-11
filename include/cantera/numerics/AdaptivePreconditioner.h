@@ -12,6 +12,7 @@
 
 #include "cantera/numerics/PreconditionerBase.h"
 #include "cantera/numerics/eigen_sparse.h"
+#include "cantera/base/global.h"
 #include <iostream>
 
 namespace Cantera
