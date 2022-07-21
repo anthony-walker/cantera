@@ -106,6 +106,11 @@ public:
         m_atol = atol;
     }
 
+    //! Return the sparsity of the preconditioner
+    virtual double sparsity() {
+        throw NotImplementedError("PreconditionerBase::sparsity");
+    }
+
 protected:
     //! Dimension of the preconditioner
     size_t m_dim;

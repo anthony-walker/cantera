@@ -49,6 +49,11 @@ public:
 
     virtual void updatePreconditioner();
 
+    virtual double sparsity() {
+        return m_precon_matrix.nonZeros() / (m_precon_matrix.cols() *
+               m_precon_matrix.cols());
+    }
+
     //! Prune preconditioner elements
     void prunePreconditioner();
 

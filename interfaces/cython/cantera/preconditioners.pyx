@@ -13,6 +13,13 @@ cdef class PreconditionerBase:
     def __cinit__(self, *args, **kwargs):
         self.pbase = newPreconditioner(stringify(self.precon_type))
 
+    property sparsity:
+        """
+        Property retreiving matrix sparsity
+        """
+        def __get__(self):
+            return self.pbase.get().sparsity()
+
 cdef class AdaptivePreconditioner(PreconditionerBase):
     precon_type = "Adaptive"
     precon_linear_solver_type = "GMRES"
