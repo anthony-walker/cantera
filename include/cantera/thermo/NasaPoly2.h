@@ -102,6 +102,19 @@ public:
         mnp_low.updateTemperaturePoly(T, T_poly);
     }
 
+    virtual void updateTemperatureDerivPoly(double T, double* T_poly) const {
+        mnp_low.updateTemperatureDerivPoly(T, T_poly);
+    }
+
+    virtual double specific_heat_ddT(double T) const
+    {
+        if (T <= m_midT) {
+            return mnp_low.specific_heat_ddT(T);
+        } else {
+            return mnp_high.specific_heat_ddT(T);
+        }
+    }
+
     //! @copydoc NasaPoly1::updateProperties
     void updateProperties(const doublereal* tt,
                           doublereal* cp_R, doublereal* h_RT, doublereal* s_R) const {

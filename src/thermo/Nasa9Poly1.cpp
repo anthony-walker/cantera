@@ -55,6 +55,29 @@ void Nasa9Poly1::updateTemperaturePoly(double T, double* T_poly) const
     T_poly[6] = std::log(T);
 }
 
+void Nasa9Poly1::updateTemperatureDerivPoly(double T, double* T_poly) const
+{
+    T_poly[0] = 1;
+    T_poly[1] = 2 * T;
+    T_poly[2] = 3 * T * T;
+    T_poly[3] = 4 * T * T * T;
+    T_poly[4] = - 1.0 / (T * T);
+    T_poly[5] = -8 / T_poly[3];
+    T_poly[6] = - 1 / T;
+}
+
+double Nasa9Poly1::specific_heat_ddT(double T) const
+{
+    vector_fp tempDerivPoly(temperaturePolySize());
+    double dcpdN = m_coeff[0] * tempDerivPoly[5] + m_coeff[1] * tempDerivPoly[4];
+    const double* coeffs = m_coeff.data() + 3;
+    updateTemperatureDerivPoly(T, tempDerivPoly.data());
+    for (size_t i = 0; i < 4; i++) {
+        dcpdN += coeffs[i] * tempDerivPoly[i];
+    }
+    return dcpdN * GasConstant;
+}
+
 void Nasa9Poly1::updateProperties(const doublereal* tt,
                                   doublereal* cp_R, doublereal* h_RT,
                                   doublereal* s_R) const

@@ -282,4 +282,9 @@ void IdealGasPhase::updateThermo() const
         }
     }
 }
+
+void IdealGasPhase::specific_heats_ddT(double *dcp_dN) const
+{
+    m_spthermo.specific_heat_ddT(temperature(), dcp_dN);
+}
 }

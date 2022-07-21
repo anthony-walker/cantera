@@ -327,6 +327,8 @@ public:
      */
     virtual doublereal cv_mole() const;
 
+    virtual void specific_heats_ddT(double *dcp_dN) const;
+
     //! @}
     //! @name Mechanical Equation of State
     //! @{

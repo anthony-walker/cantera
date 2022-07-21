@@ -89,6 +89,25 @@ public:
         T_poly[5] = std::log(T);
     }
 
+    virtual void updateTemperatureDerivPoly(double T, double* T_poly) const {
+        T_poly[0] = 1;
+        T_poly[1] = 2 * T;
+        T_poly[2] = 3 * T * T;
+        T_poly[3] = 4 * T * T * T;
+        T_poly[4] = - 1.0 / (T * T);
+        T_poly[5] = -8 / T_poly[3];
+    }
+
+    virtual double specific_heat_ddT(double T) const {
+        double dcpdN = 0;
+        vector_fp tempDerivPoly(temperaturePolySize());
+        updateTemperatureDerivPoly(T, tempDerivPoly.data());
+        for (size_t i = 1; i < 5; i++) {
+            dcpdN += m_coeff[i] * tempDerivPoly[i];
+        }
+        return dcpdN * GasConstant;
+    }
+
     /*!
      * @copydoc SpeciesThermoInterpType::updateProperties
      *

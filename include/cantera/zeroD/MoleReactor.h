@@ -39,6 +39,8 @@ public:
         throw NotImplementedError("MoleReactor::componentName");
     }
 
+    virtual void setDerivativeSettings(AnyMap& settings);
+
 protected:
     virtual void evalSurfaces(double* LHS, double* RHS, double* sdot);
 
@@ -47,7 +49,10 @@ protected:
     virtual void getSurfaceInitialConditions(double* y);
 
     //! const value for the species start index
-    const int m_sidx = 2;
+    const size_t m_sidx = 2;
+
+    //! analytical temperature derivative switch
+    bool m_analytical_temperature = false;
 };
 
 }

@@ -262,6 +262,12 @@ public:
         throw NotImplementedError("ThermoPhase::cv_mole");
     }
 
+    //! Derivative of molar heat capacities for each species. Units: J/kmol^2/K.
+    //! @param dcp_dN output vector for derivatives
+    virtual void specific_heats_ddT(double *dcp_dN) const {
+        throw NotImplementedError("ThermoPhase::specific_heats_ddT");
+    }
+
     //! @}
     //! @name Mechanical Properties
     //! @{

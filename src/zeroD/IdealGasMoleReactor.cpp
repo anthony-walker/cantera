@@ -172,6 +172,18 @@ Eigen::SparseMatrix<double> IdealGasMoleReactor::jacobian(double t, double* y)
         }
     }
     // Temperature Derivatives
+    if (m_analytical_temperature) {
+        analyticalDerivs(speciesDervs, t, y);
+    } else {
+        finiteDiffDerivs(speciesDervs, t, y);
+    }
+    Eigen::SparseMatrix<double> jac (m_nv, m_nv);
+    jac.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
+    return jac;
+}
+
+void IdealGasMoleReactor::finiteDiffDerivs(Eigen::SparseMatrix<double>& speciesDervs, double t, double* y)
+{
     if (m_energy) {
         // getting perturbed state for finite difference
         double deltaTemp = y[0] * std::sqrt(std::numeric_limits<double>::epsilon());
@@ -188,9 +200,11 @@ Eigen::SparseMatrix<double> IdealGasMoleReactor::jacobian(double t, double* y)
         // getting perturbed state
         updateState(yNext.data());
         eval(t, yNext.data(), ydotNext.data());
+        ydotNext[0] /= yNext[0];
         // reset and get original state
         updateState(yCurrent.data());
         eval(t, yCurrent.data(), ydotCurrent.data());
+        ydotCurrent[0] /= yCurrent[0];
         // d T_dot/dT
         m_jac_trips.emplace_back(0, 0, (ydotNext[0] - ydotCurrent[0]) / deltaTemp);
         // d omega_dot_j/dT
@@ -231,9 +245,71 @@ Eigen::SparseMatrix<double> IdealGasMoleReactor::jacobian(double t, double* y)
                 specificHeat[j] *  uknkSum) / (NtotalCv * NtotalCv));
         }
     }
-    Eigen::SparseMatrix<double> jac(m_nv, m_nv);
-    jac.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
-    return jac;
+}
+
+void IdealGasMoleReactor::analyticalDerivs(Eigen::SparseMatrix<double>& speciesDervs, double t, double* y)
+{
+    // analytical temperature derivatives
+    // domega_dot_j/dT
+    vector_fp dndotdT(m_nsp);
+    m_kin->getNetProductionRates_ddT(dndotdT.data());
+    // scale to get molar production rate derivatives
+    scale(dndotdT.begin(), dndotdT.end(), dndotdT.begin(), m_vol);
+    for (size_t j = m_sidx; j < m_nv; j++) {
+        m_jac_trips.emplace_back(j, 0, dndotdT[j]);
+    }
+
+    // Energy derivatives
+    if (m_energy) {
+        // d T_dot/dnj
+        vector_fp specificHeat (m_nsp);
+        vector_fp netProductionRates (m_nsp);
+        vector_fp internal_energy (m_nsp);
+        vector_fp dcpdT (m_nsp);
+        // getting physical quantities
+        m_thermo->specific_heats_ddT(dcpdT.data());
+        m_thermo->getPartialMolarCp(specificHeat.data());
+        m_thermo->getPartialMolarIntEnergies(internal_energy.data());
+        m_kin->getNetProductionRates(netProductionRates.data());
+        // convert Cp to Cv for ideal gas as Cp - Cv = R
+        for (size_t i = 0; i < specificHeat.size(); i++) {
+            specificHeat[i] -= GasConstant;
+        }
+        // getting perturbed changes w.r.t temperature
+        double nkcvksum = 0;
+        double ukndotksum = 0;
+        double ndotkcpksum = 0;
+        double nkdcvdTksum = 0;
+        double ukdndotkdTsum = 0;
+        double Ntotal = accumulate(y + m_sidx, y + m_nsp, 0.0);
+        double NtotalCv = Ntotal * m_thermo->cv_mole();
+        double cvksum = accumulate(specificHeat.begin(), specificHeat.end(), 0.0);
+        // scale net production rates by volume to get molar rate
+        scale(netProductionRates.begin(), netProductionRates.end(), netProductionRates.begin(), m_vol);
+        // determine a sum in derivative
+        for (size_t i = 0; i < m_nsp; i++) {
+            nkdcvdTksum += y[m_sidx + i] * dcpdT[i];
+            nkcvksum += y[m_sidx + i] * specificHeat[i];
+            ukdndotkdTsum += internal_energy[i] * dndotdT[i];
+            ndotkcpksum += netProductionRates[i] * specificHeat[i];
+            ukndotksum += internal_energy[i] * netProductionRates[i];
+        }
+        // dTdot/dT
+        double dTdotdT = -(ndotkcpksum + ukdndotkdTsum) * nkcvksum;
+        dTdotdT += ukndotksum * (Ntotal / temperature() * cvksum + nkdcvdTksum);
+        dTdotdT /= nkcvksum * nkcvksum;
+        m_jac_trips.emplace_back(0, 0, dTdotdT);
+        // determine derivatives
+        for (size_t j = 0; j < m_nsp; j++) { // spans columns
+            double ukdnkdnjSum = 0;
+            for (size_t k = 0; k < m_nsp; k++) { // spans rows
+                ukdnkdnjSum += internal_energy[k] * speciesDervs.coeff(k, j);
+            }
+            // set appropriate column of preconditioner
+            m_jac_trips.emplace_back(0, j + m_sidx, (-ukdnkdnjSum * NtotalCv +
+            specificHeat[j] * ukndotksum) / (NtotalCv * NtotalCv));
+        }
+    }
 }
 
 }

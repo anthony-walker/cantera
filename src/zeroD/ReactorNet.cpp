@@ -494,4 +494,21 @@ void ReactorNet::updatePreconditioner(double gamma)
     precon->updatePreconditioner();
 }
 
+Eigen::SparseMatrix<double> ReactorNet::jacobian(double t, double* y)
+{
+    Eigen::SparseMatrix<double> net_jacobian(m_nv, m_nv);
+    vector<Eigen::Triplet<double>> net_jacobian_trips(m_nv);
+    // Get jacobians and give elements to preconditioners
+    for (size_t i = 0; i < m_reactors.size(); i++) {
+        Eigen::SparseMatrix<double> reactorJac = m_reactors[i]->jacobian(t, y + m_start[i]);
+        for (int k=0; k<reactorJac.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(reactorJac, k); it; ++it) {
+                net_jacobian_trips.emplace_back(it.row() + m_start[i], it.col() + m_start[i], it.value());
+            }
+        }
+    }
+    net_jacobian.setFromTriplets(net_jacobian_trips.begin(), net_jacobian_trips.end());
+    return net_jacobian;
+}
+
 }

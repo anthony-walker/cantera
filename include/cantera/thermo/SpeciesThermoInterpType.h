@@ -165,9 +165,22 @@ public:
     virtual size_t temperaturePolySize() const { return 1; }
 
     //! Given the temperature *T*, compute the terms of the temperature
-    //! polynomial *T_poly*.
+    //! derivative polynomial *T_poly*.
     virtual void updateTemperaturePoly(double T, double* T_poly) const {
         T_poly[0] = T;
+    }
+
+    //! Given the temperature *T*, compute the terms of the temperature
+    //! polynomial *T_poly*.
+    virtual void updateTemperatureDerivPoly(double T, double* T_poly) const {
+        T_poly[0] = 1;
+    }
+
+    //! Calculate the derivative of specific heat with respect to moles given
+    //! temperatures
+    virtual double specific_heat_ddT(double T) const
+    {
+        return 0;
     }
 
     //! Update the properties for this species, given a temperature polynomial

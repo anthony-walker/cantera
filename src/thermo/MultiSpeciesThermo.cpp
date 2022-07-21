@@ -38,6 +38,8 @@ void MultiSpeciesThermo::install_STIT(size_t index,
     m_sp[type].emplace_back(index, stit_ptr);
     if (m_sp[type].size() == 1) {
         m_tpoly[type].resize(stit_ptr->temperaturePolySize());
+        // Add derivative polynomial
+        m_tpoly_deriv[type].resize(stit_ptr->temperaturePolySize());
     }
 
     // Calculate max and min T
@@ -99,6 +101,21 @@ void MultiSpeciesThermo::update(doublereal t, doublereal* cp_R,
         for (size_t k = 0; k < species.size(); k++) {
             size_t i = species[k].first;
             species[k].second->updateProperties(tpoly, cp_R+i, h_RT+i, s_R+i);
+        }
+    }
+}
+
+void MultiSpeciesThermo::specific_heat_ddT(double T, double* dcp_dN) const
+{
+    auto iter = m_sp.begin();
+    auto jter = m_tpoly_deriv.begin();
+    for (; iter != m_sp.end(); iter++, jter++) {
+        const std::vector<index_STIT>& species = iter->second;
+        double* tpoly = &jter->second[0];
+        species[0].second->updateTemperatureDerivPoly(T, tpoly);
+        for (size_t k = 0; k < species.size(); k++) {
+            size_t i = species[k].first;
+            dcp_dN[i] = species[k].second->specific_heat_ddT(T);
         }
     }
 }

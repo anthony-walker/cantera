@@ -80,4 +80,10 @@ void MoleReactor::evalSurfaces(double* LHS, double* RHS, double* sdot)
     }
 }
 
+void MoleReactor::setDerivativeSettings(AnyMap& settings)
+{
+    Reactor::setDerivativeSettings(settings);
+    m_analytical_temperature = settings.getBool("analytical-temp-derivs", false);
+}
+
 }

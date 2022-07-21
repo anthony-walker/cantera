@@ -97,6 +97,17 @@ public:
     virtual void update(doublereal T, doublereal* cp_R,
                         doublereal* h_RT, doublereal* s_R) const;
 
+    //! Compute the reference-state derivative for specific heat at a given temperature.
+    /*!
+     * Given temperature T in K, this method updates the values of the non-
+     * dimensional heat capacity at constant pressure, enthalpy, and entropy,
+     * at the reference pressure, Pref of each of the standard states.
+     *
+     * @param T       Temperature (Kelvin)
+     * @param dcp_dN  Vector of Dimensionless heat capacity derivatives (length m_kk).
+     */
+    virtual void specific_heat_ddT(double T, double* dcp_dN) const;
+
     //! Minimum temperature.
     /*!
      * If no argument is supplied, this method returns the minimum temperature
@@ -213,6 +224,9 @@ protected:
 
     //! Temperature polynomials for each thermo parameterization
     mutable tpoly_map m_tpoly;
+
+    //! Temperature polynomials for each thermo parameterization
+    mutable tpoly_map m_tpoly_deriv;
 
     //! Map from species index to location within #m_sp, such that
     //! `m_sp[m_speciesLoc[k].first][m_speciesLoc[k].second]` is the

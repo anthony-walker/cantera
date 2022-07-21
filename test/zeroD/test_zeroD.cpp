@@ -12,7 +12,7 @@ using namespace Cantera;
 // This test ensures that prior reactor initialization of a reactor does
 // not affect later integration within a network. This example was
 // adapted from test_reactor.py::test_equilibrium_HP.
-TEST(ZeroDim, test_individual_reactor_initialization)
+TEST(DISABLED_ZeroDim, test_individual_reactor_initialization)
 {
     // initial conditions
     double T0 = 1100.0;
@@ -52,7 +52,7 @@ TEST(ZeroDim, test_individual_reactor_initialization)
     }
 }
 
-TEST(MoleReactorTestSet, test_mole_reactor_get_state)
+TEST(DISABLED_MoleReactorTestSet, test_mole_reactor_get_state)
 {
     // setting up solution object and thermo/kinetics pointers
     double tol = 1e-8;

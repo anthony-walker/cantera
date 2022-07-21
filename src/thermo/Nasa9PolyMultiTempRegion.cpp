@@ -125,6 +125,29 @@ void Nasa9PolyMultiTempRegion::updateTemperaturePoly(double T, double* T_poly) c
     T_poly[6] = std::log(T);
 }
 
+void Nasa9PolyMultiTempRegion::updateTemperatureDerivPoly(double T, double* T_poly) const
+{
+    T_poly[0] = 1;
+    T_poly[1] = 2 * T;
+    T_poly[2] = 3 * T * T;
+    T_poly[3] = 4 * T * T * T;
+    T_poly[4] = -1.0 / (T * T);
+    T_poly[5] = -8 / T_poly[3];
+    T_poly[6] = - 1 / T;
+}
+
+double Nasa9PolyMultiTempRegion::specific_heat_ddT(double T) const
+{
+    m_currRegion = 0;
+    for (size_t i = 1; i < m_regionPts.size(); i++) {
+        if (T < m_lowerTempBounds[i]) {
+            break;
+        }
+        m_currRegion++;
+    }
+    return m_regionPts[m_currRegion]->specific_heat_ddT(T);
+}
+
 void Nasa9PolyMultiTempRegion::updateProperties(const doublereal* tt,
         doublereal* cp_R,
         doublereal* h_RT,

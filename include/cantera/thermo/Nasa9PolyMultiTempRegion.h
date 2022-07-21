@@ -82,6 +82,8 @@ public:
 
     virtual size_t temperaturePolySize() const { return 7; }
     virtual void updateTemperaturePoly(double T, double* T_poly) const;
+    virtual void updateTemperatureDerivPoly(double T, double* T_poly) const;
+    virtual double specific_heat_ddT(double T) const;
 
     //! @copydoc Nasa9Poly1::updateProperties
     virtual void updateProperties(const doublereal* tt,

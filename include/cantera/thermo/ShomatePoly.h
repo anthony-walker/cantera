@@ -110,6 +110,26 @@ public:
         T_poly[5] = 1.0/tt;
     }
 
+    virtual void updateTemperatureDerivPoly(double T, double* T_poly) const {
+        double tt = 1.e-3 * T;
+        T_poly[0] = 1e-3;
+        T_poly[1] = 2 * tt * tt / T;
+        T_poly[2] = 3 * tt * tt * tt / T;
+        T_poly[3] = - 2 * 1e6 / (T * T * T);
+        T_poly[4] = 1 / T;
+        T_poly[5] = 1e3 / (T * T);
+    }
+
+    virtual double specific_heat_ddT(double T) const {
+        double dcpdN = 0;
+        vector_fp tempDerivPoly(temperaturePolySize());
+        updateTemperatureDerivPoly(T, tempDerivPoly.data());
+        for (size_t i = 1; i < 5; i++) {
+            dcpdN += m_coeff[i] * tempDerivPoly[i];
+        }
+        return dcpdN * GasConstant;
+    }
+
     /*!
      * @copydoc SpeciesThermoInterpType::updateProperties
      *
@@ -292,6 +312,10 @@ public:
 
     virtual void updateTemperaturePoly(double T, double* T_poly) const {
         msp_low.updateTemperaturePoly(T, T_poly);
+    }
+
+    virtual void updateTemperatureDerivPoly(double T, double* T_poly) const {
+        msp_low.updateTemperatureDerivPoly(T, T_poly);
     }
 
     //! @copydoc ShomatePoly::updateProperties

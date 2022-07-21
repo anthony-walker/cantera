@@ -40,10 +40,14 @@ public:
 
     virtual Eigen::SparseMatrix<double> jacobian(double t, double* y);
 
+    virtual void analyticalDerivs(Eigen::SparseMatrix<double>& speciesDervs, double t, double* y);
+
+    virtual void finiteDiffDerivs(Eigen::SparseMatrix<double>& speciesDervs, double t, double* y);
+
 protected:
     vector_fp m_hk; //!< Species molar enthalpies
 
-    const int m_sidx = 1;
+    const size_t m_sidx = 1;
 };
 
 }

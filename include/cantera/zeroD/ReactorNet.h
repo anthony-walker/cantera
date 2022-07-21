@@ -286,6 +286,13 @@ public:
     //! @param settings the settings map propagated to all reactors and kinetics objects
     virtual void setDerivativeSettings(AnyMap& settings);
 
+    //! Method to calculate the jacobian of the reactor network
+    //! @param t current time of the simulation
+    //! @param y pointer to state vector
+    //! @warning  This method is an experimental part of the %Cantera
+    //! API and may be changed or removed without notice.
+    Eigen::SparseMatrix<double> jacobian(double t, double* y);
+
 protected:
     //! Check if surfaces and preconditioning are included, if so throw an error because
     //! they are currently not supported.
