@@ -5,11 +5,13 @@
 #distutils: language=c++
 
 from .ctcxx cimport *
+from .kinetics cimport CxxSparseMatrix
 
 cdef extern from "cantera/numerics/PreconditionerBase.h" namespace "Cantera":
     cdef cppclass CxxPreconditionerBase "Cantera::PreconditionerBase":
         CxxPreconditionerBase()
         double sparsity()
+        size_t size()
 
 cdef extern from "cantera/numerics/AdaptivePreconditioner.h" namespace "Cantera":
     cdef cppclass CxxAdaptivePreconditioner "Cantera::AdaptivePreconditioner" \
@@ -22,6 +24,7 @@ cdef extern from "cantera/numerics/AdaptivePreconditioner.h" namespace "Cantera"
         void setIlutDropTol(double droptol)
         double ilutDropTol()
         void printPreconditioner()
+        CxxSparseMatrix matrix()
 
 cdef extern from "cantera/numerics/PreconditionerFactory.h" namespace "Cantera":
     cdef shared_ptr[CxxPreconditionerBase] newPreconditioner(string) except\

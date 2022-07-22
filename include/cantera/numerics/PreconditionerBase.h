@@ -111,6 +111,11 @@ public:
         throw NotImplementedError("PreconditionerBase::sparsity");
     }
 
+    //! Return the size of the preconditioner
+    virtual size_t size() {
+        return m_dim;
+    }
+
 protected:
     //! Dimension of the preconditioner
     size_t m_dim;

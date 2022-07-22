@@ -2,6 +2,10 @@
 # at https://cantera.org/license.txt for license and copyright information.
 
 from ._utils cimport stringify, pystr, dict_to_anymap, anymap_to_dict
+from .kinetics cimport CxxSparseMatrix, CxxSparseTriplets
+from ctypes import c_int
+cimport numpy as np
+import numpy as np
 
 cdef class PreconditionerBase:
     """
@@ -19,6 +23,13 @@ cdef class PreconditionerBase:
         """
         def __get__(self):
             return self.pbase.get().sparsity()
+
+    property size:
+        """
+        Property retreiving size of the matrix row and col length
+        """
+        def __get__(self):
+            return self.pbase.get().size()
 
 cdef class AdaptivePreconditioner(PreconditionerBase):
     precon_type = "Adaptive"
@@ -85,6 +96,26 @@ cdef class AdaptivePreconditioner(PreconditionerBase):
 
         def __get__(self):
             return self.preconditioner.ilutDropTol()
+
+    property matrix:
+        """
+        Property for retrieving the internal matrix of the preconditioner as a numpy
+        array.
+        """
+        def __get__(self):
+            cdef CxxSparseMatrix smat = self.preconditioner.matrix()
+            cdef size_t length = smat.nonZeros()
+            if length == 0:
+                return np.zeros((self.size, self.size))
+            # index/value triplets
+            cdef np.ndarray[int, ndim=1, mode="c"] rows = np.empty(length, dtype=c_int)
+            cdef np.ndarray[int, ndim=1, mode="c"] cols = np.empty(length, dtype=c_int)
+            cdef np.ndarray[np.double_t, ndim=1] data = np.empty(length)
+            size = CxxSparseTriplets(smat, &rows[0], &cols[0], &data[0], length)
+            out = np.zeros((smat.rows(), smat.cols()))
+            for i in xrange(length):
+                out[rows[i], cols[i]] = data[i]
+            return out
 
     def print_contents(self):
         self.preconditioner.printPreconditioner()
