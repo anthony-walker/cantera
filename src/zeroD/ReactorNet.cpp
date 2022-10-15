@@ -475,10 +475,10 @@ void ReactorNet::checkPreconditionerSupported()
 {
     // preconditioner currently not supported for surfaces
     for (size_t i = 0; i < m_reactors.size(); i++) {
-        if (m_reactors[i]->nSurfs() > 0) {
-            throw CanteraError("ReactorNet::checkPreconditionerSupported",
-                "Preconditioning is not supported for networks with surfaces.");
-        }
+        // if (m_reactors[i]->nSurfs() > 0) {
+        //     throw CanteraError("ReactorNet::checkPreconditionerSupported",
+        //         "Preconditioning is not supported for networks with surfaces.");
+        // }
     }
 }
 
