@@ -489,4 +489,80 @@ void ReactorNet::updatePreconditioner(double gamma)
     precon->updatePreconditioner();
 }
 
+Eigen::SparseMatrix<double> ReactorNet::jacobian()
+{
+    // network must be initialized for the jacobian
+    if (! m_init) {
+        initialize();
+    }
+    // create system jacobian from reactor jacobians
+    std::vector<Eigen::Triplet<double>> jac_trips;
+    Eigen::SparseMatrix<double> system_jac(m_nv, m_nv);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        Reactor& r = *m_reactors[n];
+        Eigen::SparseMatrix<double> r_jac;
+        r_jac = r.jacobian();
+        size_t st = m_start[n];
+        for (int k=0; k<r_jac.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(r_jac, k); it; ++it) {
+                jac_trips.emplace_back(it.row() + st, it.col() + st, it.value());
+            }
+        }
+    }
+    // set jacobian from triples
+    system_jac.setFromTriplets(jac_trips.begin(), jac_trips.end());
+    return system_jac;
+}
+
+Eigen::SparseMatrix<double> ReactorNet::finiteDifferenceJacobian()
+{
+    // network must be initialized for the jacobian
+    if (! m_init) {
+        initialize();
+    }
+    // create system jacobian from reactor jacobians
+    std::vector<Eigen::Triplet<double>> jac_trips;
+    Eigen::SparseMatrix<double> system_fd_jac(m_nv, m_nv);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        Reactor& r = *m_reactors[n];
+        Eigen::SparseMatrix<double> r_fd_jac;
+        r_fd_jac = r.finiteDifferenceJacobian();
+        size_t st = m_start[n];
+        for (int k=0; k<r_fd_jac.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(r_fd_jac, k); it; ++it) {
+                jac_trips.emplace_back(it.row() + st, it.col() + st, it.value());
+            }
+        }
+    }
+    // set jacobian from triples
+    system_fd_jac.setFromTriplets(jac_trips.begin(), jac_trips.end());
+    return system_fd_jac;
+}
+
+Eigen::SparseMatrix<double> ReactorNet::autodiffJacobian()
+{
+    // network must be initialized for the jacobian
+    if (! m_init) {
+        initialize();
+    }
+    // create system jacobian from reactor jacobians
+    std::vector<Eigen::Triplet<double>> jac_trips;
+    Eigen::SparseMatrix<double> system_ad_jac(m_nv, m_nv);
+    for (size_t n = 0; n < m_reactors.size(); n++) {
+        Reactor& r = *m_reactors[n];
+        Eigen::SparseMatrix<double> r_ad_jac;
+        // FIXME: r.autodiffJacobian() doesn't work yet
+        r_ad_jac = r.autodiffJacobian();
+        size_t st = m_start[n];
+        for (int k=0; k<r_ad_jac.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(r_ad_jac, k); it; ++it) {
+                jac_trips.emplace_back(it.row() + st, it.col() + st, it.value());
+            }
+        }
+    }
+    // set jacobian from triples
+    system_ad_jac.setFromTriplets(jac_trips.begin(), jac_trips.end());
+    return system_ad_jac;
+}
+
 }

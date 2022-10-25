@@ -7,7 +7,10 @@
 #define CT_REACTOR_H
 
 #include "ReactorBase.h"
+#include <autodiff/forward/real.hpp>
+#include <autodiff/forward/real/eigen.hpp>
 #include "cantera/numerics/eigen_sparse.h"
+
 
 
 namespace Cantera
@@ -176,6 +179,15 @@ public:
     //! API and may be changed or removed without notice.
     Eigen::SparseMatrix<double> finiteDifferenceJacobian();
 
+    //! Calculate the reactor-specific Jacobian using auto-differentiation.
+    //!
+    //! This method is used only for informational purposes. Jacobian calculations
+    //! for the full reactor system are handled internally by CVODES.
+    //!
+    //! @warning  This method is an experimental part of the %Cantera
+    //! API and may be changed or removed without notice.
+    Eigen::SparseMatrix<double> autodiffJacobian();
+
     //! Use this to set the kinetics objects derivative settings
     virtual void setDerivativeSettings(AnyMap& settings);
 
@@ -187,6 +199,9 @@ public:
     virtual void resetSensitivity(double* params);
 
 protected:
+    //! This function wraps eval such that it can be used by auto-diff
+    virtual autodiff::VectorXreal _autodiffEval(autodiff::VectorXreal& ydot);
+
     //! Return the index in the solution vector for this reactor of the species
     //! named *nm*, in either the homogeneous phase or a surface phase, relative
     //! to the start of the species terms. Used to implement componentIndex for

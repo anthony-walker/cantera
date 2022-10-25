@@ -559,4 +559,27 @@ void Reactor::setAdvanceLimit(const string& nm, const double limit)
     }
 }
 
+Eigen::SparseMatrix<double> Reactor::autodiffJacobian()
+{
+    autodiff::VectorXreal ydot(m_nv);
+    // getState(state.data());
+    Eigen::SparseMatrix<double> jac;
+    // auto ydot = Eigen::Map<Eigen::VectorXd>(state.data(), m_nv);
+    // autodiff::VectorXreal output;
+    // Eigen::MatrixXd jac = autodiff::jacobian(&Reactor::_autodiffEval, autodiff::wrt(ydot), autodiff::at(ydot), output);
+    // return jac.sparseView();
+    return jac;
+}
+
+autodiff::VectorXreal Reactor::_autodiffEval(autodiff::VectorXreal& ydot)
+{
+    // vector_fp lhs(m_nv, 1);
+    // vector_fp rhs(m_nv, 0);
+    // eval(0, lhs.data(), rhs.data());
+    // for (size_t i = 0; i < m_nv; i++) {
+    //     ydot[i] = rhs[i]/lhs[i];
+    // }
+    return ydot;
+}
+
 }

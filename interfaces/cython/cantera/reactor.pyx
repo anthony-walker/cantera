@@ -358,6 +358,17 @@ cdef class Reactor(ReactorBase):
             return get_from_sparse(self.reactor.finiteDifferenceJacobian(),
                                    self.n_vars, self.n_vars)
 
+    property autodiff_jacobian:
+        """
+        Get the reactor-specific Jacobian, calculated using auto-differentiation.
+
+        **Warning:** this property is an experimental part of the Cantera API and
+        may be changed or removed without notice.
+        """
+        def __get__(self):
+            return get_from_sparse(self.reactor.autodiffJacobian(),
+                                   self.n_vars, self.n_vars)
+
     def set_advance_limit(self, name, limit):
         """
         Limit absolute change of component ``name`` during `ReactorNet.advance`.
@@ -1601,3 +1612,39 @@ cdef class ReactorNet:
         """
         def __set__(self, settings):
             self.net.setDerivativeSettings(dict_to_anymap(settings))
+
+    property jacobian:
+        """
+        Get the Jacobian or an approximation thereof
+
+        **Warning**: Depending on the particular implementation, this may return an
+        approximate Jacobian intended only for use in forming a preconditioner for
+        iterative solvers, excluding terms that would generate a fully-dense Jacobian.
+
+        **Warning**: This method is an experimental part of the Cantera API and may be
+        changed or removed without notice.
+        """
+        def __get__(self):
+            return get_from_sparse(self.net.jacobian(), self.n_vars, self.n_vars)
+
+    property finite_difference_jacobian:
+        """
+        Get the system Jacobian, calculated using a finite difference method.
+
+        **Warning:** this property is an experimental part of the Cantera API and
+        may be changed or removed without notice.
+        """
+        def __get__(self):
+            return get_from_sparse(self.net.finiteDifferenceJacobian(),
+                                   self.n_vars, self.n_vars)
+
+    property autodiff_jacobian:
+        """
+        Get the system Jacobian, calculated using auto-differentiation.
+
+        **Warning:** this property is an experimental part of the Cantera API and
+        may be changed or removed without notice.
+        """
+        def __get__(self):
+            return get_from_sparse(self.net.autodiffJacobian(),
+                                   self.n_vars, self.n_vars)
