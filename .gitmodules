@@ -13,6 +13,3 @@
 [submodule "ext/yaml-cpp"]
 	path = ext/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
-[submodule "ext/autodiff"]
-	path = ext/autodiff
-	url = git@github.com:autodiff/autodiff.git

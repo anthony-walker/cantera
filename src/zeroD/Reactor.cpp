@@ -561,25 +561,48 @@ void Reactor::setAdvanceLimit(const string& nm, const double limit)
 
 Eigen::SparseMatrix<double> Reactor::autodiffJacobian()
 {
-    autodiff::VectorXreal ydot(m_nv);
-    // getState(state.data());
-    Eigen::SparseMatrix<double> jac;
-    // auto ydot = Eigen::Map<Eigen::VectorXd>(state.data(), m_nv);
-    // autodiff::VectorXreal output;
-    // Eigen::MatrixXd jac = autodiff::jacobian(&Reactor::_autodiffEval, autodiff::wrt(ydot), autodiff::at(ydot), output);
-    // return jac.sparseView();
-    return jac;
+    double y[m_nv];
+    getState(y);
+    autodiff::VectorXreal yV(Eigen::Map<Eigen::VectorXd>(y, m_nv));
+    Eigen::MatrixXd jac(m_nv, m_nv);
+    autodiff::VectorXreal ydot;
+    autodiff::jacobian(autodiffEvalReact, autodiff::wrt(yV), autodiff::at(yV, this), ydot, jac);
+    return jac.sparseView();
 }
 
-autodiff::VectorXreal Reactor::_autodiffEval(autodiff::VectorXreal& ydot)
+autodiff::VectorXreal Reactor::_autodiffEvalReact(autodiff::VectorXreal& y)
 {
-    // vector_fp lhs(m_nv, 1);
-    // vector_fp rhs(m_nv, 0);
-    // eval(0, lhs.data(), rhs.data());
-    // for (size_t i = 0; i < m_nv; i++) {
-    //     ydot[i] = rhs[i]/lhs[i];
-    // }
+    vector_fp yT(m_nv);
+    for (size_t i = 0; i < m_nv; i++) {
+        yT[i] = y[i].val();
+    }
+    updateState(yT.data());
+    vector_fp lhs(m_nv, 1);
+    vector_fp rhs(m_nv, 0);
+    eval(0, lhs.data(), rhs.data());
+    autodiff::VectorXreal ydot(nv);
+    for (size_t i = 0; i < m_nv; i++) {
+        ydot[i] = rhs[i]/lhs[i];
+    }
     return ydot;
 }
+
+// autodiff::VectorXreal autodiffReactorEval(Reactor& r, autodiff::VectorXreal& y)
+// {
+//     size_t nv = r.neq();
+//     vector_fp yT(nv);
+//     for (size_t i = 0; i < nv; i++) {
+//         yT[i] = y[i].val();
+//     }
+//     r.updateState(yT.data());
+//     vector_fp lhs(nv, 1);
+//     vector_fp rhs(nv, 0);
+//     r.eval(0, lhs.data(), rhs.data());
+//     autodiff::VectorXreal ydot(nv);
+//     for (size_t i = 0; i < nv; i++) {
+//         ydot[i] = rhs[i]/lhs[i];
+//     }
+//     return ydot;
+// }
 
 }

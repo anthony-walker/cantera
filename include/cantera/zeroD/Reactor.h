@@ -7,8 +7,11 @@
 #define CT_REACTOR_H
 
 #include "ReactorBase.h"
-#include <autodiff/forward/real.hpp>
-#include <autodiff/forward/real/eigen.hpp>
+// #include "cantera/ext/autodiff/autodiff/common/binomialcoefficient.hpp"
+// #include "cantera/ext/autodiff/autodiff/forward/real/real.hpp"
+// #include "cantera/ext/autodiff/autodiff/forward/real/eigen.hpp"
+#include "autodiff/forward/real/real.hpp"
+#include "autodiff/forward/real/eigen.hpp"
 #include "cantera/numerics/eigen_sparse.h"
 
 
@@ -200,7 +203,12 @@ public:
 
 protected:
     //! This function wraps eval such that it can be used by auto-diff
-    virtual autodiff::VectorXreal _autodiffEval(autodiff::VectorXreal& ydot);
+    // virtual autodiff::VectorXreal _autodiffEval(autodiff::VectorXreal& y);
+    static autodiff::VectorXreal autodiffEvalReact(const autodiff::VectorXreal& y, const Reactor& r)
+    {
+        autodiff::VectorXreal ydot(1);
+        return ydot;
+    }
 
     //! Return the index in the solution vector for this reactor of the species
     //! named *nm*, in either the homogeneous phase or a surface phase, relative
@@ -263,6 +271,9 @@ protected:
     //! Vector of triplets representing the jacobian
     std::vector<Eigen::Triplet<double>> m_jac_trips;
 };
+
+// autodiff::VectorXreal autodiffReactorEval(Reactor& r, autodiff::VectorXreal& y);
+
 }
 
 #endif
