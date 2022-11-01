@@ -1148,14 +1148,6 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         assert self.precon.side == "right"
         self.assertEqual(self.net2.linear_solver_type, "GMRES")
 
-    def test_with_surface_reactions(self):
-        with pytest.raises(ct.CanteraError):
-            super().test_with_surface_reactions()
-
-    def test_component_index(self):
-        with pytest.raises(ct.CanteraError):
-            super().test_component_index()
-
 class TestIdealGasMoleReactor(TestMoleReactor):
     reactorClass = ct.IdealGasMoleReactor
 
