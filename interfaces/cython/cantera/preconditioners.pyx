@@ -33,6 +33,20 @@ cdef class AdaptivePreconditioner(PreconditionerBase):
     def __cinit__(self, *args, **kwargs):
         self.preconditioner = <CxxAdaptivePreconditioner*>(self.pbase.get())
 
+    property min_value_replacement:
+        def __get__(self):
+            return self.preconditioner.minimum_replacement()
+
+        def __set__(self, value):
+            self.preconditioner.setMinimumReplacement(<cbool>value)
+
+    property flexible_threshold:
+        def __get__(self):
+            return self.preconditioner.flexible_threshold()
+
+        def __set__(self, value):
+            self.preconditioner.setFlexibleThreshold(<cbool>value)
+
     property threshold:
         """
         The threshold of the preconditioner is used to remove or prune any off diagonal

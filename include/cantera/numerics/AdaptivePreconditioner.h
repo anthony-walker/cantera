@@ -45,6 +45,17 @@ public:
 
     virtual void updatePreconditioner() override;
 
+    bool flexible_threshold() { return m_flexible_threshold; };
+
+    void setFlexibleThreshold(bool flex_thresh) {
+        m_flexible_threshold = flex_thresh;
+        m_init = false;
+    };
+
+    bool minimum_replacement() { return m_min_value_repl; };
+
+    void setMinimumReplacement(bool min_repl) { m_min_value_repl = min_repl; };
+
     //! Prune preconditioner elements
     void prunePreconditioner();
 
@@ -98,6 +109,11 @@ public:
     void printJacobian();
 
 protected:
+
+    void applyFlexibleThreshold();
+
+    std::complex<double> getMaxEigenvalue(Eigen::SparseMatrix<double> spmat);
+
     //! ilut fill factor
     double m_fill_factor = 0;
 
@@ -113,6 +129,9 @@ protected:
     //! Container that is the sparse preconditioner
     Eigen::SparseMatrix<double> m_precon_matrix;
 
+    //! Container used as a buffer for matrices
+    Eigen::SparseMatrix<double> m_buffer;
+
     //! Solver used in solving the linear system
     Eigen::IncompleteLUT<double> m_solver;
 
@@ -121,7 +140,13 @@ protected:
     double m_threshold = 0.0;
 
     //! Bool set whether to prune the matrix or not
-    double m_prune_precon = true;
+    bool m_prune_precon = true;
+    bool m_flexible_threshold = false;
+    bool m_min_value_repl = false;
+    //! Max exponent for flexible thresholding
+    size_t m_max_exp = 16;
+    //! Min exponent for flexible thresholding
+    size_t m_min_exp = 1;
 };
 
 }

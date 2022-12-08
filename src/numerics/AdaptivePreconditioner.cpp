@@ -5,7 +5,8 @@
 
 #include "cantera/base/global.h"
 #include "cantera/numerics/AdaptivePreconditioner.h"
-
+#include "Spectra/SymEigsSolver.h"
+#include "Spectra/MatOp/SparseSymMatProd.h"
 namespace Cantera
 {
 
@@ -38,6 +39,10 @@ void AdaptivePreconditioner::initialize(size_t networkSize)
     m_jac_trips.reserve(3 * networkSize);
     // reserve space for preconditioner
     m_precon_matrix.resize(m_dim, m_dim);
+    // reserve space for buff if flex-thresholding
+    if (m_flexible_threshold) {
+        m_buffer.resize(m_dim, m_dim);
+    }
     // creating sparse identity matrix
     m_identity.resize(m_dim, m_dim);
     m_identity.setIdentity();
@@ -76,21 +81,76 @@ void AdaptivePreconditioner::updatePreconditioner()
     // convert to preconditioner
     m_precon_matrix = m_identity - m_gamma * m_precon_matrix;
     // prune by threshold if desired
-    if (m_prune_precon) {
+    if (m_flexible_threshold) {
+        applyFlexibleThreshold();
+    }
+    else if (m_prune_precon) {
         prunePreconditioner();
     }
 }
 
 void AdaptivePreconditioner::prunePreconditioner()
 {
+    double replacement = (m_min_value_repl) ? m_threshold : 0;
     for (int k=0; k<m_precon_matrix.outerSize(); ++k) {
         for (Eigen::SparseMatrix<double>::InnerIterator it(m_precon_matrix, k); it;
             ++it) {
             if (std::abs(it.value()) < m_threshold && it.row() != it.col()) {
-                it.valueRef() = 0;
+                it.valueRef() = replacement;
             }
         }
     }
+}
+
+std::complex<double> AdaptivePreconditioner::getMaxEigenvalue(Eigen::SparseMatrix<double> spmat)
+{
+    // Construct matrix operation object using the wrapper class SparseGenMatProd
+    Spectra::SparseSymMatProd<double> op(spmat);
+    // Construct eigen solver object, requesting the largest eigenvalue
+    Spectra::SymEigsSolver<Spectra::SparseSymMatProd<double>> eigs(op, 1, 3);
+    // Initialize and compute
+    eigs.init();
+    int nconv = eigs.compute(Spectra::SortRule::LargestMagn);
+    // Retrieve results
+    if(eigs.info() == Spectra::CompInfo::Successful) {
+        return eigs.eigenvalues()[0];
+    }
+    else {
+        return LONG_MAX;
+    }
+}
+
+void AdaptivePreconditioner::applyFlexibleThreshold()
+{
+    // copy current preconditioner
+    m_buffer = m_precon_matrix;
+    m_threshold = 0;
+    std::complex<double> best = getMaxEigenvalue(m_buffer);
+    std::complex<double> curr;
+    m_buffer.setZero();
+    for (int i = m_min_exp; i < m_max_exp; i++) {
+        // get current threshold value
+        long double curr_thresh = std::pow(10, -i);
+        long double replacement = (m_min_value_repl) ? curr_thresh: 0;
+        // copy current preconditioner
+        m_buffer = m_precon_matrix;
+        // prune it based on current threshold
+        for (int k=0; k<m_precon_matrix.outerSize(); ++k) {
+            for (Eigen::SparseMatrix<double>::InnerIterator it(m_buffer, k); it;
+                ++it) {
+                if (std::abs(it.value()) < curr_thresh && it.row() != it.col()) {
+                    it.valueRef() = replacement;
+                }
+            }
+        }
+        curr = getMaxEigenvalue(m_buffer);
+        if (abs(curr) < abs(best)) {
+            best = curr;
+            m_threshold = curr_thresh;
+        }
+        m_buffer.setZero();
+    }
+    prunePreconditioner();
 }
 
 void AdaptivePreconditioner::solve(const size_t stateSize, double* rhs_vector, double*

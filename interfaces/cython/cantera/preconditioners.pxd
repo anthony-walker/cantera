@@ -25,6 +25,10 @@ cdef extern from "cantera/numerics/AdaptivePreconditioner.h" namespace "Cantera"
         double ilutDropTol()
         void printPreconditioner()
         CxxSparseMatrix matrix() except +
+        void setFlexibleThreshold(cbool flex_thresh)
+        cbool flexible_threshold()
+        void setMinimumReplacement(cbool min_repl)
+        cbool minimum_replacement()
 
 cdef extern from "cantera/numerics/PreconditionerFactory.h" namespace "Cantera":
     cdef shared_ptr[CxxPreconditionerBase] newPreconditioner(string) except\
