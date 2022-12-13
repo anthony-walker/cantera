@@ -133,7 +133,7 @@ Eigen::SparseMatrix<double> IdealGasConstPressureMoleReactor::jacobian()
     // volume / moles * rates portion of equation
     Eigen::VectorXd netProductionRates(m_nsp);
     m_kin->getNetProductionRates(netProductionRates.data()); // "omega dot"
-    Eigen::SparseMatrix<double> dwdC = m_kin->netProductionRates_ddC();
+    Eigen::SparseMatrix<double> dwdC = m_kin->netProductionRates_ddN();
     double molarVolume = m_thermo->molarVolume();
     // Calculate ROP derivatives, excluding the term
     // molarVolume * (wdot(j) - sum_k(X_k * dwdot_j/dX_k))

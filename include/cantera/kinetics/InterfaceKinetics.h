@@ -298,7 +298,9 @@ public:
     */
     double interfaceCurrent(const size_t iphase);
 
-    virtual Eigen::SparseMatrix<double> netRatesOfProgress_ddC();
+    virtual Eigen::SparseMatrix<double> fwdRatesOfProgress_ddN();
+    virtual Eigen::SparseMatrix<double> revRatesOfProgress_ddN();
+    virtual Eigen::SparseMatrix<double> netRatesOfProgress_ddN();
 
 protected:
     //! @name Internal service methods
@@ -317,8 +319,9 @@ protected:
     //! Process mole fraction derivative
     //! @param stoich  stoichiometry manager
     //! @param in  rate expression used for the derivative calculation
-    Eigen::SparseMatrix<double> process_ddC(StoichManagerN& stoich,
+    Eigen::SparseMatrix<double> process_derivatives(StoichManagerN& stoich,
                                             const vector_fp& in);
+    //! @}
 
     //! Temporary work vector of length m_kk
     vector_fp m_grt;

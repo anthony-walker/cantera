@@ -86,12 +86,12 @@ void MoleReactor::evalSurfaces(double* LHS, double* RHS, double* sdot)
 
 void MoleReactor::addSurfJacobian()
 {
-    // Translate surface netProductionRates_ddC into mole values for reactor
+    // Translate surface netProductionRates_ddN into mole values for reactor
     // Jacobian
     for (auto& S : m_surfaces) {
         auto curr_kin = S->kinetics();
         // get surface jacobian
-        Eigen::SparseMatrix<double> surfJac = curr_kin->netProductionRates_ddC();
+        Eigen::SparseMatrix<double> surfJac = curr_kin->netProductionRates_ddN();
         // Add elements to jacobian triplets
         for (int k=0; k<surfJac.outerSize(); ++k) {
             for (Eigen::SparseMatrix<double>::InnerIterator it(surfJac, k); it; ++it) {

@@ -579,6 +579,7 @@ public:
     //!  - `_ddP`: derivative with respect to pressure (a vector)
     //!  - `_ddC`: derivative with respect to molar concentration (a vector)
     //!  - `_ddX`: derivative with respect to species mole fractions (a matrix)
+    //!  - `_ddN`: derivative with respect to species concentrations (a matrix)
     //!
     //! Settings for derivative evaluation are set by keyword/value pairs using
     //! the methods getDerivativeSettings() and setDerivativeSettings().
@@ -707,6 +708,24 @@ public:
     }
 
     /**
+     * Calculate derivatives for forward rates-of-progress with respect to species
+     * concentration at constant temperature, pressure and remaining species
+     * concentrations.
+     *
+     * The method returns a matrix with nReactions rows and nTotalSpecies columns.
+     * For a derivative with respect to \f$n_i\f$, all other \f$n_j\f$ are held
+     * constant.
+     *
+     * @warning  This method is an experimental part of the %Cantera API and
+     *      may be changed or removed without notice.
+     */
+    virtual Eigen::SparseMatrix<double> fwdRatesOfProgress_ddN()
+    {
+        throw NotImplementedError("Kinetics::fwdRatesOfProgress_ddN",
+            "Not implemented for kinetics type '{}'.", kineticsType());
+    }
+
+    /**
      * Calculate derivatives for reverse rates-of-progress with respect to temperature
      * at constant pressure, molar concentration and mole fractions.
      * @param[out] drop  Output vector of derivatives. Length: nReactions().
@@ -756,6 +775,24 @@ public:
     virtual Eigen::SparseMatrix<double> revRatesOfProgress_ddX()
     {
         throw NotImplementedError("Kinetics::revRatesOfProgress_ddX",
+            "Not implemented for kinetics type '{}'.", kineticsType());
+    }
+
+    /**
+     * Calculate derivatives for forward rates-of-progress with respect to species
+     * concentration at constant temperature, pressure and remaining species
+     * concentrations.
+     *
+     * The method returns a matrix with nReactions rows and nTotalSpecies columns.
+     * For a derivative with respect to \f$n_i\f$, all other \f$n_j\f$ are held
+     * constant.
+     *
+     * @warning  This method is an experimental part of the %Cantera API and
+     *      may be changed or removed without notice.
+     */
+    virtual Eigen::SparseMatrix<double> revRatesOfProgress_ddN()
+    {
+        throw NotImplementedError("Kinetics::revRatesOfProgress_ddN",
             "Not implemented for kinetics type '{}'.", kineticsType());
     }
 
@@ -814,7 +851,8 @@ public:
 
     /**
      * Calculate derivatives for net rates-of-progress with respect to species
-     * concentration at constant temperature and pressure.
+     * concentration at constant temperature, pressure, and remaining species
+     * concentrations.
      *
      * The method returns a matrix with nReactions rows and nTotalSpecies columns.
      * For a derivative with respect to \f$[n_i]\f$, all other \f$[n_i]\f$ are held
@@ -823,9 +861,9 @@ public:
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    virtual Eigen::SparseMatrix<double> netRatesOfProgress_ddC()
+    virtual Eigen::SparseMatrix<double> netRatesOfProgress_ddN()
     {
-        throw NotImplementedError("Kinetics::netRatesOfProgress_ddC",
+        throw NotImplementedError("Kinetics::netRatesOfProgress_ddN",
             "Not implemented for kinetics type '{}'.", kineticsType());
     }
 
@@ -942,15 +980,17 @@ public:
 
     /**
      * Calculate derivatives for species net production rates with respect to species
-     * concentration at constant temperature and pressure.
+     * concentration at constant temperature,  pressure, and concentration of all other
+     * species.
      *
      * The method returns a matrix with nTotalSpecies rows and nTotalSpecies columns.
-     * For a derivative with respect to \f$[n_i]\f$, all other \f$[n_i]\f$ are held constant.
+     * For a derivative with respect to \f$[n_i]\f$, all other \f$[n_i]\f$ are held
+     * constant.
      *
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    Eigen::SparseMatrix<double> netProductionRates_ddC();
+    Eigen::SparseMatrix<double> netProductionRates_ddN();
 
     //! @}
     //! @name Reaction Mechanism Informational Query Routines

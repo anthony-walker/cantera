@@ -167,7 +167,7 @@ Eigen::SparseMatrix<double> IdealGasMoleReactor::jacobian()
     // get ROP derivatives, excluding the term molarVolume * sum_k(X_k * dwdot_j/dX_j)
     // which is small and would completely destroy the sparsity of the Jacobian
     Eigen::SparseMatrix<double> dwdC =
-        m_kin->netProductionRates_ddC() / m_vol;
+        m_kin->netProductionRates_ddN() / m_vol;
     // add to preconditioner
     for (int k=0; k<dwdC.outerSize(); ++k) {
         for (Eigen::SparseMatrix<double>::InnerIterator it(dwdC, k); it; ++it) {
