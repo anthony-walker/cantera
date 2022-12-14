@@ -48,7 +48,7 @@ class RateExpressionTests:
         self.assertEqual(self.equation, self.rxn.equation)
         self.assertEqual(self.rate_type, self.rxn.rate.type)
 
-    def rop_ddX(self, spc_ix, mode, const_t=True, rtol_deltac=1e-5, atol_deltac=1e-20):
+    def rop_derivs(self, spc_ix, mode, const_t=True, rtol_deltac=1e-5, atol_deltac=1e-20, ddX=True):
         # numerical derivative for rates-of-progress with respect to mole fractions
         def calc():
             if mode == "forward":
@@ -77,7 +77,10 @@ class RateExpressionTests:
             self.gas.TPX = tnew, self.gas.P, conc / ctot1
         drop = (calc() - rop0) / dconc
         self.gas.TPX = self.tpx
-        return drop * self.gas.density_mole
+        if ddX:
+            return drop * self.gas.density_mole
+        else:
+            return drop
 
     def test_forward_rop_ddX(self):
         # check derivatives of forward rates of progress with respect to mole fractions
@@ -96,7 +99,7 @@ class RateExpressionTests:
             self.assertNear(rop[self.rxn_idx],
                 drop[self.rxn_idx, spc_ix] * self.gas.X[spc_ix] / order)
 
-            drop_num = self.rop_ddX(spc_ix, mode="forward")
+            drop_num = self.rop_derivs(spc_ix, mode="forward")
             self.assertArrayNear(dropm[:, spc_ix] + dropp * self.gas.P, drop_num, self.rtol)
 
         if isinstance(self.rxn.rate, ct.FalloffRate):
@@ -122,7 +125,7 @@ class RateExpressionTests:
             self.assertNear(rop[self.rxn_idx],
                 drop[self.rxn_idx, spc_ix] * self.gas.X[spc_ix] / order)
 
-            drop_num = self.rop_ddX(spc_ix, mode="reverse")
+            drop_num = self.rop_derivs(spc_ix, mode="reverse")
             self.assertArrayNear(dropm[:, spc_ix] + dropp * self.gas.P, drop_num, self.rtol)
 
         if not self.rxn.reversible or isinstance(self.rxn.rate, ct.FalloffRate):
@@ -141,7 +144,7 @@ class RateExpressionTests:
         dropp = self.gas.net_rates_of_progress_ddP
 
         for spc_ix in self.rix + self.pix:
-            drop_num = self.rop_ddX(spc_ix, mode="net")
+            drop_num = self.rop_derivs(spc_ix, mode="net")
             ix = drop[:, spc_ix] != 0
             drop_ = drop[:, spc_ix] + dropp * self.gas.P
             self.assertArrayNear(drop_[ix], drop_num[ix], self.rtol)
@@ -154,6 +157,76 @@ class RateExpressionTests:
             self.assertTrue(drop[self.rxn_idx, spc_ix]) # non-zero
             drop[self.rxn_idx, spc_ix] = 0
         self.assertFalse(drop.any())
+
+    def test_forward_rop_ddN(self):
+        # check derivatives of forward rates of progress with respect to species
+        # concentrations against analytic result
+        dropm = self.gas.forward_rates_of_progress_ddN
+        dropp = self.gas.forward_rates_of_progress_ddP
+
+        self.gas.derivative_settings = {"skip-third-bodies": True}
+        drop = self.gas.forward_rates_of_progress_ddN
+        rop = self.gas.forward_rates_of_progress
+        for spc_ix in self.rix:
+            if self.orders is None:
+                order = self.r_stoich[spc_ix, self.rxn_idx]
+            else:
+                order = self.orders[self.gas.species_names[spc_ix]]
+            self.assertNear(rop[self.rxn_idx],
+                drop[self.rxn_idx, spc_ix] * self.gas.concentrations[spc_ix] / order)
+
+            drop_num = self.rop_derivs(spc_ix, mode="forward", ddX=False)
+            self.assertArrayNear(dropm[:, spc_ix] + dropp * self.gas.P, drop_num, 1e-3)
+
+        if isinstance(self.rxn.rate, ct.FalloffRate):
+            return
+
+        # ensure all zeros are in the correct spots
+        for spc_ix in set(self.rix + self.ix3b):
+            self.assertTrue(dropm[self.rxn_idx, spc_ix]) # non-zero
+            dropm[self.rxn_idx, spc_ix] = 0
+        self.assertFalse(dropm.any())
+
+    def test_reverse_rop_ddN(self):
+        # check derivatives of reverse rates of progress with respect to species
+        # concentrations against analytic result
+        dropm = self.gas.reverse_rates_of_progress_ddN
+        dropp = self.gas.reverse_rates_of_progress_ddP
+
+        self.gas.derivative_settings = {"skip-third-bodies": True}
+        drop = self.gas.reverse_rates_of_progress_ddN
+        rop = self.gas.reverse_rates_of_progress
+        for spc_ix in self.pix:
+            order = self.p_stoich[spc_ix, self.rxn_idx]
+            self.assertNear(rop[self.rxn_idx],
+                drop[self.rxn_idx, spc_ix] * self.gas.concentrations[spc_ix] / order)
+
+            drop_num = self.rop_derivs(spc_ix, mode="reverse", ddX=False)
+            self.assertArrayNear(dropm[:, spc_ix] + dropp * self.gas.P, drop_num, 1e-3)
+
+        if not self.rxn.reversible or isinstance(self.rxn.rate, ct.FalloffRate):
+            return
+
+        # ensure all zeros are in the correct spots
+        for spc_ix in set(self.pix + self.ix3b):
+            self.assertTrue(dropm[self.rxn_idx, spc_ix]) # non-zero
+            dropm[self.rxn_idx, spc_ix] = 0
+        self.assertFalse(dropm.any())
+
+    def test_net_rop_ddN(self):
+        # check derivatives of net rates of progress with respect to species
+        # concentrations against numeric result
+        drop = self.gas.net_rates_of_progress_ddN
+        dropp = self.gas.net_rates_of_progress_ddP
+
+        for spc_ix in self.rix + self.pix:
+            drop_num = self.rop_derivs(spc_ix, mode="net", ddX=False)
+            ix = drop[:, spc_ix] != 0
+            drop_ = drop[:, spc_ix] + dropp * self.gas.P
+            self.assertArrayNear(drop_[ix], drop_num[ix], 1e-4)
+
+        if not self.rxn.reversible or isinstance(self.rxn.rate, ct.FalloffRate):
+            return
 
     def rop_ddT(self, mode=None, const_p=False, rtol=1e-6):
         # numerical derivative for rates-of-progress at constant pressure
@@ -539,7 +612,7 @@ class FullTests:
         self.gas.TPX = self.tpx
         self.gas.derivative_settings = {} # reset
 
-    def rop_ddX(self, mode, rtol_deltac=1e-9, atol_deltac=1e-20):
+    def rop_derivs(self, mode, rtol_deltac=1e-9, atol_deltac=1e-20, ddX=True):
         # numerical derivative for rates-of-progress with respect to mole fractions
         def calc():
             if mode == "forward":
@@ -566,13 +639,16 @@ class FullTests:
             drop[:, spc_ix] = (calc() - rop0) / dconc
             self.gas.TPX = self.tpx
 
-        return drop * self.gas.density_mole
+        if ddX:
+            return drop * self.gas.density_mole
+        else:
+            return drop
 
     def test_forward_rop_ddX(self):
         # check forward rop against numerical derivative with respect to mole fractions
         drop = self.gas.forward_rates_of_progress_ddX
         dropp = self.gas.forward_rates_of_progress_ddP
-        drop_num = self.rop_ddX(mode="forward")
+        drop_num = self.rop_derivs(mode="forward")
         stoich = self.gas.reactant_stoich_coeffs
         for i in range(self.gas.n_reactions):
             try:
@@ -590,7 +666,7 @@ class FullTests:
         # check reverse rop against numerical derivative with respect to mole fractions
         drop = self.gas.reverse_rates_of_progress_ddX
         dropp = self.gas.reverse_rates_of_progress_ddP
-        drop_num = self.rop_ddX(mode="reverse")
+        drop_num = self.rop_derivs(mode="reverse")
         stoich = self.gas.product_stoich_coeffs
         for i in range(self.gas.n_reactions):
             try:
@@ -608,7 +684,62 @@ class FullTests:
         # check net rop against numerical derivative with respect to mole fractions
         drop = self.gas.net_rates_of_progress_ddX
         dropp = self.gas.net_rates_of_progress_ddP
-        drop_num = self.rop_ddX(mode="net")
+        drop_num = self.rop_derivs(mode="net")
+        stoich = self.gas.product_stoich_coeffs - self.gas.reactant_stoich_coeffs
+        for i in range(self.gas.n_reactions):
+            try:
+                # test entries that are not spurious
+                ix = np.abs((stoich[:, i] != 0) * drop[i, :]) > 1e-6
+                drop_ = drop[i, ix] + dropp[i] * self.gas.P
+                self.assertArrayNear(drop_, drop_num[i, ix], self.rtol)
+            except AssertionError as err:
+                if self.gas.reaction(i).reversible:
+                    print(i, self.gas.reaction(i).rate.type)
+                    print(self.gas.reaction(i))
+                    print(np.vstack([drop[i, ix], drop_num[i, ix]]).T)
+                    raise err
+
+    def test_forward_rop_ddN(self):
+        # check forward rop against numerical derivative with respect to mole fractions
+        drop = self.gas.forward_rates_of_progress_ddN
+        dropp = self.gas.forward_rates_of_progress_ddP
+        drop_num = self.rop_derivs(mode="forward", ddX=False)
+        stoich = self.gas.reactant_stoich_coeffs
+        for i in range(self.gas.n_reactions):
+            try:
+                # test entries that are not spurious
+                ix = np.abs((stoich[:, i] != 0) * drop[i, :]) > 1e-6
+                drop_ = drop[i, ix] + dropp[i] * self.gas.P
+                self.assertArrayNear(drop_, drop_num[i, ix], self.rtol)
+            except AssertionError as err:
+                print(i, self.gas.reaction(i).rate.type)
+                print(self.gas.reaction(i))
+                print(np.vstack([drop[i, ix], drop_num[i, ix]]).T)
+                raise err
+
+    def test_reverse_rop_ddN(self):
+        # check reverse rop against numerical derivative with respect to mole fractions
+        drop = self.gas.reverse_rates_of_progress_ddN
+        dropp = self.gas.reverse_rates_of_progress_ddP
+        drop_num = self.rop_derivs(mode="reverse", ddX=False)
+        stoich = self.gas.product_stoich_coeffs
+        for i in range(self.gas.n_reactions):
+            try:
+                # test entries that are not spurious
+                ix = np.abs((stoich[:, i] != 0) * drop[i, :]) > 1e-6
+                drop_ = drop[i, ix] + dropp[i] * self.gas.P
+                self.assertArrayNear(drop_, drop_num[i, ix], self.rtol)
+            except AssertionError as err:
+                print(i, self.gas.reaction(i).rate.type)
+                print(self.gas.reaction(i))
+                print(np.vstack([drop[i, ix], drop_num[i, ix]]).T)
+                raise err
+
+    def test_net_rop_ddN(self):
+        # check net rop against numerical derivative with respect to mole fractions
+        drop = self.gas.net_rates_of_progress_ddN
+        dropp = self.gas.net_rates_of_progress_ddP
+        drop_num = self.rop_derivs(mode="net", ddX=False)
         stoich = self.gas.product_stoich_coeffs - self.gas.reactant_stoich_coeffs
         for i in range(self.gas.n_reactions):
             try:
@@ -702,3 +833,171 @@ class FullEdgeCases(FullTests, utilities.CanteraTest):
         cls.gas.TPX = 300, 2 * ct.one_atm, "H2:1, O2:3, AR:0.4"
         cls.gas.equilibrate("HP")
         super().setUpClass()
+
+
+class SurfaceRateExpressionTests:
+    # Generic test class to check derivatives evaluated for a single reaction within
+    # a reaction mechanism for surfaces
+
+    rxn_idx = None # index of reaction to be tested
+    phase = None
+    rtol = 1e-5
+    orders = None
+    ix3b = [] # three-body indices
+    equation = None
+    rate_type = None
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tpx = cls.surf.TPX
+
+        cls.r_stoich = cls.surf.reactant_stoich_coeffs
+        cls.p_stoich = cls.surf.product_stoich_coeffs
+
+        cls.rxn = cls.surf.reactions()[cls.rxn_idx]
+        cls.rix = [cls.surf.species_index(k) for k in cls.rxn.reactants.keys()]
+        cls.pix = [cls.surf.species_index(k) for k in cls.rxn.products.keys()]
+
+    def setUp(self):
+        self.surf.TPX = self.tpx
+        self.surf.set_multiplier(0.)
+        self.surf.set_multiplier(1., self.rxn_idx)
+        # self.surf.derivative_settings = {} # reset defaults
+
+        # check stoichiometric coefficient output
+        for k, v in self.rxn.reactants.items():
+            ix = self.surf.species_index(k)
+            self.assertEqual(self.r_stoich[ix, self.rxn_idx], v)
+        for k, v in self.rxn.products.items():
+            ix = self.surf.species_index(k)
+            self.assertEqual(self.p_stoich[ix, self.rxn_idx], v)
+
+    def test_input(self):
+        # ensure that correct equation is referenced
+        self.assertEqual(self.equation, self.rxn.equation)
+        self.assertEqual(self.rate_type, self.rxn.rate.type)
+
+    def rop_derivs(self, spc_ix, mode, const_t=True, rtol_deltac=1e-5, atol_deltac=1e-20):
+        # numerical derivative for rates-of-progress with respect to mole fractions
+        def calc():
+            if mode == "forward":
+                return self.surf.forward_rates_of_progress
+            if mode == "reverse":
+                return self.surf.reverse_rates_of_progress
+            if mode == "net":
+                return self.surf.net_rates_of_progress
+
+        self.surf.TPX = self.tpx
+        rop0 = calc()
+        conc = self.surf.concentrations
+        ctot0 = conc.sum()
+
+        # perturb concentration
+        dconc = conc[spc_ix] * rtol_deltac + atol_deltac
+        conc[spc_ix] += dconc
+        ctot1 = conc.sum()
+        if const_t:
+            # adjust pressure to compensate for concentration change
+            pnew = self.surf.P * ctot1 / ctot0
+            self.surf.TPX = self.surf.T, pnew, conc / ctot1
+        else:
+            # adjust temperature to compensate for concentration change
+            tnew = self.surf.T * ctot1 / ctot0
+            self.surf.TPX = tnew, surf.gas.P, conc / ctot1
+        drop = (calc() - rop0) / dconc
+        self.surf.TPX = self.tpx
+        return drop
+
+    # def test_forward_rop_ddN(self):
+    #     # check derivatives of forward rates of progress with respect to species
+    #     # concentrations against analytic result
+    #     dropm = self.gas.forward_rates_of_progress_ddN
+    #     dropp = self.gas.forward_rates_of_progress_ddP
+
+    #     self.gas.derivative_settings = {"skip-third-bodies": True}
+    #     drop = self.gas.forward_rates_of_progress_ddN
+    #     rop = self.gas.forward_rates_of_progress
+    #     for spc_ix in self.rix:
+    #         if self.orders is None:
+    #             order = self.r_stoich[spc_ix, self.rxn_idx]
+    #         else:
+    #             order = self.orders[self.gas.species_names[spc_ix]]
+    #         self.assertNear(rop[self.rxn_idx],
+    #             drop[self.rxn_idx, spc_ix] * self.gas.concentrations[spc_ix] / order)
+
+    #         drop_num = self.rop_derivs(spc_ix, mode="forward", ddX=False)
+    #         self.assertArrayNear(dropm[:, spc_ix] + dropp * self.gas.P, drop_num, 1e-3)
+
+    #     if isinstance(self.rxn.rate, ct.FalloffRate):
+    #         return
+
+    #     # ensure all zeros are in the correct spots
+    #     for spc_ix in set(self.rix + self.ix3b):
+    #         self.assertTrue(dropm[self.rxn_idx, spc_ix]) # non-zero
+    #         dropm[self.rxn_idx, spc_ix] = 0
+    #     self.assertFalse(dropm.any())
+
+    # def test_reverse_rop_ddN(self):
+    #     # check derivatives of reverse rates of progress with respect to species
+    #     # concentrations against analytic result
+    #     dropm = self.gas.reverse_rates_of_progress_ddN
+    #     dropp = self.gas.reverse_rates_of_progress_ddP
+
+    #     self.gas.derivative_settings = {"skip-third-bodies": True}
+    #     drop = self.gas.reverse_rates_of_progress_ddN
+    #     rop = self.gas.reverse_rates_of_progress
+    #     for spc_ix in self.pix:
+    #         order = self.p_stoich[spc_ix, self.rxn_idx]
+    #         self.assertNear(rop[self.rxn_idx],
+    #             drop[self.rxn_idx, spc_ix] * self.gas.concentrations[spc_ix] / order)
+
+    #         drop_num = self.rop_derivs(spc_ix, mode="reverse", ddX=False)
+    #         self.assertArrayNear(dropm[:, spc_ix] + dropp * self.gas.P, drop_num, 1e-3)
+
+    #     if not self.rxn.reversible or isinstance(self.rxn.rate, ct.FalloffRate):
+    #         return
+
+    #     # ensure all zeros are in the correct spots
+    #     for spc_ix in set(self.pix + self.ix3b):
+    #         self.assertTrue(dropm[self.rxn_idx, spc_ix]) # non-zero
+    #         dropm[self.rxn_idx, spc_ix] = 0
+    #     self.assertFalse(dropm.any())
+    @pytest.mark.diagnose
+    def test_net_rop_ddN(self):
+        # check derivatives of net rates of progress with respect to species
+        # concentrations against numeric result
+        drop = self.surf.net_rates_of_progress_ddN
+
+        for spc_ix in self.rix + self.pix:
+            drop_num = self.rop_derivs(spc_ix, mode="net")
+            ix = drop[:, spc_ix] != 0
+            drop_ = drop[:, spc_ix]
+            self.assertArrayNear(drop_[ix], drop_num[ix], 1e-4)
+
+        if not self.rxn.reversible:
+            return
+
+
+class PlatinumMethane(SurfaceRateExpressionTests):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.gas = ct.Solution("ptcombust.yaml", transport_model=None)
+        cls.surf = ct.Interface("ptcombust.yaml", "Pt_surf", [cls.gas])
+        # species: [H2, H, O, O2, OH, H2O, HO2, H2O2, AR, N2]
+        # cls.gas.X = [0.1, 1e-4, 1e-5, 0.2, 2e-4, 0.3, 1e-6, 5e-5, 0.3, 0.1]
+        # cls.gas.TP = 800, 2 * ct.one_atm
+        super().setUpClass()
+
+
+class SurfaceElementary(PlatinumMethane, utilities.CanteraTest):
+    # Standard elementary reaction with two reactants
+    rxn_idx = 12
+    equation = "H(S) + OH(S) <=> H2O(S) + PT(S)"
+    rate_type = "interface-Arrhenius"
+
+class SurfaceAndGasElementary(PlatinumMethane, utilities.CanteraTest):
+    # Standard elementary reaction with two reactants
+    rxn_idx = 8
+    equation = "H2O + PT(S) => H2O(S)"
+    rate_type = "interface-Arrhenius"
