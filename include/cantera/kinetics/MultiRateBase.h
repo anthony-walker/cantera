@@ -85,6 +85,16 @@ public:
                                           double deltaM,
                                           bool overwrite=true) = 0;
 
+    //! Evaluate all rate constant species derivatives handled by the evaluator;
+    //! Depending on the implementation of a rate object, an exact derivative is used
+    //! or rate constants are treated as constant with respect to species and zero is
+    //! returned.
+    //! @param[in,out] rop  array of rop, which is modified by the method;
+    //!     contains rop on input, and d(rop)/dT on output
+    //! @param kf  array of forward rate constants (numerical derivative only)
+    virtual void processRateConstants_ddN(double* rop,
+                                          const double* kf) = 0;
+
     //! Update common reaction rate data based on temperature.
     //! Only used in conjunction with evalSingle and ReactionRate::eval
     //! @param T  temperature [K]

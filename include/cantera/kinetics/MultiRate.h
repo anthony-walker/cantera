@@ -11,6 +11,7 @@
 #include "ReactionRate.h"
 #include "MultiRateBase.h"
 #include "cantera/base/utilities.h"
+#include <iostream>
 
 namespace Cantera
 {
@@ -23,6 +24,7 @@ class MultiRate final : public MultiRateBase
     CT_DEFINE_HAS_MEMBER(has_ddT, ddTScaledFromStruct)
     CT_DEFINE_HAS_MEMBER(has_ddP, perturbPressure)
     CT_DEFINE_HAS_MEMBER(has_ddM, perturbThirdBodies)
+    CT_DEFINE_HAS_MEMBER(has_ddN, ddNFromStruct)
 
 public:
     virtual std::string type() override {
@@ -77,6 +79,13 @@ public:
         // call helper function: implementation of derivative depends on whether
         // ReactionRate::ddTFromStruct is defined
         _process_ddT(rop, kf, deltaT);
+    }
+
+    virtual void processRateConstants_ddN(double* rop, const double* kf) override
+    {
+        // call helper function: implementation of derivative depends on whether
+        // ReactionRate::ddNFromStruct is defined
+        _process_ddN(rop, kf);
     }
 
     virtual void processRateConstants_ddP(double* rop,
@@ -164,6 +173,26 @@ protected:
     //! Helper function to process temperature derivatives for rate types that
     //! implement the `ddTScaledFromStruct` method.
     template <typename T=RateType,
+        typename std::enable_if<has_ddN<T>::value, bool>::type = true>
+    void _process_ddN(double* rop, const double* kf) {
+        for (const auto& rxn : m_rxn_rates) {
+            rop[rxn.first] *= rxn.second.ddNFromStruct(m_shared);
+        }
+    }
+
+    //! Helper function to process temperature derivatives for rate types that
+    //! implement the `ddTScaledFromStruct` method.
+    template <typename T=RateType,
+        typename std::enable_if<!has_ddN<T>::value, bool>::type = true>
+    void _process_ddN(double* rop, const double* kf) {
+        for (const auto& rxn : m_rxn_rates) {
+            rop[rxn.first] = 0;
+        }
+    }
+
+    //! Helper function to process temperature derivatives for rate types that
+    //! implement the `ddTScaledFromStruct` method.
+    template <typename T=RateType,
         typename std::enable_if<has_ddT<T>::value, bool>::type = true>
     void _process_ddT(double* rop, const double* kf, double deltaT) {
         for (const auto& rxn : m_rxn_rates) {
@@ -175,7 +204,6 @@ protected:
     template <typename T=RateType,
         typename std::enable_if<!has_ddT<T>::value, bool>::type = true>
     void _process_ddT(double* rop, const double* kf, double deltaT) {
-
         // perturb conditions
         double dTinv = 1. / (m_shared.temperature * deltaT);
         m_shared.perturbTemperature(deltaT);

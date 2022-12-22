@@ -298,9 +298,14 @@ public:
     */
     double interfaceCurrent(const size_t iphase);
 
+    virtual void setDerivativeSettings(const AnyMap& settings);
     virtual Eigen::SparseMatrix<double> fwdRatesOfProgress_ddN();
     virtual Eigen::SparseMatrix<double> revRatesOfProgress_ddN();
     virtual Eigen::SparseMatrix<double> netRatesOfProgress_ddN();
+    virtual void getNetRatesOfProgress_ddT(double* drop);
+    virtual void getNetRatesOfProgress_ddP(double* drop);
+    virtual void getFwdRatesOfProgress_ddP(double* drop);
+    virtual void getRevRatesOfProgress_ddP(double* drop);
 
 protected:
     //! @name Internal service methods
@@ -321,6 +326,29 @@ protected:
     //! @param in  rate expression used for the derivative calculation
     Eigen::SparseMatrix<double> process_derivatives(StoichManagerN& stoich,
                                             const vector_fp& in);
+
+    //! Multiply rate with scaled temperature derivatives of the inverse
+    //! equilibrium constant
+    /*!
+     *  This (scaled) derivative is handled by a finite difference.
+     */
+    void processEquilibriumConstants_ddT(double* drkcn);
+
+    //! Process temperature derivative
+    //! @param in  rate expression used for the derivative calculation
+    //! @param drop  pointer to output buffer
+    void process_ddT(const vector_fp& in, double* drop);
+
+    //! Process pressure derivative
+    //! @param in  rate expression used for the derivative calculation
+    //! @param drop  pointer to output buffer
+    void process_ddP(const vector_fp& in, double* drop);
+
+    //! Helper function ensuring that all rate derivatives can be calculated
+    //! @param name  method name used for error output
+    //! @throw CanteraError if ideal gas assumption does not hold
+    void assertDerivativesValid(const std::string& name);
+
     //! @}
 
     //! Temporary work vector of length m_kk
@@ -482,10 +510,21 @@ protected:
     //! EdgeKinetics)
     size_t m_nDim;
 
+    //! Difference between the global reactants order and the global products
+    //! order. Of type "double" to account for the fact that we can have real-
+    //! valued stoichiometries.
+    vector_fp m_dn;
+
     // extra buffers for surface kinetics
     vector_fp m_rbuf0;
     vector_fp m_rbuf1;
     vector_fp m_rbuf2;
+    vector_fp m_sbuf0;
+    vector_fp m_state;
+
+    //! Derivative settings
+    bool m_jac_skip_cov_dependance;
+    double m_jac_rtol_delta;
 };
 
 }

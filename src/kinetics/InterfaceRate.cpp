@@ -53,12 +53,17 @@ bool InterfaceData::update(const ThermoPhase& phase, const Kinetics& kin)
     }
 
     double T = phase.temperature();
+    double P = phase.pressure();
     bool changed = false;
     const auto& surf = dynamic_cast<const SurfPhase&>(
         kin.thermo(kin.surfacePhaseIndex()));
     double site_density = surf.siteDensity();
     if (density != site_density) {
         density = surf.siteDensity();
+        changed = true;
+    }
+    if (P != pressure) {
+        pressure = P;
         changed = true;
     }
     if (T != temperature) {

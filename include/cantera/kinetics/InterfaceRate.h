@@ -44,6 +44,11 @@ struct InterfaceData : public BlowersMaselData
 
     virtual void update(double T) override;
 
+    virtual void update(double T, double P) override {
+        BlowersMaselData::update(T);
+        pressure = P;
+    }
+
     virtual void update(double T, const vector_fp& values) override;
 
     using BlowersMaselData::update;
@@ -60,13 +65,41 @@ struct InterfaceData : public BlowersMaselData
         ready = true;
     }
 
+    //! Perturb pressure for the derivative
+    void perturbPressure(double deltaP) {
+        if (m_pressure_buf > 0.) {
+            throw CanteraError("InterfaceData::perturbPressure",
+                "Cannot apply another perturbation as state is already perturbed.");
+        }
+        m_pressure_buf = pressure;
+        // std::cout<<m_pressure_buf<<std::endl;
+        // std::cout<<pressure * (1. + deltaP)<<std::endl;
+        // std::cout<<deltaP<<std::endl;
+        update(temperature, pressure * (1. + deltaP));
+    }
+
+    //! Restore state after perturbation
+    void restore() override{
+        BlowersMaselData::restore();
+        // only restore if there is a valid buffered value
+        if (m_pressure_buf < 0.) {
+            return;
+        }
+        update(temperature, m_pressure_buf);
+        m_pressure_buf = -1.;
+    }
+
     double sqrtT; //!< square root of temperature
+    double pressure; //!< pressure
 
     vector_fp coverages; //!< surface coverages
     vector_fp logCoverages; //!< logarithm of surface coverages
     vector_fp electricPotentials; //!< electric potentials of phases
     vector_fp standardChemPotentials; //!< standard state chemical potentials
     vector_fp standardConcentrations; //!< standard state concentrations
+
+    protected:
+        double m_pressure_buf; //!< buffered pressure
 };
 
 
@@ -416,9 +449,42 @@ public:
 
     //! Evaluate derivative of reaction rate with respect to temperature
     //! divided by reaction rate
+    //! The interface rate constant expression is can be broken into the product of
+    //! three functions of temperature. \f$ k_f(T) = p(T)q(T)r(T)\f$. The corresponding
+    //! derivative is then:
+    //! \f$ \frac{\partial k_f}{\partial T} p^'qr + pq^'r + pqr^'\f$.
     //! @param shared_data  data shared by all reactions of a given type
     double ddTScaledFromStruct(const DataType& shared_data) const {
-        throw NotImplementedError("InterfaceRate<>::ddTScaledFromStruct");
+        double A = RateType::preExponentialFactor();
+        double b = RateType::temperatureExponent();
+        double E = RateType::activationEnergy();
+        double T = shared_data.temperature;
+        double ERT =  E / (GasConstant * T);
+        // find functions of temperature
+        double p = A * std::pow(T, b); // m_siteDensity;
+        double q = std::exp(-ERT);
+        double r = std::exp(m_acov + m_mcov -
+                            m_ecov / (GasConstant * T));
+        // find deriavtives of temperature functions
+        double p_prime = b * A * std::pow(T, b-1);
+        double q_prime = ERT / T * std::exp(-ERT);
+        double r_prime = m_ecov / (GasConstant * T * T) * r;
+        // find and return total derivative
+        return  p_prime * q * r + p * q_prime * r + p * q * r_prime;
+    }
+
+    //! Evaluate derivative of reaction rate with respect to species concentration
+    //! @param shared_data  data shared by all reactions of a given type
+    double ddNFromStruct(const DataType& shared_data) const {
+        double A = RateType::preExponentialFactor();
+        double b = RateType::temperatureExponent();
+        double E = RateType::activationEnergy();
+        double T = shared_data.temperature;
+        double dkdN = A * std::pow(T, b) * std::exp(- E / (GasConstant * T));
+        // dkdN *=
+
+        // find and return total derivative
+        return 0.0;
     }
 
     virtual double preExponentialFactor() const override {
@@ -559,9 +625,27 @@ public:
 
     //! Evaluate derivative of reaction rate with respect to temperature
     //! divided by reaction rate
+    //! The interface rate constant expression is can be broken into the product of
+    //! three functions of temperature. \f$ k_f(T) = p(T)q(T)r(T)\f$. The corresponding
+    //! derivative is then:
+    //! \f$ \frac{\partial k_f}{\partial T} p^'qr + pq^'r + pqr^'\f$.
     //! @param shared_data  data shared by all reactions of a given type
     double ddTScaledFromStruct(const DataType& shared_data) const {
-        throw NotImplementedError("StickingRate<>::ddTScaledFromStruct");
+        double a = RateType::preExponentialFactor();
+        double b = RateType::temperatureExponent();
+        double c = RateType::activationEnergy();
+        double T =  shared_data.temperature;
+        // create functions p, q, and r
+        double p = a * std::pow(T, b) / std::pow(m_siteDensity, m_surfaceOrder);
+        double q = std::exp(-c / (GasConstant * T));
+        double r = m_multiplier * std::sqrt(T);
+        // create derivatives of p, q, and r;
+        double p_prime = b * a * std::pow(T, b-1) / std::pow(m_siteDensity,
+            m_surfaceOrder);
+        double q_prime = c / (GasConstant * T) * q;
+        double r_prime = m_multiplier / 2 / r;
+        // find and return total derivative
+        return  p_prime * q * r + p * q_prime * r + p * q * r_prime;
     }
 
     virtual double preExponentialFactor() const override {
