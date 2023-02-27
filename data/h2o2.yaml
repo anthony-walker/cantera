@@ -18,6 +18,20 @@ phases:
   transport: mixture-averaged
   state: {T: 300.0, P: 1 atm}
 
+- name: ohsurf
+  thermo: ideal-surface
+  adjacent-phases: [ohmech]
+  elements: [Pt, H, O]
+  species:
+  - ptcombust.yaml/species: [PT(S), H(S), H2O(S), OH(S), O(S)]
+  kinetics: surface
+  reactions:
+  - ptcombust.yaml/reactions: declared-species
+  state:
+    T: 900.0
+    coverages: {O(S): 0.0, PT(S): 0.5, H(S): 0.5}
+  site-density: 2.7063e-09
+
 species:
 - name: H2
   composition: {H: 2}
