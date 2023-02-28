@@ -585,7 +585,7 @@ public:
     //!  - `_ddP`: derivative with respect to pressure (a vector)
     //!  - `_ddC`: derivative with respect to molar concentration (a vector)
     //!  - `_ddX`: derivative with respect to species mole fractions (a matrix)
-    //!  - `_ddN`: derivative with respect to species concentrations (a matrix)
+    //!  - `_ddCi`: derivative with respect to species concentrations (a matrix)
     //!
     //! Settings for derivative evaluation are set by keyword/value pairs using
     //! the methods getDerivativeSettings() and setDerivativeSettings().
@@ -735,9 +735,9 @@ public:
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    virtual Eigen::SparseMatrix<double> fwdRatesOfProgress_ddN()
+    virtual Eigen::SparseMatrix<double> fwdRatesOfProgress_ddCi()
     {
-        throw NotImplementedError("Kinetics::fwdRatesOfProgress_ddN",
+        throw NotImplementedError("Kinetics::fwdRatesOfProgress_ddCi",
             "Not implemented for kinetics type '{}'.", kineticsType());
     }
 
@@ -806,9 +806,9 @@ public:
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    virtual Eigen::SparseMatrix<double> revRatesOfProgress_ddN()
+    virtual Eigen::SparseMatrix<double> revRatesOfProgress_ddCi()
     {
-        throw NotImplementedError("Kinetics::revRatesOfProgress_ddN",
+        throw NotImplementedError("Kinetics::revRatesOfProgress_ddCi",
             "Not implemented for kinetics type '{}'.", kineticsType());
     }
 
@@ -877,9 +877,9 @@ public:
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    virtual Eigen::SparseMatrix<double> netRatesOfProgress_ddN()
+    virtual Eigen::SparseMatrix<double> netRatesOfProgress_ddCi()
     {
-        throw NotImplementedError("Kinetics::netRatesOfProgress_ddN",
+        throw NotImplementedError("Kinetics::netRatesOfProgress_ddCi",
             "Not implemented for kinetics type '{}'.", kineticsType());
     }
 
@@ -932,7 +932,7 @@ public:
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    Eigen::SparseMatrix<double> creationRates_ddN();
+    Eigen::SparseMatrix<double> creationRates_ddCi();
 
     /**
      * Calculate derivatives for species destruction rates with respect to temperature
@@ -983,7 +983,7 @@ public:
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    Eigen::SparseMatrix<double> destructionRates_ddN();
+    Eigen::SparseMatrix<double> destructionRates_ddCi();
 
     /**
      * Calculate derivatives for species net production rates with respect to
@@ -1034,7 +1034,7 @@ public:
      * @warning  This method is an experimental part of the %Cantera API and
      *      may be changed or removed without notice.
      */
-    Eigen::SparseMatrix<double> netProductionRates_ddN();
+    Eigen::SparseMatrix<double> netProductionRates_ddCi();
 
     //! @}
     //! @name Reaction Mechanism Informational Query Routines
