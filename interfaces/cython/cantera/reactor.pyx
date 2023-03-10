@@ -333,6 +333,33 @@ cdef class Reactor(ReactorBase):
         self.reactor.getState(&y[0])
         return y
 
+    property state:
+        """
+        Get or set the state of the reactor with an array.
+
+        **Warning**: The state will vary based on the type of reactor, for example,
+        IdealGasMoleReactor has a state of [T, V, n1, n2, ..., ni] where nj is moles of
+        the jth species.
+
+        **Warning**: This method is an experimental part of the Cantera API and may be
+        changed or removed without notice.
+        """
+        def __get__(self):
+            if not self.n_vars:
+                raise CanteraError('Reactor empty or network not initialized.')
+            cdef np.ndarray[np.double_t, ndim=1] y = np.zeros(self.n_vars)
+            self.reactor.getState(&y[0])
+            return y
+
+        def __set__(self, state):
+            if not self.n_vars:
+                raise CanteraError('Reactor empty or network not initialized.')
+            elif len(state) != self.n_vars:
+                raise CanteraError("State of invalid size given to reactor.")
+            # create cpp array
+            cdef np.ndarray[np.double_t, ndim=1] y = np.array(state)
+            self.reactor.updateState(&y[0])
+
     property jacobian:
         """
         Get the local, reactor-specific Jacobian or an approximation thereof
@@ -1601,3 +1628,28 @@ cdef class ReactorNet:
         """
         def __set__(self, settings):
             self.net.setDerivativeSettings(dict_to_anymap(settings))
+
+    property jacobian:
+        """
+        Get the system Jacobian or an approximation thereof.
+
+        **Warning**: Depending on the particular implementation, this may return an
+        approximate Jacobian intended only for use in forming a preconditioner for
+        iterative solvers, excluding terms that would generate a fully-dense Jacobian.
+
+        **Warning**: This method is an experimental part of the Cantera API and may be
+        changed or removed without notice.
+        """
+        def __get__(self):
+            return get_from_sparse(self.net.jacobian(), self.n_vars, self.n_vars)
+
+    property finite_difference_jacobian:
+        """
+        Get the system Jacobian, calculated using a finite difference method.
+
+        **Warning:** this property is an experimental part of the Cantera API and
+        may be changed or removed without notice.
+        """
+        def __get__(self):
+            return get_from_sparse(self.net.finiteDifferenceJacobian(),
+                                   self.n_vars, self.n_vars)
