@@ -190,6 +190,12 @@ public:
         return m_valid;
     }
 
+     //! Boolean indicating whether rate uses electrochemistry
+    virtual bool usesElectrochemistry() { return false; }
+
+    //! Boolean indicating whether rate uses coverage dependence
+    virtual bool usesCoverageDependence() { return false; }
+
 protected:
     //! Get parameters
     //! @param node  AnyMap containing rate information

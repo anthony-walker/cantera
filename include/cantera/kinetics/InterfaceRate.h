@@ -196,6 +196,11 @@ public:
         return m_chargeTransfer;
     }
 
+    //! Boolean indicating whether rate uses coverage dependence
+    bool usesCoverageDependence() {
+        return !m_cov.empty();
+    }
+
     //! Return the charge transfer beta parameter
     double beta() const {
         if (m_chargeTransfer) {

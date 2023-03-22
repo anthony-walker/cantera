@@ -824,6 +824,14 @@ class TestReactor(utilities.CanteraTest):
         with self.assertRaises(TypeError):
             r1 = self.reactorClass(foobar=3.14)
 
+    def test_preconditioner_support(self):
+        # make reactors of
+        self.make_reactors()
+        self.net.preconditioner = ct.AdaptivePreconditioner()
+        # this should throw an error, as we can't reach dt
+        with self.assertRaises(ct.CanteraError):
+            self.net.initialize()
+
 class TestMoleReactor(TestReactor):
     reactorClass = ct.MoleReactor
 
@@ -1123,6 +1131,14 @@ class TestConstPressureReactor(utilities.CanteraTest):
         self.net1.rtol = self.net2.rtol = 1e-9
         self.integrate(surf=True)
 
+    def test_preconditioner_support(self):
+        # make reactors of
+        self.create_reactors()
+        self.net2.preconditioner = ct.AdaptivePreconditioner()
+        # this should throw an error, as we can't reach dt
+        with self.assertRaises(ct.CanteraError):
+            self.net2.initialize()
+
 class TestConstPressureMoleReactor(TestConstPressureReactor):
     """
     The constant pressure reactor should give the same results as
@@ -1139,6 +1155,7 @@ class TestIdealGasConstPressureReactor(TestConstPressureReactor):
 
 class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
     reactorClass = ct.IdealGasConstPressureMoleReactor
+    test_preconditioner_support = None
 
     def create_reactors(self, **kwargs):
         super().create_reactors(**kwargs)
@@ -1154,6 +1171,7 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
 
 class TestIdealGasMoleReactor(TestMoleReactor):
     reactorClass = ct.IdealGasMoleReactor
+    test_preconditioner_support = None
 
     def test_adaptive_precon_integration(self):
         # Network one with non-mole reactor
@@ -1189,6 +1207,14 @@ class TestIdealGasMoleReactor(TestMoleReactor):
 
 
 class TestReactorJacobians(utilities.CanteraTest):
+
+    @pytest.mark.diagnose
+    def test_coverage_dependence_flags(self):
+        gas = ct.Solution("dummy.yaml", "gas")
+        surf = ct.Interface("dummy.yaml", "Pt_surf", [gas])
+        surf.TP = 900, ct.one_atm
+        surf.coverages = {"PT(S)":1}
+        surf.net_rates_of_progress_ddCi
 
     def test_phase_order_surf_jacobian(self):
         # create gas phase
