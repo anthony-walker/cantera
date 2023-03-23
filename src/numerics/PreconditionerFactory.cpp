@@ -6,6 +6,7 @@
 #include "cantera/numerics/PreconditionerFactory.h"
 #include "cantera/numerics/AdaptivePreconditioner.h"
 #include "cantera/numerics/SubmodelPreconditioner.h"
+#include "cantera/numerics/StateDiagonalPreconditioner.h"
 
 namespace Cantera
 {
@@ -32,6 +33,7 @@ PreconditionerFactory::PreconditionerFactory()
 {
     reg("Adaptive", []() { return new AdaptivePreconditioner(); });
     reg("Submodel", []() { return new SubmodelPreconditioner(); });
+    reg("StateDiagonal", []() { return new StateDiagonalPreconditioner(); });
 }
 
 shared_ptr<PreconditionerBase> newPreconditioner(const string& precon)

@@ -1138,6 +1138,10 @@ class TestIdealGasConstPressureReactor(TestConstPressureReactor):
 
 class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
     reactorClass = ct.IdealGasConstPressureMoleReactor
+    main_model = "ic8-detailed-2768-11850.yaml"
+    sub_model = "ic8-874-6864.yaml"
+    mmfuel = "IC8H18"
+    mmair = "O2:1, N2:3.76"
 
     def create_reactors(self, **kwargs):
         super().create_reactors(**kwargs)
@@ -1158,21 +1162,21 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         with pytest.raises(ct.CanteraError):
             super().test_component_index()
 
-    @pytest.mark.diagnose
+    # @pytest.mark.diagnose
     def test_submodel_massfraction(self):
         t0 = time.time_ns()
         # conditions
         T0 = 1000
         P0 = ct.one_atm
         # create reduced reactor
-        gas1 = ct.Solution("ic8-874-6864.yaml")
+        gas1 = ct.Solution(self.sub_model)
         gas1.TP = T0, P0
-        gas1.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        gas1.set_equivalence_ratio(1, self.mmfuel, self.mmair)
         r1 = ct.IdealGasReactor(gas1)
         # create detailed reactor
-        gas2 = ct.Solution("ic8-detailed-2768-11850.yaml")
+        gas2 = ct.Solution(self.main_model)
         gas2.TP = T0, P0
-        gas2.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)
         r2 = ct.IdealGasReactor(gas2)
         # create network
         net = ct.ReactorNet()
@@ -1193,15 +1197,15 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         T0 = 1000
         P0 = ct.one_atm
         # create reduced reactor
-        gas1 = ct.Solution("ic8-874-6864.yaml")
+        gas1 = ct.Solution(self.sub_model)
         gas1.TP = T0, P0
-        gas1.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        gas1.set_equivalence_ratio(1, self.mmfuel, self.mmair)
         gas1.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
         r1 = ct.IdealGasMoleReactor(gas1)
         # create detailed reactor
-        gas2 = ct.Solution("ic8-detailed-2768-11850.yaml")
+        gas2 = ct.Solution(self.main_model)
         gas2.TP = T0, P0
-        gas2.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)
         r2 = ct.IdealGasMoleReactor(gas2)
         # create network
         net = ct.ReactorNet()
@@ -1214,6 +1218,47 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         tf = time.time_ns()
         print(f"Mole SubmodelPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
 
+    # @pytest.mark.diagnose
+    def test_statediag_mole(self):
+        t0 = time.time_ns()
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        r2 = ct.IdealGasMoleReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        net.preconditioner = ct.StateDiagonalPreconditioner()
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"Mole StateDiagPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+
+    # @pytest.mark.diagnose
+    def test_statediag_mf(self):
+        # np.set_printoptions(precision=3, linewidth=144)
+        t0 = time.time_ns()
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)  #"IC8H18", self.mmair)
+        r2 = ct.IdealGasReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        net.preconditioner = ct.StateDiagonalPreconditioner()
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"Mass Fraction StateDiagPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+
     @pytest.mark.diagnose
     def test_adaptive(self):
         t0 = time.time_ns()
@@ -1221,9 +1266,9 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         T0 = 1000
         P0 = ct.one_atm
         # create detailed reactor
-        gas2 = ct.Solution("ic8-detailed-2768-11850.yaml")
+        gas2 = ct.Solution(self.main_model)
         gas2.TP = T0, P0
-        gas2.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        gas2.set_equivalence_ratio(1, "IC8H18", self.mmair)
         r2 = ct.IdealGasMoleReactor(gas2)
         # create network
         net = ct.ReactorNet()
@@ -1239,17 +1284,17 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
     # @pytest.mark.diagnose
     def test_submodel_combustor(self):
         t0 = time.time_ns()
-        gas = ct.Solution("ic8-detailed-2768-11850.yaml")
+        gas = ct.Solution(self.main_model)
         # Create a Reservoir for the inlet, set to a methane/air mixture at a specified
         # equivalence ratio
         T0, P0 = 300.0, ct.one_atm
         equiv_ratio = 0.5  # lean combustion
         gas.TP = T0, P0
-        gas.set_equivalence_ratio(equiv_ratio, "IC8H18", "O2:1, N2:3.76")
+        gas.set_equivalence_ratio(equiv_ratio, "IC8H18", self.mmair)
         inlet = ct.Reservoir(gas)
         # create reduced reactor
-        gas_sub = ct.Solution("ic8-874-6864.yaml")
-        gas_sub.set_equivalence_ratio(equiv_ratio, "IC8H18", "O2:1, N2:3.76")
+        gas_sub = ct.Solution(self.sub_model)
+        gas_sub.set_equivalence_ratio(equiv_ratio, "IC8H18", self.mmair)
         gas_sub.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
         gas_sub.equilibrate("HP")
         r_sub = ct.IdealGasMoleReactor(gas_sub)
@@ -1283,13 +1328,13 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
     # @pytest.mark.diagnose
     def test_adaptive_combustor(self):
         t0 = time.time_ns()
-        gas = ct.Solution("ic8-detailed-2768-11850.yaml")
+        gas = ct.Solution(self.main_model)
         # Create a Reservoir for the inlet, set to a methane/air mixture at a specified
         # equivalence ratio
         T0, P0 = 300.0, ct.one_atm
         equiv_ratio = 0.5  # lean combustion
         gas.TP = T0, P0
-        gas.set_equivalence_ratio(equiv_ratio, "IC8H18", "O2:1, N2:3.76")
+        gas.set_equivalence_ratio(equiv_ratio, "IC8H18", self.mmair)
         inlet = ct.Reservoir(gas)
         # create combustor
         gas.equilibrate('HP')
@@ -1322,9 +1367,9 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         # create detailed reactor
         T0 = 1000
         P0 = ct.one_atm
-        gas2 = ct.Solution("ic8-detailed-2768-11850.yaml")
+        gas2 = ct.Solution(self.main_model)
         gas2.TP = T0, P0
-        gas2.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        gas2.set_equivalence_ratio(1, "IC8H18", self.mmair)
         r2 = ct.IdealGasReactor(gas2)
         # create network
         net = ct.ReactorNet()

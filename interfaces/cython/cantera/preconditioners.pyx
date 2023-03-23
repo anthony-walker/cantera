@@ -104,3 +104,13 @@ cdef class SubmodelPreconditioner(AdaptivePreconditioner):
 
     def add_reactor(self, Reactor r):
         self.submodel_precon.addReactor(r.reactor)
+
+cdef class StateDiagonalPreconditioner(AdaptivePreconditioner):
+    precon_type = "StateDiagonal"
+    precon_linear_solver_type = "GMRES"
+
+    def __cinit__(self, *args, **kwargs):
+        self.statediag_precon = <CxxStateDiagonalPreconditioner*>(self.pbase.get())
+
+    def add_reactor(self, Reactor r):
+        self.statediag_precon.addReactor(r.reactor)
