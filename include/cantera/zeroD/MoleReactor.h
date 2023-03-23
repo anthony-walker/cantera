@@ -36,7 +36,7 @@ public:
 
     std::string componentName(size_t k);
 
-    bool isMoleReactor() {return true;}
+    bool isMoleReactor() { return true; }
 
 protected:
     //! Get moles of the system from mass fractions stored by thermo object
