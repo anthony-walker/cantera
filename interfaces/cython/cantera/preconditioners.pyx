@@ -2,6 +2,7 @@
 # at https://cantera.org/license.txt for license and copyright information.
 
 from ._utils cimport stringify, pystr, dict_to_anymap, anymap_to_dict
+from .reactor cimport Reactor
 
 cdef class PreconditionerBase:
     """
@@ -93,3 +94,13 @@ cdef class AdaptivePreconditioner(PreconditionerBase):
 
     def print_contents(self):
         self.preconditioner.printPreconditioner()
+
+cdef class SubmodelPreconditioner(AdaptivePreconditioner):
+    precon_type = "Submodel"
+    precon_linear_solver_type = "GMRES"
+
+    def __cinit__(self, *args, **kwargs):
+        self.submodel_precon = <CxxSubmodelPreconditioner*>(self.pbase.get())
+
+    def add_reactor(self, Reactor r):
+        self.submodel_precon.addReactor(r.reactor)

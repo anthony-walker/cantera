@@ -15,6 +15,10 @@
 namespace Cantera
 {
 
+
+//! Forward declaration of reactor network
+class ReactorNet;
+
 /**
  * Specifies the side of the system on which the preconditioner is applied. Not all
  * methods are supported by all integrators.
@@ -33,6 +37,8 @@ public:
     PreconditionerBase() {}
 
     virtual ~PreconditionerBase() {}
+
+    virtual string type() { return "PreconditionerBase"; }
 
     //! Set a value at the specified row and column of the jacobian triplet vector
     //! @param row row in the jacobian matrix
@@ -112,6 +118,8 @@ public:
         m_atol = atol;
     }
 
+    void setNetwork(ReactorNet* rnet) { m_rnet = rnet; }
+
 protected:
     //! Dimension of the preconditioner
     size_t m_dim;
@@ -126,6 +134,9 @@ protected:
     double m_atol = 0;
 
     std::string m_precon_side = "none";
+
+    //! Pointer to the reactor network
+    ReactorNet* m_rnet;
 };
 
 }

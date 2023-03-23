@@ -186,6 +186,8 @@ public:
     //! Reset the reaction rate multipliers
     virtual void resetSensitivity(double* params);
 
+    virtual bool isMoleReactor() { return false; }
+
 protected:
     //! Return the index in the solution vector for this reactor of the species
     //! named *nm*, in either the homogeneous phase or a surface phase, relative

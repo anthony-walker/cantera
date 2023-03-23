@@ -138,7 +138,11 @@ void ReactorNet::setLinearSolverType(const std::string& linSolverType)
 
 void ReactorNet::setPreconditioner(shared_ptr<PreconditionerBase> preconditioner)
 {
+    preconditioner->setNetwork(this);
     m_integ->setPreconditioner(preconditioner);
+    if (preconditioner->type() == "SubmodelPreconditioner") {
+        m_use_submodel_precon = true;
+    }
     m_integrator_init = false;
 }
 
@@ -451,13 +455,15 @@ void ReactorNet::preconditionerSetup(double t, double* y, double gamma)
     precon->stateAdjustment(yCopy);
     // update network with adjusted state
     updateState(yCopy.data());
-    // Get jacobians and give elements to preconditioners
-    for (size_t i = 0; i < m_reactors.size(); i++) {
-        Eigen::SparseMatrix<double> rJac = m_reactors[i]->jacobian();
-        for (int k=0; k<rJac.outerSize(); ++k) {
-            for (Eigen::SparseMatrix<double>::InnerIterator it(rJac, k); it; ++it) {
-                precon->setValue(it.row() + m_start[i], it.col() + m_start[i],
-                    it.value());
+    if (!m_use_submodel_precon) {
+        // Get jacobians and give elements to preconditioners
+        for (size_t i = 0; i < m_reactors.size(); i++) {
+            Eigen::SparseMatrix<double> rJac = m_reactors[i]->jacobian();
+            for (int k=0; k<rJac.outerSize(); ++k) {
+                for (Eigen::SparseMatrix<double>::InnerIterator it(rJac, k); it; ++it) {
+                    precon->setValue(it.row() + m_start[i], it.col() + m_start[i],
+                        it.value());
+                }
             }
         }
     }

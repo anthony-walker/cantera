@@ -1157,6 +1157,51 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         with pytest.raises(ct.CanteraError):
             super().test_component_index()
 
+    @pytest.mark.diagnose
+    def test_submodel_precon_integration(self):
+        # conditions
+        T0 = 900
+        P0 = ct.one_atm
+        # create reduced reactor
+        gas1 = ct.Solution("ic8-874-6864.yaml")
+        gas1.TP = T0, P0
+        gas1.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        r1 = ct.IdealGasMoleReactor(gas1)
+        # create detailed reactor
+        gas2 = ct.Solution("ic8-detailed-2768-11850.yaml")
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, "IC8H18", "O2:1, N2:3.76")
+        r2 = ct.IdealGasMoleReactor(gas1)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        precon = ct.SubmodelPreconditioner()
+        precon.add_reactor(r1)
+        net.preconditioner = precon
+        # create preconditioner
+        # # Network two with mole reactor and preconditioner
+        # net2 = ct.ReactorNet()
+        # gas2 = ct.Solution("gri30.yaml")
+        # gas2.TP = T0, P0
+        # gas2.set_equivalence_ratio(1, "CH4", "O2:1, N2:3.76")
+        # r2 = ct.IdealGasMoleReactor(gas2)
+        # net2.add_reactor(r2)
+        # # add preconditioner
+        # net2.preconditioner = ct.AdaptivePreconditioner()
+        # net2.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
+        # # tolerances
+        # net1.atol = net2.atol = 1e-16
+        # net1.rtol = net1.rtol = 1e-8
+        # # integrate
+        # for t in np.arange(0.5, 5, 0.5):
+        #     net1.advance(t)
+        #     net2.advance(t)
+        #     self.assertArrayNear(r1.thermo.Y, r2.thermo.Y,
+        #                          rtol=5e-4, atol=1e-6)
+        #     self.assertNear(r1.T, r2.T, rtol=1e-5)
+        #     self.assertNear(r1.thermo.P, r2.thermo.P, rtol=1e-5)
+
 class TestIdealGasMoleReactor(TestMoleReactor):
     reactorClass = ct.IdealGasMoleReactor
 
