@@ -1203,6 +1203,52 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         print(f"Mass Fraction SubmodelPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
 
     @pytest.mark.diagnose
+    def test_compare_preconditioners(self):
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create reduced reactor
+        gas1 = ct.Solution(self.sub_model)
+        gas1.TP = T0, P0
+        gas1.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        gas1.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
+        r1 = ct.IdealGasMoleReactor(gas1)
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        r2 = ct.IdealGasMoleReactor(gas2)
+        # create detailed reactor
+        gas3 = ct.Solution(self.main_model)
+        gas3.TP = T0, P0
+        gas3.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        r3 = ct.IdealGasMoleReactor(gas3)
+        # create network
+        net1 = ct.ReactorNet()
+        net1.add_reactor(r2)
+        precon1 = ct.SubmodelPreconditioner()
+        precon1.add_reactor(r1)
+        net1.preconditioner = precon1
+        net1.initialize()
+        # create network
+        net2 = ct.ReactorNet()
+        net2.add_reactor(r3)
+        precon2 = ct.AdaptivePreconditioner()
+        net2.preconditioner = precon2
+        net2.initialize()
+        # advance and get matrices
+        t0 = time.time_ns()
+        net1.advance(0.0001)
+        tf = time.time_ns()
+        print(f"Mole SubmodelPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+        t0 = time.time_ns()
+        net2.advance(0.0001)
+        tf = time.time_ns()
+        print(f"Mole AdaptivePrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+        self.assertArrayNear(precon1.matrix, precon2.matrix,
+                                 rtol=5e-4, atol=1e-6)
+
+    # @pytest.mark.diagnose
     def test_submodel_mole(self):
         t0 = time.time_ns()
         # conditions
@@ -1271,7 +1317,7 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         tf = time.time_ns()
         print(f"Mass Fraction StateDiagPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
 
-    @pytest.mark.diagnose
+    # @pytest.mark.diagnose
     def test_adaptive(self):
         t0 = time.time_ns()
         # conditions
@@ -1430,7 +1476,7 @@ class TestIdealGasMoleReactor(TestMoleReactor):
 
 class TestReactorJacobians(utilities.CanteraTest):
 
-    @pytest.mark.diagnose
+    # @pytest.mark.diagnose
     def test_coverage_dependence_flags(self):
         gas = ct.Solution("dummy.yaml", "gas")
         surf = ct.Interface("dummy.yaml", "Pt_surf", [gas])

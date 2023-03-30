@@ -15,9 +15,11 @@ void SubmodelPreconditioner::initialize(size_t networkSize)
 {
     AdaptivePreconditioner::initialize(networkSize);
     // create map
-    for (size_t i = 0; i < networkSize; i++) {
+    for (size_t i = 0 ; i < networkSize; i++) {
         m_submodel_map[i] = true;
     }
+    m_submodel_map[0] = false;
+    m_submodel_map[1] = false;
     size_t ctr = 0;
     for (auto subr : m_reactors) {
         for (size_t i = 0; i < subr->neq(); i++) {
