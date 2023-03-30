@@ -174,7 +174,7 @@ public:
     //!
     //! @warning  This method is an experimental part of the %Cantera
     //! API and may be changed or removed without notice.
-    Eigen::SparseMatrix<double> finiteDifferenceJacobian();
+    Eigen::SparseMatrix<double> finiteDifferenceJacobian(bool state_diag=true);
 
     //! Use this to set the kinetics objects derivative settings
     virtual void setDerivativeSettings(AnyMap& settings);
@@ -188,6 +188,7 @@ public:
 
     //! Return a false if preconditioning is not supported or true otherwise.
     virtual bool preconditioningSupported() {return false;};
+    virtual bool isMoleReactor() { return false; }
 
 protected:
     //! Return the index in the solution vector for this reactor of the species

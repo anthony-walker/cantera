@@ -36,6 +36,8 @@ public:
 
     std::string componentName(size_t k);
 
+    bool isMoleReactor() { return true; }
+
 protected:
     //! Map all surface chemistry derivatives from concentration jacobian to
     //! A vector of triplets for the reactor

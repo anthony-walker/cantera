@@ -3,6 +3,7 @@
 
 from ._utils cimport stringify, pystr, dict_to_anymap, anymap_to_dict
 from .kinetics cimport get_from_sparse
+from .reactor cimport Reactor
 
 cdef class PreconditionerBase:
     """
@@ -102,3 +103,23 @@ cdef class AdaptivePreconditioner(PreconditionerBase):
         def __get__(self):
             cdef CxxSparseMatrix smat = self.preconditioner.matrix()
             return get_from_sparse(smat, smat.rows(), smat.cols())
+
+cdef class SubmodelPreconditioner(AdaptivePreconditioner):
+    precon_type = "Submodel"
+    precon_linear_solver_type = "GMRES"
+
+    def __cinit__(self, *args, **kwargs):
+        self.submodel_precon = <CxxSubmodelPreconditioner*>(self.pbase.get())
+
+    def add_reactor(self, Reactor r):
+        self.submodel_precon.addReactor(r.reactor)
+
+cdef class StateDiagonalPreconditioner(AdaptivePreconditioner):
+    precon_type = "StateDiagonal"
+    precon_linear_solver_type = "GMRES"
+
+    def __cinit__(self, *args, **kwargs):
+        self.statediag_precon = <CxxStateDiagonalPreconditioner*>(self.pbase.get())
+
+    def add_reactor(self, Reactor r):
+        self.statediag_precon.addReactor(r.reactor)

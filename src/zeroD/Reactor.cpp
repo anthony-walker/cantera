@@ -306,7 +306,7 @@ void Reactor::evalSurfaces(double* LHS, double* RHS, double* sdot)
     }
 }
 
-Eigen::SparseMatrix<double> Reactor::finiteDifferenceJacobian()
+Eigen::SparseMatrix<double> Reactor::finiteDifferenceJacobian(bool state_diag)
 {
     if (m_nv == 0) {
         throw CanteraError("Reactor::finiteDifferenceJacobian",
@@ -339,14 +339,32 @@ Eigen::SparseMatrix<double> Reactor::finiteDifferenceJacobian()
         lhsPerturbed = 1.0;
         rhsPerturbed = 0.0;
         eval(time, lhsPerturbed.data(), rhsPerturbed.data());
-
-        // d ydot_i/dy_j
-        for (size_t i = 0; i < m_nv; i++) {
-            double ydotPerturbed = rhsPerturbed[i] / lhsPerturbed[i];
-            double ydotCurrent = rhsCurrent[i] / lhsCurrent[i];
+        if (!state_diag || j == 0) {
+            // d ydot_i/dy_j
+            for (size_t i = 0; i < m_nv; i++) {
+                double ydotPerturbed = rhsPerturbed[i] / lhsPerturbed[i];
+                double ydotCurrent = rhsCurrent[i] / lhsCurrent[i];
+                if (ydotCurrent != ydotPerturbed) {
+                    m_jac_trips.emplace_back(
+                        static_cast<int>(i), static_cast<int>(j),
+                        (ydotPerturbed - ydotCurrent) / delta_y);
+                }
+            }
+        } else {
+            // diagonal element
+            double ydotPerturbed = rhsPerturbed[j] / lhsPerturbed[j];
+            double ydotCurrent = rhsCurrent[j] / lhsCurrent[j];
             if (ydotCurrent != ydotPerturbed) {
                 m_jac_trips.emplace_back(
-                    static_cast<int>(i), static_cast<int>(j),
+                    static_cast<int>(j), static_cast<int>(j),
+                    (ydotPerturbed - ydotCurrent) / delta_y);
+            }
+            // energy row
+            ydotPerturbed = rhsPerturbed[0] / lhsPerturbed[0];
+            ydotCurrent = rhsCurrent[0] / lhsCurrent[0];
+            if (ydotCurrent != ydotPerturbed) {
+                m_jac_trips.emplace_back(
+                    static_cast<int>(0), static_cast<int>(j),
                     (ydotPerturbed - ydotCurrent) / delta_y);
             }
         }
@@ -357,7 +375,6 @@ Eigen::SparseMatrix<double> Reactor::finiteDifferenceJacobian()
     jac.setFromTriplets(m_jac_trips.begin(), m_jac_trips.end());
     return jac;
 }
-
 
 void Reactor::addSensitivityReaction(size_t rxn)
 {

@@ -276,6 +276,8 @@ public:
 
     virtual void preconditionerSolve(double* rhs, double* output);
 
+    virtual void setSubmodelPreconBool(bool smp) { m_use_submodel_precon = smp;}
+    
     //! Get solver stats from integrator
     AnyMap solverStats() const;
 
@@ -315,6 +317,9 @@ protected:
     double m_rtolsens = 1.0e-4;
     double m_atols = 1.0e-15;
     double m_atolsens = 1.0e-6;
+
+    //! Use submodel preconditioner
+    bool m_use_submodel_precon = false;
 
     //! Maximum integrator internal timestep. Default of 0.0 means infinity.
     double m_maxstep = 0.0;

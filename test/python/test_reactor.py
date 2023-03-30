@@ -1,3 +1,4 @@
+import time
 import math
 import re
 
@@ -1156,6 +1157,10 @@ class TestIdealGasConstPressureReactor(TestConstPressureReactor):
 class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
     reactorClass = ct.IdealGasConstPressureMoleReactor
     test_preconditioner_support = None
+    main_model = "ic8-detailed-2768-11850.yaml"
+    sub_model = "ic8-874-6864.yaml"
+    mmfuel = "IC8H18"
+    mmair = "O2:1, N2:3.76"
 
     def create_reactors(self, **kwargs):
         super().create_reactors(**kwargs)
@@ -1168,6 +1173,223 @@ class TestIdealGasConstPressureMoleReactor(TestConstPressureMoleReactor):
         assert self.precon.side == "right"
         self.assertEqual(self.net2.linear_solver_type, "GMRES")
 
+
+    # @pytest.mark.diagnose
+    def test_submodel_massfraction(self):
+        t0 = time.time_ns()
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create reduced reactor
+        gas1 = ct.Solution(self.sub_model)
+        gas1.TP = T0, P0
+        gas1.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        r1 = ct.IdealGasReactor(gas1)
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        r2 = ct.IdealGasReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        precon = ct.SubmodelPreconditioner()
+        precon.add_reactor(r1)
+        net.preconditioner = precon
+        # integrate
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"Mass Fraction SubmodelPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+
+    @pytest.mark.diagnose
+    def test_submodel_mole(self):
+        t0 = time.time_ns()
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create reduced reactor
+        gas1 = ct.Solution(self.sub_model)
+        gas1.TP = T0, P0
+        gas1.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        gas1.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
+        r1 = ct.IdealGasMoleReactor(gas1)
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        r2 = ct.IdealGasMoleReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        precon = ct.SubmodelPreconditioner()
+        precon.add_reactor(r1)
+        net.preconditioner = precon
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"Mole SubmodelPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+
+    # @pytest.mark.diagnose
+    def test_statediag_mole(self):
+        t0 = time.time_ns()
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)
+        r2 = ct.IdealGasMoleReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        net.preconditioner = ct.StateDiagonalPreconditioner()
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"Mole StateDiagPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+
+    # @pytest.mark.diagnose
+    def test_statediag_mf(self):
+        # np.set_printoptions(precision=3, linewidth=144)
+        t0 = time.time_ns()
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, self.mmfuel, self.mmair)  #"IC8H18", self.mmair)
+        r2 = ct.IdealGasReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        net.preconditioner = ct.StateDiagonalPreconditioner()
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"Mass Fraction StateDiagPrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+
+    @pytest.mark.diagnose
+    def test_adaptive(self):
+        t0 = time.time_ns()
+        # conditions
+        T0 = 1000
+        P0 = ct.one_atm
+        # create detailed reactor
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, "IC8H18", self.mmair)
+        r2 = ct.IdealGasMoleReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # create preconditioner
+        net.preconditioner = ct.AdaptivePreconditioner()
+        net.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
+        # integrate
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"AdaptivePrecondtioned: {round((tf-t0) * 1e-9, 8)}")
+
+    # @pytest.mark.diagnose
+    def test_submodel_combustor(self):
+        t0 = time.time_ns()
+        gas = ct.Solution(self.main_model)
+        # Create a Reservoir for the inlet, set to a methane/air mixture at a specified
+        # equivalence ratio
+        T0, P0 = 300.0, ct.one_atm
+        equiv_ratio = 0.5  # lean combustion
+        gas.TP = T0, P0
+        gas.set_equivalence_ratio(equiv_ratio, "IC8H18", self.mmair)
+        inlet = ct.Reservoir(gas)
+        # create reduced reactor
+        gas_sub = ct.Solution(self.sub_model)
+        gas_sub.set_equivalence_ratio(equiv_ratio, "IC8H18", self.mmair)
+        gas_sub.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
+        gas_sub.equilibrate("HP")
+        r_sub = ct.IdealGasMoleReactor(gas_sub)
+        r_sub.volume = 1.0
+        # create combustor
+        gas.equilibrate('HP')
+        combustor = ct.IdealGasMoleReactor(gas)
+        combustor.volume = 1.0
+        # Create a reservoir for the exhaust
+        exhaust = ct.Reservoir(gas)
+        # mass flow
+        def mdot(t):
+            return combustor.mass / residence_time
+        # controllers
+        inlet_mfc = ct.MassFlowController(inlet, combustor, mdot=mdot)
+        outlet_mfc = ct.PressureController(combustor, exhaust, master=inlet_mfc, K=0.01)
+        # the simulation only contains one reactor
+        sim = ct.ReactorNet([combustor])
+        precon = ct.SubmodelPreconditioner()
+        precon.add_reactor(r_sub)
+        sim.preconditioner = precon
+        # run simulation
+        residence_time = 0.1  # starting residence time
+        while combustor.T > 500:
+            sim.set_initial_time(0.0)  # reset the integrator
+            sim.advance_to_steady_state()
+            residence_time *= 0.9  # decrease the residence time for the next iteration
+        tf = time.time_ns()
+        print(f"Submodel Combustor: {round((tf-t0) * 1e-9, 8)}")
+
+    # @pytest.mark.diagnose
+    def test_adaptive_combustor(self):
+        t0 = time.time_ns()
+        gas = ct.Solution(self.main_model)
+        # Create a Reservoir for the inlet, set to a methane/air mixture at a specified
+        # equivalence ratio
+        T0, P0 = 300.0, ct.one_atm
+        equiv_ratio = 0.5  # lean combustion
+        gas.TP = T0, P0
+        gas.set_equivalence_ratio(equiv_ratio, "IC8H18", self.mmair)
+        inlet = ct.Reservoir(gas)
+        # create combustor
+        gas.equilibrate('HP')
+        combustor = ct.IdealGasMoleReactor(gas)
+        combustor.volume = 1.0
+        # Create a reservoir for the exhaust
+        exhaust = ct.Reservoir(gas)
+        # mass flow
+        def mdot(t):
+            return combustor.mass / residence_time
+        # controllers
+        inlet_mfc = ct.MassFlowController(inlet, combustor, mdot=mdot)
+        outlet_mfc = ct.PressureController(combustor, exhaust, master=inlet_mfc, K=0.01)
+        # the simulation only contains one reactor
+        sim = ct.ReactorNet([combustor])
+        sim.preconditioner = ct.AdaptivePreconditioner()
+        sim.derivative_settings = {"skip-third-bodies":True, "skip-falloff":True}
+        # run simulation
+        residence_time = 0.1  # starting residence time
+        while combustor.T > 500:
+            sim.set_initial_time(0.0)  # reset the integrator
+            sim.advance_to_steady_state()
+            residence_time *= 0.9  # decrease the residence time for the next iteration
+        tf = time.time_ns()
+        print(f"Submodel Combustor: {round((tf-t0) * 1e-9, 8)}")
+
+    # @pytest.mark.diagnose
+    def test_traditional_integration(self):
+        t0 = time.time_ns()
+        # create detailed reactor
+        T0 = 1000
+        P0 = ct.one_atm
+        gas2 = ct.Solution(self.main_model)
+        gas2.TP = T0, P0
+        gas2.set_equivalence_ratio(1, "IC8H18", self.mmair)
+        r2 = ct.IdealGasReactor(gas2)
+        # create network
+        net = ct.ReactorNet()
+        net.add_reactor(r2)
+        # integrate
+        net.advance(0.001)
+        tf = time.time_ns()
+        print(f"Standard Solver: {round((tf-t0) * 1e-9, 8)}")
 
 class TestIdealGasMoleReactor(TestMoleReactor):
     reactorClass = ct.IdealGasMoleReactor

@@ -46,7 +46,7 @@ public:
     virtual void updatePreconditioner() override;
 
     //! Prune preconditioner elements
-    void prunePreconditioner();
+    virtual void prunePreconditioner();
 
     //! Function used to return semi-analytical jacobian matrix
     Eigen::SparseMatrix<double> jacobian() {

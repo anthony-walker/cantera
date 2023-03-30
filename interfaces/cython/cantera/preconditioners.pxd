@@ -6,6 +6,7 @@
 
 from .ctcxx cimport *
 from .kinetics cimport CxxSparseMatrix
+from .reactor cimport CxxReactor
 
 cdef extern from "cantera/numerics/PreconditionerBase.h" namespace "Cantera":
     cdef cppclass CxxPreconditionerBase "Cantera::PreconditionerBase":
@@ -30,8 +31,27 @@ cdef extern from "cantera/numerics/PreconditionerFactory.h" namespace "Cantera":
     cdef shared_ptr[CxxPreconditionerBase] newPreconditioner(string) except\
          +translate_exception
 
+cdef extern from "cantera/numerics/SubmodelPreconditioner.h" namespace "Cantera":
+    cdef cppclass CxxSubmodelPreconditioner "Cantera::SubmodelPreconditioner" \
+        (CxxAdaptivePreconditioner):
+        CxxSubmodelPreconditioner() except +
+        void addReactor(CxxReactor* reactor)
+
+cdef extern from "cantera/numerics/StateDiagonalPreconditioner.h" namespace "Cantera":
+    cdef cppclass CxxStateDiagonalPreconditioner "Cantera::StateDiagonalPreconditioner" \
+        (CxxAdaptivePreconditioner):
+        CxxStateDiagonalPreconditioner() except +
+        void addReactor(CxxReactor* reactor)
+
 cdef class PreconditionerBase:
     cdef shared_ptr[CxxPreconditionerBase] pbase
 
 cdef class AdaptivePreconditioner(PreconditionerBase):
     cdef CxxAdaptivePreconditioner* preconditioner
+
+cdef class SubmodelPreconditioner(AdaptivePreconditioner):
+    cdef CxxSubmodelPreconditioner* submodel_precon
+
+
+cdef class StateDiagonalPreconditioner(AdaptivePreconditioner):
+    cdef CxxStateDiagonalPreconditioner* statediag_precon
