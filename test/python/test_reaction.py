@@ -710,7 +710,7 @@ class TestPhotolysisRateParameterization(ReactionRateTests, utilities.CanteraTes
             type: photolysis
             rate-constant: {l: 4.775e-4, m: 0.298, n: 0.080}
             """
-    zenith_angle = 45
+    zenith_angle = 0.785
 
     @classmethod
     def setUpClass(cls):

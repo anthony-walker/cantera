@@ -49,7 +49,7 @@ class TestThermoPhase(utilities.CanteraTest):
 
     def test_zenith_application(self):
         gas = ct.Solution("ozone-photolysis.yaml", "atmos")
-        self.assertEqual(gas.zenith_angle, 45)
+        self.assertEqual(gas.zenith_angle, 0.785)
 
     def test_base_attributes(self):
         self.assertIsInstance(self.phase.name, str)

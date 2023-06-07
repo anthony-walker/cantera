@@ -1815,7 +1815,7 @@ public:
     }
 
     //! Set zenith angle of light exposure, see @file PhotolysisRate.h.
-    //! @param X zenith angle in degrees
+    //! @param X zenith angle in radians
     //! @since  New in Cantera 3.0.
     void setZenithAngle(double X) {
         m_zenith_angle = X;

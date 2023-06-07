@@ -16,7 +16,7 @@ phases:
   kinetics: gas
   transport: mixture-averaged
   state: {T: 300.0, P: 1 atm}
-  zenith_angle: 45
+  zenith_angle: 0.785 # 45 degrees
 
 species:
 - name: O
