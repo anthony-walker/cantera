@@ -1,0 +1,40 @@
+description: |-
+  A simple multiphase heterogeneous chemistry model constructed from MOSAIC.
+  Zaveri, R. A., Easter, R. C., Fast, J. D., & Peters, L. K. (2008). Model for simulating aerosol interactions and chemistry (MOSAIC). Journal of Geophysical Research: Atmospheres, 113(D13).
+cantera-version: 3.0
+
+units: {length: cm, time: s, quantity: molec}
+
+phases:
+- name: particle
+  thermo: particle
+  elements: [O, N, H]
+  species: [NH4CL(s), NH3, HCL, HNO3, NH3(aq), H(aq), CL(aq), NO3(aq), NH4(aq), OH(aq),
+            H2O(aq), SO4(aq), HSO4(aq)]
+  kinetics: particle
+  transport: mixture-averaged
+  state: {T: 300.0, P: 1 atm}
+  zenith_angle: 0.785 # 45 degrees
+
+species:
+- name: HCL
+  composition: {H: 1, Cl: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1000.0, 5000.0]
+    data:
+    - [3.5248171, 2.9984862e-05, -8.6221891e-07, 2.0979721e-09, -9.8658191e-13,
+      -1.2150509e+04, 2.40892359]
+    - [2.7665884, 1.4381883e-03, -4.6993e-07, 7.3499408e-11, -4.3731106e-15,
+      -1.1917468e+04, 6.47150629]
+    note: J 9/64
+
+reactions:
+- equation: NH3CL(s) <=> NH3 + HCL # Reaction 1
+- equation: NH4NO3(s) <=> NH3 + HNO3 # Reaction 2
+- equation: NH3 <=> NH3(aq) # Reaction 3
+- equation: HNO3 <=> H(aq) + NO3(aq) # Reaction 4
+- equation: HCL <=> H(aq) + CL(aq) # Reaction 5
+- equation: H2O(aq) + NH3(aq) <=> OH(aq) + NH4(aq) # Reaction 6
+- equation: H2O(aq) <=> H(aq) + OH(aq) # Reaction 7
+- equation: HSO4(aq) <=> H(aq) + SO4(aq) # Reaction 8

@@ -20,6 +20,7 @@ cdef enum ThermoBasisType:
 
 ctypedef CxxPlasmaPhase* CxxPlasmaPhasePtr
 ctypedef CxxSurfPhase* CxxSurfPhasePtr
+ctypedef CxxSurfPhase* CxxParticlePhasePtr
 
 class ThermoModelMethodError(Exception):
     """Exception raised for an invalid method used by a thermo model
@@ -1949,6 +1950,16 @@ cdef class InterfacePhase(ThermoPhase):
             raise ValueError("Array has incorrect length."
                  " Got {}, expected {}.".format(len(cov), self.n_species))
         self.surf.setCoveragesNoNorm(&data[0])
+
+
+cdef class ParticlePhase(ThermoPhase):
+    """ A class representing a surface, edge phase """
+    def __cinit__(self, *args, **kwargs):
+        if not kwargs.get("init", True):
+            return
+        if not dynamic_cast[CxxParticlePhasePtr](self.thermo):
+            raise TypeError('Underlying ThermoPhase object is of the wrong type.')
+        self.particle = <CxxParticlePhase*>(self.thermo)
 
 
 cdef class PureFluid(ThermoPhase):

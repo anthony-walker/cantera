@@ -189,6 +189,11 @@ cdef extern from "cantera/thermo/SurfPhase.h":
         void getCoverages(double*) except +translate_exception
 
 
+cdef extern from "cantera/thermo/ParticlePhase.h":
+    cdef cppclass CxxParticlePhase "Cantera::ParticlePhase":
+        CxxParticlePhase()
+
+
 cdef extern from "cantera/thermo/PlasmaPhase.h":
     cdef cppclass CxxPlasmaPhase "Cantera::PlasmaPhase" (CxxThermoPhase):
         CxxPlasmaPhase()
@@ -277,3 +282,6 @@ cdef class ThermoPhase(_SolutionBase):
 
 cdef class InterfacePhase(ThermoPhase):
     cdef CxxSurfPhase* surf
+
+cdef class ParticlePhase(ThermoPhase):
+    cdef CxxParticlePhase* particle
