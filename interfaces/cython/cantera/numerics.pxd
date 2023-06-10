@@ -35,3 +35,11 @@ cdef class PreconditionerBase:
 
 cdef class AdaptivePreconditioner(PreconditionerBase):
     cdef CxxAdaptivePreconditioner* preconditioner
+
+cdef extern from "cantera/numerics/MonteCarlo.h" namespace "Cantera":
+    cdef cppclass CxxMonteCarlo "Cantera::MonteCarlo":
+        CxxMonteCarlo() except +translate_exception
+        void initialize(size_t, size_t) except +translate_exception
+
+cdef class MonteCarlo:
+    cdef CxxMonteCarlo mcarlo

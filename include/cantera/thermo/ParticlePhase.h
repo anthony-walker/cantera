@@ -14,6 +14,7 @@
 #include "cantera/base/Units.h"
 #include "cantera/base/AnyMap.h"
 #include "cantera/thermo/ThermoPhase.h"
+#include "cantera/numerics/MonteCarlo.h"
 
 namespace Cantera
 {
@@ -48,6 +49,7 @@ public:
 
 protected:
     size_t m_nbins;
+    MonteCarlo m_solver;
 
     };
 }

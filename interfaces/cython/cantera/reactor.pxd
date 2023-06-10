@@ -7,7 +7,7 @@
 from .ctcxx cimport *
 from .kinetics cimport *
 from .func1 cimport *
-from .preconditioners cimport *
+from .numerics cimport *
 
 cdef extern from "cantera/zerodim.h" namespace "Cantera":
     cdef cppclass CxxWall "Cantera::Wall"

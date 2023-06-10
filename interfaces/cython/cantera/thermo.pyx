@@ -1953,7 +1953,7 @@ cdef class InterfacePhase(ThermoPhase):
 
 
 cdef class ParticlePhase(ThermoPhase):
-    """ A class representing a surface, edge phase """
+    """ A class representing a particle phase """
     def __cinit__(self, *args, **kwargs):
         if not kwargs.get("init", True):
             return

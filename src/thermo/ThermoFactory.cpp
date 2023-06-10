@@ -17,6 +17,7 @@
 #include "cantera/thermo/IdealGasPhase.h"
 #include "cantera/thermo/PlasmaPhase.h"
 
+#include "cantera/thermo/ParticlePhase.h"
 #include "cantera/thermo/IdealSolidSolnPhase.h"
 #include "cantera/thermo/MaskellSolidSolnPhase.h"
 #include "cantera/thermo/MargulesVPSSTP.h"
@@ -106,6 +107,7 @@ ThermoFactory::ThermoFactory()
     reg("binary-solution-tabulated", []() { return new BinarySolutionTabulatedThermo(); });
     addDeprecatedAlias("binary-solution-tabulated", "BinarySolutionTabulatedThermo");
     reg("Peng-Robinson", []() { return new PengRobinson(); });
+    reg("particle", []() { return new ParticlePhase(); });
 }
 
 ThermoFactory* ThermoFactory::factory()

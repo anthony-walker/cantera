@@ -6,17 +6,75 @@ cantera-version: 3.0
 units: {length: cm, time: s, quantity: molec}
 
 phases:
+- name: gas
+  thermo: ideal-gas
+  elements: [O, H, C, N, Ar]
+  species:
+  - gri30.yaml/species: [H2, H, O, O2, OH, H2O, HO2, H2O2, C, CH, CH2, CH2(S),
+      CH3, CH4, CO, CO2, HCO, CH2O, CH2OH, CH3O, CH3OH, C2H, C2H2, C2H3,
+      C2H4, C2H5, C2H6, HCCO, CH2CO, HCCOH, AR, N2]
+  skip-undeclared-elements: true
+  kinetics: gas
+  reactions:
+  - gri30.yaml/reactions: declared-species
+  transport: mixture-averaged
+  state:
+    T: 300.0
+    P: 1.01325e+05
+    X: {CH4: 0.095, O2: 0.21, AR: 0.79}
 - name: particle
   thermo: particle
-  elements: [O, N, H]
-  species: [NH4CL(s), NH3, HCL, HNO3, NH3(aq), H(aq), CL(aq), NO3(aq), NH4(aq), OH(aq),
+  adjacent-phases: [gas]
+  elements: [O, N, H, Cl, S]
+  species: [NH4CL(s), NH4NO3(s), NH3, HCL, HNO3, NH3(aq), H(aq), CL(aq), NO3(aq), NH4(aq), OH(aq),
             H2O(aq), SO4(aq), HSO4(aq)]
   kinetics: particle
   transport: mixture-averaged
   state: {T: 300.0, P: 1 atm}
   zenith_angle: 0.785 # 45 degrees
-
 species:
+- name: NH4CL(s)
+  composition: {Cl: 1, H: 4, N: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [457.7, 1000.0, 1500.0]
+    data:
+    - [1.70591184, 0.0307824016, -4.40955907e-05, 4.81012897e-08, -1.91058564e-11,
+      -3.85021633e+04, -3.73732308]
+    - [7.62510977, -4.60407325e-03, 3.4099857e-05, -2.58306256e-08, 6.09788815e-12,
+      -3.93510431e+04, -29.9939072]
+- name: NH4NO3(s)
+  composition: {H: 4, N: 2, O: 3}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [4.14852739, 0.0269825144, -9.75933293e-06, -6.09907077e-09, 4.33965489e-12,
+      -3.00745915e+04, 8.49838405]
+    - [11.273911, 0.0120722009, -4.41053669e-06, 7.20175833e-10, -4.345802e-14,
+      -3.23559395e+04, -29.6634108]
+  note: gasT07/12
+- name: NH3
+  composition: {N: 1, H: 3}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [4.2860274, -4.660523e-03, 2.1718513e-05, -2.2808887e-08, 8.2638046e-12,
+      -6741.7285, -0.62537277]
+    - [2.6344521, 5.666256e-03, -1.7278676e-06, 2.3867161e-10, -1.2578786e-14,
+      -6544.6958, 6.5662928]
+- name: HNO3
+  composition: {H: 1, N: 1, O: 3}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1000.0, 6000.0]
+    data:
+    - [1.74492946, 0.0188040888, -8.15963597e-06, -5.78584532e-09, 4.43768083e-12,
+      -1.73805296e+04, 16.9545524]
+    - [8.00379234, 4.49837533e-03, -1.73648758e-06, 2.93685555e-10, -1.81478673e-14,
+      -1.92563022e+04, -16.0985546]
+    note: L 4/90
 - name: HCL
   composition: {H: 1, Cl: 1}
   thermo:
@@ -30,7 +88,7 @@ species:
     note: J 9/64
 
 reactions:
-- equation: NH3CL(s) <=> NH3 + HCL # Reaction 1
+- equation: NH4CL(s) <=> NH3 + HCL # Reaction 1
 - equation: NH4NO3(s) <=> NH3 + HNO3 # Reaction 2
 - equation: NH3 <=> NH3(aq) # Reaction 3
 - equation: HNO3 <=> H(aq) + NO3(aq) # Reaction 4

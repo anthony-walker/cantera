@@ -10,7 +10,7 @@
 #ifndef MONTECARLO_H
 #define MONTECARLO_H
 
-#include "cantera/numerics/eigen_sparse.h"
+#include "cantera/numerics/eigen_dense.h"
 #include "cantera/base/global.h"
 
 namespace Cantera
@@ -18,14 +18,21 @@ namespace Cantera
 
 //! MonteCarlo is a solver designed for simulating particle phase physics with Monte
 //! Carlo Method.
-class MonteCarlo
-{
-private:
-    /* data */
+class MonteCarlo {
 public:
     MonteCarlo(/* args */) {};
     ~MonteCarlo() {};
+    void initialize(size_t nsp, size_t bins);
 
+protected:
+    /* data */
+    size_t m_bins;
+    size_t m_nsp;
+    double m_stdev;
+    double m_mean;
+    Eigen::MatrixXd m_probabilities;
 };
 
 }
+
+#endif

@@ -102,3 +102,12 @@ cdef class AdaptivePreconditioner(PreconditionerBase):
         def __get__(self):
             cdef CxxSparseMatrix smat = self.preconditioner.matrix()
             return get_from_sparse(smat, smat.rows(), smat.cols())
+
+
+cdef class MonteCarlo:
+
+    def __cinit__(self, *args, **kwargs):
+        pass
+
+    def initialize(self, size_t nspecies, size_t nbins):
+        self.mcarlo.initialize(nspecies, nbins)

@@ -2386,3 +2386,15 @@ class TestSolutionArray(utilities.CanteraTest):
         states.TP = [100,300,900,323.23], ct.one_atm
         arr2 = states[slice(0)]
         self.assertEqual(len(arr2.T), 0)
+
+
+class TestParticlePhase(utilities.CanteraTest):
+    def setUp(self):
+        pass
+
+    @pytest.mark.diagnose
+    def test_particle_setup(self):
+        self.gas = ct.Solution("simple-particle-phase.yaml", "gas")
+        self.solid = ct.Solution("simple-particle-phase.yaml", "particle")
+
+    
