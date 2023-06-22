@@ -2397,4 +2397,3 @@ class TestParticlePhase(utilities.CanteraTest):
         self.gas = ct.Solution("simple-particle-phase.yaml", "gas")
         self.solid = ct.Solution("simple-particle-phase.yaml", "particle")
 
-    

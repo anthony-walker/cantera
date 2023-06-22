@@ -47,6 +47,20 @@ public:
         m_nbins = nbins;
     }
 
+    //! Set the pressure at constant temperature and composition.
+    /*!
+     * Units: Pa.
+     * This method is implemented by setting the mass density to
+     * \f[
+     * \rho = \frac{P \overline W}{\hat R T }.
+     * \f]
+     *
+     * @param p Pressure (Pa)
+     */
+    virtual void setPressure(doublereal p) {
+        setDensity(p * meanMolecularWeight() / RT());
+    }
+
 protected:
     size_t m_nbins;
     MonteCarlo m_solver;
