@@ -5,6 +5,7 @@ import numpy as np
 import cantera as ct
 from . import utilities
 
+import pytest
 
 class EquilTestCases:
     def __init__(self, solver):
@@ -233,3 +234,64 @@ class Test_IdealSolidSolnPhase_Equil(utilities.CanteraTest):
         gas.equilibrate('TP', solver='element_potential')
         self.assertNear(gas['C-graph'].X[0], 2.0 / 3.0)
         self.assertNear(gas['H2-solute'].X[0], 1.0 / 3.0)
+
+class TestKOH_Equil_TEMP(utilities.CanteraTest):
+    "Test roughly based on examples/multiphase/plasma_equilibrium.py"
+    def setUp(self):
+        self.phases = ct.import_phases("KOH.yaml",
+                ['K_solid', 'K_liquid', 'KOH_a', 'KOH_b', 'KOH_liquid',
+                 'K2O2_solid', 'K2O_solid', 'KO2_solid', 'ice', 'liquid_water',
+                 'KOH_plasma'])
+        self.mix = ct.Mixture(self.phases)
+
+    # @pytest.mark.diagnose
+    def test_equil_TP(self):
+        temperatures = range(350, 5000, 300)
+        data = np.zeros((len(temperatures), self.mix.n_species+1))
+        data[:,0] = temperatures
+
+        for i,T in enumerate(temperatures):
+            self.mix.T = T
+            self.mix.P = ct.one_atm
+            self.mix.species_moles = 'K:1.03, H2:2.12, O2:0.9'
+            self.mix.equilibrate('TP', solver='mpes')
+
+            data[i,1:] = self.mix.species_moles
+
+        self.compare(data, self.test_data_path / "koh-equil-TP.csv")
+
+
+
+class TestEquil_GasCarbon_TEMP(utilities.CanteraTest):
+    "Test rougly based on examples/multiphase/adiabatic.py"
+    def setUp(self):
+        self.gas = ct.Solution('gri30.yaml', transport_model=None)
+        self.carbon = ct.Solution("graphite.yaml")
+        self.fuel = 'CH4'
+        self.mix_phases = [(self.gas, 1.0), (self.carbon, 0.0)]
+        self.n_species = self.gas.n_species + self.carbon.n_species
+
+    def solve(self, solver, **kwargs):
+        n_points = 12
+        T = 300
+        P = 101325
+        data = np.zeros((n_points, 2+self.n_species))
+        phi = np.linspace(0.3, 3.5, n_points)
+        for i in range(n_points):
+            self.gas.set_equivalence_ratio(phi[i], self.fuel,
+                                           {'O2': 1.0, 'N2': 3.76})
+            mix = ct.Mixture(self.mix_phases)
+            mix.T = T
+            mix.P = P
+
+            # equilibrate the mixture adiabatically at constant P
+            mix.equilibrate('HP', solver=solver, max_steps=1000, **kwargs)
+            data[i,:2] = (phi[i], mix.T)
+            data[i,2:] = mix.species_moles
+
+        self.compare(data, self.test_data_path / "gas-carbon-equil.csv")
+
+    @pytest.mark.diagnose
+    @utilities.slow_test
+    def test_mpes(self):
+        self.solve('mpes')

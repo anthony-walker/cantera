@@ -11,6 +11,7 @@
 #include "cantera/equil/MultiPhase.h"
 #include "cantera/equil/MultiPhaseEquil.h"
 #include "cantera/equil/vcs_MultiPhaseEquil.h"
+#include "cantera/equil/MultiPhaseEquilSolver.h"
 #include "cantera/thermo/ThermoPhase.h"
 #include "cantera/base/stringUtils.h"
 #include "cantera/base/utilities.h"
@@ -682,6 +683,33 @@ void MultiPhase::equilibrate(const string& XY, const string& solver,
             m_press = initial_P;
             updatePhases();
             throw;
+        }
+    }
+
+    if (solver == "auto" || solver == "mpes") {
+        try {
+            debuglog("Trying MPES equilibrium solver\n", log_level);
+            MultiPhaseEquilSolver eqsolve(this);
+            int ret = eqsolve.equilibrate(ixy, estimate_equil, log_level-1,
+                                          rtol, max_steps);
+            if (ret) {
+                throw CanteraError("MultiPhase::equilibrate",
+                    "MPES solver failed. Return code: {}", ret);
+            }
+            debuglog("MPES solver succeeded\n", log_level);
+            return;
+        } catch (std::exception& err) {
+            debuglog("MPES solver failed.\n", log_level);
+            debuglog(err.what(), log_level);
+            m_moleFractions = initial_moleFractions;
+            m_moles = initial_moles;
+            m_temp = initial_T;
+            m_press = initial_P;
+            updatePhases();
+            if (solver == "auto") {
+            } else {
+                throw;
+            }
         }
     }
 
