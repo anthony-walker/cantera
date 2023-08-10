@@ -4,9 +4,11 @@
 #include "sundials/sundials_types.h"
 #include "sundials/sundials_math.h"
 #include "sundials/sundials_nvector.h"
+#include "sunmatrix/sunmatrix_sparse.h"
 #include "nvector/nvector_serial.h"
 #include "cvodes/cvodes.h"
 #include "idas/idas.h"
+#include "kinsol/kinsol.h"
 
 #if CT_SUNDIALS_USE_LAPACK
     #include "sunlinsol/sunlinsol_lapackdense.h"
@@ -21,6 +23,8 @@
 #include "cvodes/cvodes_spils.h"
 #include "idas/idas_direct.h"
 #include "idas/idas_spils.h"
+#include "kinsol/kinsol_direct.h"
+#include "kinsol/kinsol_spils.h"
 
 #define CV_SS 1
 #define IDA_SS 1

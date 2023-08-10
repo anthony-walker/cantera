@@ -10,7 +10,8 @@
 #define MULTIPHASEEQUILSOLVER_H
 
 #include "MultiPhase.h"
-#include "cantera/numerics/eigen_sparse.h"
+#include "cantera/numerics/sundials_headers.h"
+#include "cantera/numerics/SundialsContext.h"
 
 namespace Cantera
 {
@@ -47,6 +48,7 @@ public:
 
     //! return the number of iterations
     int iterations() const {
+        // FIXME: returns 0
         return 0;
     }
 
@@ -199,8 +201,17 @@ protected:
      */
     vector<int> m_order;
 
-    //! Element formula matrix
-    Eigen::SparseMatrix<double> m_formula_matrix;
+
+    // structures for sparse kinsol solution
+    void* m_kin_mem = nullptr; //!< Pointer to the KINSOL memory for the problem
+    void* m_linsol = nullptr; //!< Sundials linear solver object
+    void* m_linsol_matrix = nullptr; //!< matrix used by Sundials
+    SundialsContext m_sundials_ctx; //!< SUNContext object for Sundials>=6.0
+    SUNMatrix m_sp_formula_mat; //! Sparse Matrix Object for sundials
+    vector<double> m_data; //! Vector for data in sparse matrix object
+    vector<sunindextype> m_columns; //! Column indices for sparse matrix object
+    vector<sunindextype> m_row_starts; //! Starts of rows within m_data
+
 
     //! Pointer to the MultiPhase mixture that will be equilibrated.
     /*!

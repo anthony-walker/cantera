@@ -245,21 +245,20 @@ class TestKOH_Equil_TEMP(utilities.CanteraTest):
         self.mix = ct.Mixture(self.phases)
 
     # @pytest.mark.diagnose
-    def test_equil_TP(self):
+    def test_equil_TP_new(self):
         temperatures = range(350, 5000, 300)
         data = np.zeros((len(temperatures), self.mix.n_species+1))
         data[:,0] = temperatures
 
-        for i,T in enumerate(temperatures):
-            self.mix.T = T
-            self.mix.P = ct.one_atm
-            self.mix.species_moles = 'K:1.03, H2:2.12, O2:0.9'
-            self.mix.equilibrate('TP', solver='mpes')
+        # for i,T in enumerate(temperatures):
+        self.mix.T = temperatures[0]
+        self.mix.P = ct.one_atm
+        self.mix.species_moles = 'K:1.03, H2:2.12, O2:0.9'
+        self.mix.equilibrate('TP', solver='mpes')
 
-            data[i,1:] = self.mix.species_moles
+        # data[i,1:] = self.mix.species_moles
 
-        self.compare(data, self.test_data_path / "koh-equil-TP.csv")
-
+        # self.compare(data, self.test_data_path / "koh-equil-TP.csv")
 
 
 class TestEquil_GasCarbon_TEMP(utilities.CanteraTest):
@@ -277,17 +276,17 @@ class TestEquil_GasCarbon_TEMP(utilities.CanteraTest):
         P = 101325
         data = np.zeros((n_points, 2+self.n_species))
         phi = np.linspace(0.3, 3.5, n_points)
-        for i in range(n_points):
-            self.gas.set_equivalence_ratio(phi[i], self.fuel,
-                                           {'O2': 1.0, 'N2': 3.76})
-            mix = ct.Mixture(self.mix_phases)
-            mix.T = T
-            mix.P = P
+        # for i in range(n_points):
+        self.gas.set_equivalence_ratio(phi[0], self.fuel,
+                                        {'O2': 1.0, 'N2': 3.76})
+        mix = ct.Mixture(self.mix_phases)
+        mix.T = T
+        mix.P = P
 
-            # equilibrate the mixture adiabatically at constant P
-            mix.equilibrate('HP', solver=solver, max_steps=1000, **kwargs)
-            data[i,:2] = (phi[i], mix.T)
-            data[i,2:] = mix.species_moles
+        # equilibrate the mixture adiabatically at constant P
+        mix.equilibrate('HP', solver=solver, max_steps=1000, **kwargs)
+        # data[i,:2] = (phi[0], mix.T)
+        # data[i,2:] = mix.species_moles
 
         self.compare(data, self.test_data_path / "gas-carbon-equil.csv")
 

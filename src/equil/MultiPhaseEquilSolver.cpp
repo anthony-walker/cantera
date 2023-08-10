@@ -9,36 +9,57 @@
 #include "cantera/thermo/ThermoPhase.h"
 #include "cantera/equil/MultiPhaseEquilSolver.h"
 
-#include <cstdio>
-
 namespace Cantera
 {
 
 MultiPhaseEquilSolver::MultiPhaseEquilSolver(MultiPhase* mix) :
     m_mix(mix)
 {
-    // vector of all element compositions in all phases
-    std::vector<Eigen::Triplet<double>> formulaVector;
     // get complete formula matrix matrix (elements x species)
-    size_t formerElements = 0;
-    size_t formerSpecies = 0;
-    for (size_t i=0; i<mix->nPhases(); i++) {
-        ThermoPhase& currPhase = mix->phase(i);
-        // loop over all elements
-        for (size_t j = 0; j < currPhase.nElements(); j++) {
-            // loop over all species
-            for (size_t k = 0; k < currPhase.nSpecies(); k++) {
-                formulaVector.emplace_back(j+formerElements, k+formerSpecies,
-                                           currPhase.nAtoms(k, j));
+    // data for sparse matrix
+    m_data.reserve(mix->nSpecies());
+    m_columns.reserve(mix->nSpecies());
+    m_row_starts.reserve(mix->nElements()+1);
+    // loop over all species - columns
+    for (size_t j = 0; j < mix->nElements(); j++) {
+        m_row_starts.push_back(m_data.size());
+        for (size_t k = 0; k < mix->nSpecies(); k++) {
+        // loop over all elements - rows
+            double atoms = mix->nAtoms(k, j);
+            if (atoms > 0) {
+                m_data.push_back(atoms);
+                m_columns.push_back(k);
             }
         }
-        // add to former terms for indexing
-        formerElements += currPhase.nElements();
-        formerSpecies += currPhase.nSpecies();
     }
-    // set formula matrix from triplets
-    m_formula_matrix.resize(mix->nElements(), mix->nSpecies());
-    m_formula_matrix.setFromTriplets(formulaVector.begin(), formulaVector.end());
+    m_row_starts.push_back(m_data.size());
+    // create the necessary nonlinear algebraic solver in Sundials
+    m_sp_formula_mat = SUNSparseMatrix(mix->nElements(), mix->nSpecies(), m_data.size(), CSR_MAT, m_sundials_ctx.get());
+    // assign pointers to  SUNMatrix Content
+    auto indexvals = SUNSparseMatrix_IndexValues(m_sp_formula_mat); // column indices
+    indexvals = m_columns.data();
+    auto colvals = SUNSparseMatrix_Data(m_sp_formula_mat);
+    colvals = m_data.data();
+    auto rowptrs = SUNSparseMatrix_IndexPointers(m_sp_formula_mat);
+    rowptrs = m_row_starts.data();
+
+    // free memory if it is not free
+    if (m_kin_mem) {
+        KINFree(&m_kin_mem);
+    }
+
+    #if CT_SUNDIALS_VERSION < 40
+        m_kin_mem = KINCreate(m_method, CV_NEWTON);
+    #elif CT_SUNDIALS_VERSION < 60
+        m_kin_mem = KINCreate(m_method);
+    #else
+        m_kin_mem = KINCreate(m_sundials_ctx.get());
+    #endif
+    // if (!m_kin_mem) {
+    //     throw CanteraError("kinsIntegrator::initialize",
+    //                        "kinCreate failed.");
+    // }
+    // m_kin_mem = KINCreate(m_sundials_ctx);
 }
 
 int MultiPhaseEquilSolver::equilibrate_TV(int XY, double xtarget, int estimateEquil,
