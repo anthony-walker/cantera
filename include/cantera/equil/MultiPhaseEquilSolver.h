@@ -15,6 +15,17 @@
 
 namespace Cantera
 {
+/**
+ * Specifies the side of the system on which the preconditioner is applied. Not all
+ * methods are supported by all integrators.
+ */
+enum class ConstantState {
+    TV, //! Temperature and volume are held constant
+    TP, //! Temperature and pressure are held constant
+    UV, //! Internal energy and volume are held constant
+    HP, //! Enthalpy and pressure are held constant
+    SP  //! Entropy and pressure are held constant
+};
 
 //! %Cantera's Interface to the Multiphase chemical equilibrium solver.
 /*!
@@ -55,46 +66,14 @@ public:
     //! Equilibrate the solution using the current element abundances
     //! stored in the MultiPhase object
     /*!
-     * Use the vcs algorithm to equilibrate the current multiphase mixture.
-     *
-     * @param XY       Integer representing what two thermo quantities are
-     *                 held constant during the equilibration
-     * @param estimateEquil integer indicating whether the solver should
-     *     estimate its own initial condition.
-     *     - If 0, the initial mole fraction vector in the ThermoPhase object is
-     *       used as the initial condition.
-     *     - If 1, the initial mole fraction vector is used if the element
-     *       abundances are satisfied.
-     *     - if -1, the initial mole fraction vector is thrown out, and an
-     *       estimate is formulated.
-     * @param err      Internal error level
-     * @param maxsteps max steps allowed.
-     * @param loglevel Determines the amount of printing to the output file.
      */
-    int equilibrate(int XY, int estimateEquil = 0,
-                    double err = 1.0e-6,
-                    int maxsteps = 1000, int loglevel=-99);
+    int equilibrate(ConstantState cs, double* LHS, double* RHS, void* f_data);
 
     //! Equilibrate the solution using the current element abundances
     //! stored in the MultiPhase object using constant T and P
     /*!
-     * Use the vcs algorithm to equilibrate the current multiphase mixture.
-     *
-     * @param estimateEquil integer indicating whether the solver should
-     *     estimate its own initial condition.
-     *     - If 0, the initial mole fraction vector in the ThermoPhase object is
-     *       used as the initial condition.
-     *     - If 1, the initial mole fraction vector is used if the element
-     *       abundances are satisfied.
-     *     - if -1, the initial mole fraction vector is thrown out, and an
-     *       estimate is formulated.
-     * @param err     Internal error level
-     * @param maxsteps max steps allowed.
-     * @param loglevel Determines the amount of printing to the output file.
      */
-    int equilibrate_TP(int estimateEquil = 0,
-                        double err = 1.0e-6,
-                       int maxsteps = 1000, int loglevel=-99);
+    int equilibrate_TP(double* LHS, double* RHS, void* f_data);
 
     //! Equilibrate the solution using the current element abundances
     //! stored in the MultiPhase object using either constant H and P
@@ -211,8 +190,8 @@ protected:
     vector<double> m_data; //! Vector for data in sparse matrix object
     vector<sunindextype> m_columns; //! Column indices for sparse matrix object
     vector<sunindextype> m_row_starts; //! Starts of rows within m_data
-
-
+    N_Vector m_state; //! State of system in an n-vector for solver
+    N_Vector m_constraints; //! Constraints on system
     //! Pointer to the MultiPhase mixture that will be equilibrated.
     /*!
      *  Equilibrium solutions will be returned via this variable.

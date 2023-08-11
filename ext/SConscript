@@ -81,7 +81,7 @@ if env['system_sundials'] == 'n':
 
     # Copy sundials header files into common include directory
     for subdir in ('sundials', 'nvector', 'cvodes', 'idas', 'sunmatrix',
-                   'sunlinsol', 'sunnonlinsol'):
+                   'sunlinsol', 'sunnonlinsol', 'kinsol'):
         for header in multi_glob(env, 'sundials/include/'+subdir, 'h'):
             ext_copies.extend(
                 copyenv.Command(f"#include/cantera/ext/{subdir}/{header.name}",
@@ -93,7 +93,7 @@ if env['system_sundials'] == 'n':
     # interface, which start with 'fsun'.
     subdirs = ['sundials', 'nvector/serial', 'cvodes', 'idas', 'sunmatrix/band',
                'sunmatrix/dense', 'sunmatrix/sparse', 'sunlinsol/dense',
-               'sunlinsol/band','sunlinsol/spgmr', 'sunnonlinsol/newton']
+               'sunlinsol/band', 'sunlinsol/spgmr', 'sunnonlinsol/newton', 'kinsol']
     if env['use_lapack']:
         subdirs.extend(('sunlinsol/lapackdense', 'sunlinsol/lapackband'))
 

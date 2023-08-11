@@ -15,7 +15,9 @@
 namespace Cantera
 {
 
+//! Forward Declarations
 class ThermoPhase;
+class MultiPhaseEquilSolver;
 
 //! A class for multiphase mixtures. The mixture can contain any
 //! number of phases of any type.
@@ -654,6 +656,9 @@ private:
      *      species in all phases.
      */
     mutable vector<double> m_elemAbundances;
+
+    //! Solver object when MPES is used
+    MultiPhaseEquilSolver* m_solver = nullptr;
 };
 
 //! Function to output a MultiPhase description to a stream

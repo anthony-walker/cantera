@@ -689,9 +689,8 @@ void MultiPhase::equilibrate(const string& XY, const string& solver,
     if (solver == "auto" || solver == "mpes") {
         try {
             debuglog("Trying MPES equilibrium solver\n", log_level);
-            MultiPhaseEquilSolver eqsolve(this);
-            int ret = eqsolve.equilibrate(ixy, estimate_equil, log_level-1,
-                                          rtol, max_steps);
+            m_solver = new MultiPhaseEquilSolver(this);
+            size_t ret = 0;
             if (ret) {
                 throw CanteraError("MultiPhase::equilibrate",
                     "MPES solver failed. Return code: {}", ret);
