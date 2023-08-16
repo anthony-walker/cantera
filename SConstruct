@@ -2233,7 +2233,7 @@ if addInstallActions:
 
 
 if env['system_sundials'] == 'y':
-    env['sundials_libs'] = ['sundials_cvodes', 'sundials_idas', 'sundials_nvecserial']
+    env['sundials_libs'] = ['sundials_cvodes', 'sundials_idas', 'sundials_nvecserial', "sundials_kinsol"]
     if env['use_lapack']:
         if env.get('has_sundials_lapack'):
             env['sundials_libs'].extend(('sundials_sunlinsollapackdense',

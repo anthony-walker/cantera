@@ -12,6 +12,7 @@
 #include "MultiPhase.h"
 #include "cantera/numerics/sundials_headers.h"
 #include "cantera/numerics/SundialsContext.h"
+#include "cantera/numerics/eigen_sparse.h"
 
 namespace Cantera
 {
@@ -169,6 +170,8 @@ public:
                         double err = 1.0E-6,
                        int maxsteps = 1000, int logLevel = -99);
 
+    int evalEquilibrium();
+
 protected:
     //! Vector that takes into account of the current sorting of the species
     /*!
@@ -180,24 +183,21 @@ protected:
      */
     vector<int> m_order;
 
-
     // structures for sparse kinsol solution
     void* m_kin_mem = nullptr; //!< Pointer to the KINSOL memory for the problem
     void* m_linsol = nullptr; //!< Sundials linear solver object
     void* m_linsol_matrix = nullptr; //!< matrix used by Sundials
     SundialsContext m_sundials_ctx; //!< SUNContext object for Sundials>=6.0
-    SUNMatrix m_sp_formula_mat; //! Sparse Matrix Object for sundials
-    vector<double> m_data; //! Vector for data in sparse matrix object
-    vector<sunindextype> m_columns; //! Column indices for sparse matrix object
-    vector<sunindextype> m_row_starts; //! Starts of rows within m_data
     N_Vector m_state; //! State of system in an n-vector for solver
     N_Vector m_constraints; //! Constraints on system
+    Eigen::SparseMatrix<double> m_formula_mat; //! Formula matrix used in equilibrate
     //! Pointer to the MultiPhase mixture that will be equilibrated.
     /*!
      *  Equilibrium solutions will be returned via this variable.
      */
     MultiPhase* m_mix;
-
+    //! Size of state with laplace transform
+    size_t m_laplace_size;
     //! Vector of indices for species that are included in the calculation. This
     //! is used to exclude pure-phase species with invalid thermo data
     vector<int> m_species;
