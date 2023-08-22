@@ -13,6 +13,7 @@
 #include "cantera/numerics/sundials_headers.h"
 #include "cantera/numerics/SundialsContext.h"
 #include "cantera/numerics/eigen_sparse.h"
+#include "cantera/numerics/eigen_dense.h"
 
 namespace Cantera
 {
@@ -21,11 +22,12 @@ namespace Cantera
  * methods are supported by all integrators.
  */
 enum class ConstantState {
+    XY, //! Invalid constant state which an invalid string is provided
     TV, //! Temperature and volume are held constant
     TP, //! Temperature and pressure are held constant
     UV, //! Internal energy and volume are held constant
     HP, //! Enthalpy and pressure are held constant
-    SP  //! Entropy and pressure are held constant
+    SP,  //! Entropy and pressure are held constant
 };
 
 //! %Cantera's Interface to the Multiphase chemical equilibrium solver.
@@ -58,142 +60,42 @@ public:
 
     virtual ~MultiPhaseEquilSolver() {}
 
-    //! return the number of iterations
+    //! return the number of nonlinear solver iterations
     int iterations() const {
-        // FIXME: returns 0
-        return 0;
+        long int iters = 0;
+        KINGetNumNonlinSolvIters(m_kin_mem, &iters);
+        return iters;
     }
 
-    //! Equilibrate the solution using the current element abundances
-    //! stored in the MultiPhase object
-    /*!
+    /*! Equilibrate the solution using the current element abundances stored in the
+     * MultiPhase object
+     * @param LHS left hand side vector F(u)
+     * @param RHS right hand side vector u
+     * @param f_data a pointer to data passed into the function for solving the problem
      */
-    int equilibrate(ConstantState cs, double* LHS, double* RHS, void* f_data);
+    int equilibrate(double* LHS, double* RHS, void* f_data);
 
-    //! Equilibrate the solution using the current element abundances
-    //! stored in the MultiPhase object using constant T and P
-    /*!
+    /*! Interface function to evaluate equilibrium based on the given state
+     * @param xy a string TP, TV, etc specifying variables to be held constant.
      */
-    int equilibrate_TP(double* LHS, double* RHS, void* f_data);
+    int evalEquilibrium(const string xy);
 
-    //! Equilibrate the solution using the current element abundances
-    //! stored in the MultiPhase object using either constant H and P
-    //! or constant U and P.
-    /*!
-     * Use the vcs algorithm to equilibrate the current multiphase mixture. The
-     * pressure of the calculation is taken from the current pressure stored
-     * with the MultiPhase object.
-     *
-     * @param Htarget Value of the total mixture enthalpy or total internal
-     *     energy that will be kept constant. Note, this is and must be an
-     *     extensive quantity.  units = Joules
-     * @param XY      Integer flag indicating what is held constant. Must be
-     *     either HP or UP.
-     * @param Tlow    Lower limit of the temperature. It's an error condition
-     *     if the temperature falls below Tlow.
-     * @param Thigh   Upper limit of the temperature. It's an error condition
-     *     if the temperature goes higher than Thigh.
-     * @param estimateEquil integer indicating whether the solver
-     *     should estimate its own initial condition.
-     *     - If 0, the initial mole fraction vector in the ThermoPhase object is
-     *       used as the initial condition.
-     *     - If 1, the initial mole fraction vector is used if the element
-     *       abundances are satisfied.
-     *     - if -1, the initial mole fraction vector is thrown out, and an
-     *       estimate is formulated.
-     * @param err     Internal error level
-     * @param maxsteps max steps allowed.
-     * @param loglevel Determines the amount of printing to the output file.
-     */
-    int equilibrate_HP(double Htarget, int XY, double Tlow, double Thigh,
-                       int estimateEquil = 0,
-                       double err = 1.0E-6,
-                       int maxsteps = 1000, int loglevel=-99);
-
-    //! Equilibrate the solution using the current element abundances stored in
-    //! the MultiPhase object using constant S and P.
-    /*!
-     * Use the vcs algorithm to equilibrate the current multiphase mixture. The
-     * pressure of the calculation is taken from the current pressure stored
-     * with the MultiPhase object.
-     *
-     * @param Starget Value of the total mixture entropy that will be kept
-     *     constant. Note, this is and must be an extensive quantity.
-     *     units = Joules/K
-     * @param Tlow    Lower limit of the temperature. It's an error condition if
-     *     the temperature falls below Tlow.
-     * @param Thigh   Upper limit of the temperature. It's an error condition if
-     *     the temperature goes higher than Thigh.
-     * @param estimateEquil integer indicating whether the solver should
-     *     estimate its own initial condition.
-     *     - If 0, the initial mole fraction vector in the ThermoPhase object is
-     *       used as the initial condition.
-     *     - If 1, the initial mole fraction vector is used if the element
-     *       abundances are satisfied.
-     *     - If -1, the initial mole fraction vector is thrown out, and an
-     *       estimate is formulated.
-     * @param err     Internal error level
-     * @param maxsteps max steps allowed.
-     * @param loglevel Determines the amount of printing to the output file.
-     */
-    int equilibrate_SP(double Starget, double Tlow, double Thigh,
-                       int estimateEquil = 0,
-                        double err = 1.0E-6,
-                       int maxsteps = 1000, int loglevel=-99);
-
-    //! Equilibrate the solution using the current element abundances stored
-    //! in the MultiPhase object using constant V and constant T, H, U or S.
-    /*!
-     * Use the vcs algorithm to equilibrate the current multiphase mixture. The
-     * pressure of the calculation is taken from the current pressure stored
-     * with the MultiPhase object.
-     *
-     * @param XY      Integer flag indicating what is held constant.
-     *     Must be either TV, HV, UV, or SV.
-     * @param xtarget Value of the total thermodynamic parameter to be held
-     *     constant in addition to V. Note, except for T, this must be an
-     *     extensive quantity.  units = Joules/K or Joules
-     * @param estimateEquil integer indicating whether the solver should
-     *     estimate its own initial condition.
-     *     - If 0, the initial mole fraction vector in the ThermoPhase object is
-     *       used as the initial condition.
-     *     - If 1, the initial mole fraction vector is used if the element
-     *       abundances are satisfied.
-     *     - if -1, the initial mole fraction vector is thrown out, and an
-     *       estimate is formulated.
-     * @param err      Internal error level
-     * @param maxsteps max steps allowed.
-     * @param logLevel Determines the amount of printing to the output file.
-     */
-    int equilibrate_TV(int XY, double xtarget,
-                       int estimateEquil = 0,
-                        double err = 1.0E-6,
-                       int maxsteps = 1000, int logLevel = -99);
-
-    int evalEquilibrium();
-
-    // Internal function to setup the Jacobian approximation using approximate Hessian
+    /*! Internal function to setup the Jacobian approximation using approximate Hessian
+    * @param J SUNMatrix that is the output Jacobian in the calculation
+    * @param u current iterate of u within the solver
+    * @param fu current evaluation of F(u) from equilibrate function
+    */
     void setupHessianJac(SUNMatrix J, double* u, double* fu);
 
-    // Initialize the solver
+    //! A function to initialize the solver based on `m_mix`.
     void initialize();
 
-    // Initialized
+    //! A function to check if the solver has been initialized.
     bool initialized() {
         return m_init;
     }
 
 protected:
-    //! Vector that takes into account of the current sorting of the species
-    /*!
-     * The index of m_order is the original k value of the species in the
-     * multiphase.  The value of m_order, k_sorted, is the current value of the
-     * species index.
-     *
-     * `m_order[korig] = k_sorted`
-     */
-    vector<int> m_order;
-
     // structures for sparse kinsol solution
     void* m_kin_mem = nullptr; //!< Pointer to the KINSOL memory for the problem
     void* m_linsol = nullptr; //!< Sundials linear solver object
@@ -202,8 +104,10 @@ protected:
     N_Vector m_state; //! State of system in an n-vector for solver
     N_Vector m_constraints; //! Constraints on system
     Eigen::SparseMatrix<double> m_formula_mat; //! Formula matrix used in equilibrate
-
-    double m_perturb = 1e-25; // perturbation parameter
+    Eigen::MatrixXd m_temp_jac; //! Formula matrix used in equilibrate
+    Eigen::VectorXd m_lagrange_z; //! Lagrange multiplier z vector
+    double m_perturb = 1e-25; //! default perturbation parameter
+    ConstantState m_xy = ConstantState::XY; //! default constant variables set to invalid state
     // // An index map to dynamically restructure the order for better Gaussian elimination
     // AnyMap m_index_map;
     //! Pointer to the MultiPhase mixture that will be equilibrated.
@@ -211,15 +115,14 @@ protected:
      *  Equilibrium solutions will be returned via this variable.
      */
     MultiPhase* m_mix;
-
     //! Initialization bool
     bool m_init = false;
     //! Size of state with laplace transform
-    size_t m_laplace_size;
-    //! Vector of indices for species that are included in the calculation. This
-    //! is used to exclude pure-phase species with invalid thermo data
-    vector<int> m_species;
-
+    size_t m_sys_size;
+    // constant variable one
+    double m_const_one;
+    //! constant variable two
+    double m_const_two;
 };
 
 }

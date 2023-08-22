@@ -13,7 +13,7 @@ phases:
 - name: gas
   thermo: ideal-gas
   elements: [A, B]
-  species: [A, B, A2, B2, AB]
+  species: [A, A2, B]
   kinetics: gas
   reactions: [gas-reactions]
   state:
@@ -108,18 +108,18 @@ species:
     density: 1 kg/m^3
 
 gas-reactions:
-- equation: A + A  <=> A2  # Reaction 1
+- equation: A + A  => A2  # Reaction 1
   rate-constant: {A: 1, b: 0.0, Ea: 0.0}
-- equation: B + B  <=> B2  # Reaction 2
-  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
-- equation: A + B  <=> AB  # Reaction 3
-  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+# - equation: B + B  <=> B2  # Reaction 2
+#   rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+# - equation: A + B  <=> AB  # Reaction 3
+#   rate-constant: {A: 1, b: 0.0, Ea: 0.0}
 
 surface-reactions:
 - equation: A + A(s) <=> A2(s)  # Reaction 1
   rate-constant: {A: 1, b: 0.0, Ea: 0.0}
-- equation: B + B(s) <=> B2(s)  # Reaction 2
-  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+# - equation: B + B(s) <=> B2(s)  # Reaction 2
+#   rate-constant: {A: 1, b: 0.0, Ea: 0.0}
 
 liquid-reactions:
 - equation: B <=> B(l)  # Reaction 1

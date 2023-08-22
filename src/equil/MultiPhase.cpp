@@ -694,8 +694,8 @@ void MultiPhase::equilibrate(const string& XY, const string& solver,
             if (!m_solver->initialized()) {
                 m_solver->initialize();
             }
-            int ret = m_solver->evalEquilibrium();
-            if (ret) {
+            int ret = m_solver->evalEquilibrium(XY);
+            if (ret < 0) {
                 throw CanteraError("MultiPhase::equilibrate",
                     "MPES solver failed. Return code: {}", ret);
             }
