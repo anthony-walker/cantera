@@ -172,6 +172,17 @@ public:
 
     int evalEquilibrium();
 
+    // Internal function to setup the Jacobian approximation using approximate Hessian
+    void setupHessianJac(SUNMatrix J, double* u, double* fu);
+
+    // Initialize the solver
+    void initialize();
+
+    // Initialized
+    bool initialized() {
+        return m_init;
+    }
+
 protected:
     //! Vector that takes into account of the current sorting of the species
     /*!
@@ -191,11 +202,18 @@ protected:
     N_Vector m_state; //! State of system in an n-vector for solver
     N_Vector m_constraints; //! Constraints on system
     Eigen::SparseMatrix<double> m_formula_mat; //! Formula matrix used in equilibrate
+
+    double m_perturb = 1e-25; // perturbation parameter
+    // // An index map to dynamically restructure the order for better Gaussian elimination
+    // AnyMap m_index_map;
     //! Pointer to the MultiPhase mixture that will be equilibrated.
     /*!
      *  Equilibrium solutions will be returned via this variable.
      */
     MultiPhase* m_mix;
+
+    //! Initialization bool
+    bool m_init = false;
     //! Size of state with laplace transform
     size_t m_laplace_size;
     //! Vector of indices for species that are included in the calculation. This

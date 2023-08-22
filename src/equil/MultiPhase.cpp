@@ -145,6 +145,8 @@ void MultiPhase::init()
     m_init = true;
     uploadMoleFractionsFromPhases();
     updatePhases();
+    // set solver after update
+    m_solver = new MultiPhaseEquilSolver(this);
 }
 
 ThermoPhase& MultiPhase::phase(size_t n)
@@ -689,7 +691,9 @@ void MultiPhase::equilibrate(const string& XY, const string& solver,
     if (solver == "auto" || solver == "mpes") {
         try {
             debuglog("Trying MPES equilibrium solver\n", log_level);
-            m_solver = new MultiPhaseEquilSolver(this);
+            if (!m_solver->initialized()) {
+                m_solver->initialize();
+            }
             int ret = m_solver->evalEquilibrium();
             if (ret) {
                 throw CanteraError("MultiPhase::equilibrate",

@@ -9,6 +9,8 @@
 #include "cantera/thermo/ThermoPhase.h"
 #include "cantera/equil/MultiPhaseEquilSolver.h"
 
+
+
 namespace Cantera
 {
 
@@ -17,6 +19,13 @@ extern "C" {
     {
         MultiPhaseEquilSolver* solver = (MultiPhaseEquilSolver*) user_data;
         solver->equilibrate(ConstantState::TP, NV_DATA_S(fx), NV_DATA_S(x), user_data);
+        return 0;
+    }
+
+    // function to setup hessian approximation as the Jacobian
+    static int kin_jac(N_Vector x, N_Vector fx, SUNMatrix J, void* user_data, N_Vector tmp1, N_Vector tmp2) {
+        MultiPhaseEquilSolver* solver = (MultiPhaseEquilSolver*) user_data;
+        solver->setupHessianJac(J, NV_DATA_S(x), NV_DATA_S(fx));
         return 0;
     }
 }
@@ -32,38 +41,44 @@ N_Vector newNVector(size_t N, Cantera::SundialsContext& context)
 
 
 MultiPhaseEquilSolver::MultiPhaseEquilSolver(MultiPhase* mix) :
-    m_mix(mix)
+    m_mix(mix) {
+}
+
+void MultiPhaseEquilSolver::initialize()
 {
     // Sizes needed
-    size_t nsp = m_mix->nSpecies();
-    size_t nele = m_mix->nElements();
-    m_laplace_size = 2 * nsp + nele;
+    size_t N = m_mix->nSpecies();
+    size_t C = m_mix->nElements();
+    m_laplace_size = 2 * N + C;
     // get complete formula matrix matrix (elements x species)
     vector<Eigen::Triplet<double>> trips;
     // reserve some initial space
-    trips.reserve(nsp);
+    trips.reserve(N);
     // loop over all elements - rows
-    for (size_t j = 0; j < nele; j++) {
+    for (size_t j = 0; j < C; j++) {
         // loop over all species - columns
-        for (size_t k = 0; k < nsp; k++) {
-            double atoms = mix->nAtoms(k, j);
+        for (size_t k = 0; k < N; k++) {
+            double atoms = m_mix->nAtoms(k, j);
             if (atoms > 0) {
                 trips.emplace_back(j, k, atoms);
             }
         }
     }
     // resize eigen formula matrix
-    m_formula_mat.resize(nele, nsp);
+    m_formula_mat.resize(C, N);
     m_formula_mat.setFromTriplets(trips.begin(), trips.end());
+    // free matrix memory if it exists
+    N_VDestroy_Serial(m_state);
+    N_VDestroy_Serial(m_constraints);
     // resize n vector and get state
     m_state = newNVector(m_laplace_size, m_sundials_ctx);
     m_constraints = newNVector(m_laplace_size, m_sundials_ctx);
     // define system constraints
-    for (size_t i = 0; i < nsp; i++) {
+    for (size_t i = 0; i < N; i++) {
         NV_Ith_S(m_constraints, i) = 1.0;
-        NV_Ith_S(m_constraints, i + nsp + nele) = 1.0;
+        NV_Ith_S(m_constraints, i + N + C) = 1.0;
     }
-    for (size_t i = nsp; i < nsp + nele; i++) {
+    for (size_t i = N; i < N + C; i++) {
         NV_Ith_S(m_constraints, i) = 0.0;
     }
     // create the necessary nonlinear algebraic solver in Sundials
@@ -127,7 +142,7 @@ MultiPhaseEquilSolver::MultiPhaseEquilSolver(MultiPhase* mix) :
             if (!m_kin_mem) {
                 throw CanteraError("MultiPhaseEquilSolver::KINCreate", "KINCreate failed.");
             }
-            // Create SUNMatrix
+            // Create the new SUNMatrix
             m_linsol_matrix =  (void *) SUNDenseMatrix(m_laplace_size, m_laplace_size, m_sundials_ctx.get());
             // Create linear solver object
             #if CT_SUNDIALS_USE_LAPACK
@@ -156,11 +171,25 @@ MultiPhaseEquilSolver::MultiPhaseEquilSolver(MultiPhase* mix) :
             if (flag != 0) {
                 throw CanteraError("MultiPhaseEquilSolver::KINSetLinearSolver", "KINSetLinearSolver failed.");
             }
+            // Attach jac function
+            flag = KINSetJacFn(m_kin_mem, kin_jac);
+            if (flag != 0) {
+                throw CanteraError("MultiPhaseEquilSolver::KINSetJacFn", "KINSetJacFn failed.");
+            }
+            // Setting print level to be verbose
+            // FIXME: It seems that the initial guess may be the problem?
+            KINSetPrintLevel(m_kin_mem, 3);
     #endif
 }
 
 int MultiPhaseEquilSolver::evalEquilibrium()
 {
+    for (size_t i = 0; i < m_mix->nSpecies(); i++) {
+        std::cout<<m_mix->speciesName(i)<<" ";
+    }
+    std::cout<<std::endl;
+
+    std::cout<<m_formula_mat<<std::endl;
     // set scaling vector - no scaling
     N_Vector scale = newNVector(m_laplace_size, m_sundials_ctx);
     N_VConst(1.0, scale);
@@ -183,29 +212,62 @@ int MultiPhaseEquilSolver::equilibrate(ConstantState cs, double* LHS, double* RH
     return 0;
 }
 
+void MultiPhaseEquilSolver::setupHessianJac(SUNMatrix J, double* u, double* fu)
+{
+    // constants
+    size_t N = m_mix->nSpecies();
+    size_t C = m_mix->nElements();
+    // set first diagonal to approximate Hessian
+    for (size_t i = 0; i < N; i++) {
+        SM_ELEMENT_D(J, i, i) = u[i] > 0 ? 1 / u[i] : 0;            /* code */
+    }
+    // add formula matrix to Jacobian
+    for (int k = 0; k < m_formula_mat.outerSize(); k++) {
+        for (Eigen::SparseMatrix<double>::InnerIterator it(m_formula_mat, k); it; ++it) {
+            SM_ELEMENT_D(J, it.row() + N, it.col()) = it.value();
+            SM_ELEMENT_D(J, it.col() + N, it.row()) = it.value();
+        }
+    }
+    // upper right quadrant is negative identity
+    // lower left quadrant is Z matrix
+    // lower right quadrant is N matrix
+    for (size_t i = 0; i < N; i++) {
+        SM_ELEMENT_D(J, i, i + N + C) = -1;
+        SM_ELEMENT_D(J, i + N + C, i) = u[i+N+C];
+        SM_ELEMENT_D(J, i + N + C, i + N + C) = u[i];
+    }
+}
+
 int MultiPhaseEquilSolver::equilibrate_TP(double* LHS, double* RHS, void* f_data)
 {
     // right hand sides
-    size_t nsp = m_mix->nSpecies();
-    size_t nele = m_mix->nElements();
+    size_t N = m_mix->nSpecies();
+    size_t C = m_mix->nElements();
     // RHS vectors
-    Eigen::Map<Eigen::VectorXd> n(RHS, nsp);
-    Eigen::Map<Eigen::VectorXd> y(RHS + nsp, nele);
-    Eigen::Map<Eigen::VectorXd> z(RHS + nsp + nele, nsp);
+    Eigen::Map<Eigen::VectorXd> n(RHS, N);
+    Eigen::Map<Eigen::VectorXd> y(RHS + N, C);
+    Eigen::Map<Eigen::VectorXd> z(RHS + N + C, N);
     // LHS vectors
-    Eigen::Map<Eigen::VectorXd> fn(LHS, nsp);
-    Eigen::Map<Eigen::VectorXd> fy(LHS + nsp, nele);
-    Eigen::Map<Eigen::VectorXd> fz(LHS + nsp + nele, nsp);
+    Eigen::Map<Eigen::VectorXd> fn(LHS, N);
+    Eigen::Map<Eigen::VectorXd> fy(LHS + N, C);
+    Eigen::Map<Eigen::VectorXd> fz(LHS + N + C, N);
     // getting chemical potentials and moles
-    Eigen::VectorXd mu(nsp);
-    Eigen::VectorXd b(nsp);
-    Eigen::VectorXd ones = Eigen::VectorXd::Ones(nsp);
-    m_mix->getMoles(b.data());
+    Eigen::VectorXd mu(N);
+    Eigen::VectorXd b(C);
+    Eigen::VectorXd ones = Eigen::VectorXd::Ones(N);
+    m_mix->getElemAbundances(b.data());
     m_mix->getChemPotentials(mu.data());
     // assignments
-    fn = mu + m_formula_mat.transpose() * y - z;
-    fy = m_formula_mat * n - b;
-    fz = Eigen::MatrixXd(n.asDiagonal()) * Eigen::MatrixXd(z.asDiagonal()) * ones;
+    std::cout<<y<<std::endl;
+    // std::cout<<n<<std::endl;
+    fn = m_formula_mat.transpose() * y + z - mu;
+    fy = b - m_formula_mat * n;
+    fz = - Eigen::MatrixXd(n.asDiagonal()) * Eigen::MatrixXd(z.asDiagonal()) * ones;
+    // std::cout<<fn<<std::endl;
+    // std::cout<<"----------"<<std::endl;
+    // std::cout<<fy<<std::endl;
+    // std::cout<<fz<<std::endl;
+    // std::cout<<"----------"<<std::endl;
     return 0;
 }
 

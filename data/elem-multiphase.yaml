@@ -1,0 +1,126 @@
+description: |-
+  A simple model to test the multiphase equilibrium solver
+units: {length: m, quantity: kmol, activation-energy: kJ/kmol}
+
+elements:
+- symbol: A
+  atomic-weight: 1
+- symbol: B
+  atomic-weight: 1
+
+
+phases:
+- name: gas
+  thermo: ideal-gas
+  elements: [A, B]
+  species: [A, B, A2, B2, AB]
+  kinetics: gas
+  reactions: [gas-reactions]
+  state:
+    T: 1200.0
+    P: 101325
+    X: {A: 1, B: 1}
+- name: liquid
+  thermo: fixed-stoichiometry
+  elements: [B]
+  species: [B(l)]
+- name: solid
+  thermo: fixed-stoichiometry
+  elements: [A]
+  species: [A(s)]
+- name: interface
+  thermo: ideal-surface
+  adjacent-phases: [gas, solid]
+  elements: [A, B]
+  species: [A(s), B(s), A2(s), B2(s)]
+  kinetics: surface
+  reactions: [surface-reactions]
+  state:
+    T: 1200.0
+    coverages: {A(s): 1, B(s): 1}
+  site-density: 1.0
+
+species:
+- name: A
+  composition: {A: 1}
+  thermo:
+    model: constant-cp
+    h0: 1 kJ/kmol
+    s0: 1 kJ/kmol/K
+- name: B
+  composition: {B: 1}
+  thermo:
+    model: constant-cp
+    h0: 1 kJ/kmol
+    s0: 1 kJ/kmol/K
+- name: AB
+  composition: {A: 1, B: 1}
+  thermo:
+    model: constant-cp
+    h0: 2 kJ/kmol
+    s0: 2 kJ/kmol/K
+- name: A2
+  composition: {A: 2}
+  thermo:
+    model: constant-cp
+    h0: 2 kJ/kmol
+    s0: 2 kJ/kmol/K
+- name: B2
+  composition: {B: 2}
+  thermo:
+    model: constant-cp
+    h0: 2 kJ/kmol
+    s0: 2 kJ/kmol/K
+- name: B(l)
+  composition: {B: 1}
+  thermo:
+    model: constant-cp
+  equation-of-state:
+    model: constant-volume
+    density: 1 kg/m^3
+- name: A(s)
+  composition: {A: 1}
+  thermo:
+    model: constant-cp
+  equation-of-state:
+    model: constant-volume
+    density: 1 kg/m^3
+- name: B(s)
+  composition: {B: 1}
+  thermo:
+    model: constant-cp
+  equation-of-state:
+    model: constant-volume
+    density: 1 kg/m^3
+- name: A2(s)
+  composition: {A: 2}
+  thermo:
+    model: constant-cp
+  equation-of-state:
+    model: constant-volume
+    density: 1 kg/m^3
+- name: B2(s)
+  composition: {B: 2}
+  thermo:
+    model: constant-cp
+  equation-of-state:
+    model: constant-volume
+    density: 1 kg/m^3
+
+gas-reactions:
+- equation: A + A  <=> A2  # Reaction 1
+  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+- equation: B + B  <=> B2  # Reaction 2
+  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+- equation: A + B  <=> AB  # Reaction 3
+  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+
+surface-reactions:
+- equation: A + A(s) <=> A2(s)  # Reaction 1
+  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+- equation: B + B(s) <=> B2(s)  # Reaction 2
+  rate-constant: {A: 1, b: 0.0, Ea: 0.0}
+
+liquid-reactions:
+- equation: B <=> B(l)  # Reaction 1
+  rate-constant: {A: 1, b: 0.0, Ea: 0.0}

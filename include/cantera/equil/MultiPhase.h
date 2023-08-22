@@ -544,6 +544,9 @@ public:
      */
     void updatePhases() const;
 
+    // FIXME: Move to private
+    //! Solver object when MPES is used
+    MultiPhaseEquilSolver* m_solver = nullptr;
 private:
     //! Calculate the element abundance vector
     void calcElemAbundances() const;
@@ -657,8 +660,6 @@ private:
      */
     mutable vector<double> m_elemAbundances;
 
-    //! Solver object when MPES is used
-    MultiPhaseEquilSolver* m_solver = nullptr;
 };
 
 //! Function to output a MultiPhase description to a stream

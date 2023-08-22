@@ -238,28 +238,16 @@ class Test_IdealSolidSolnPhase_Equil(utilities.CanteraTest):
 class TestKOH_Equil_TEMP(utilities.CanteraTest):
     "Test roughly based on examples/multiphase/plasma_equilibrium.py"
     def setUp(self):
-        self.phases = ct.import_phases("KOH.yaml",
-                ['K_solid', 'K_liquid', 'KOH_a', 'KOH_b', 'KOH_liquid',
-                 'K2O2_solid', 'K2O_solid', 'KO2_solid', 'ice', 'liquid_water',
-                 'KOH_plasma'])
+        self.phases = ct.import_phases("elem-multiphase.yaml",
+                ['gas', 'liquid', 'solid', 'interface'])
         self.mix = ct.Mixture(self.phases)
 
-    # @pytest.mark.diagnose
-    def test_equil_TP_new(self):
-        temperatures = range(350, 5000, 300)
-        data = np.zeros((len(temperatures), self.mix.n_species+1))
-        data[:,0] = temperatures
-
-        # for i,T in enumerate(temperatures):
-        self.mix.T = temperatures[0]
+    @pytest.mark.diagnose
+    def test_elementary_mixture(self):
+        self.mix.T = 1200
         self.mix.P = ct.one_atm
-        self.mix.species_moles = 'K:1.03, H2:2.12, O2:0.9'
+        self.mix.species_moles = 'A:1.0, B:1.0'
         self.mix.equilibrate('TP', solver='mpes')
-
-        # data[i,1:] = self.mix.species_moles
-
-        # self.compare(data, self.test_data_path / "koh-equil-TP.csv")
-
 
 class TestEquil_GasCarbon_TEMP(utilities.CanteraTest):
     "Test rougly based on examples/multiphase/adiabatic.py"
@@ -290,7 +278,7 @@ class TestEquil_GasCarbon_TEMP(utilities.CanteraTest):
 
         # self.compare(data, self.test_data_path / "gas-carbon-equil.csv")
 
-    @pytest.mark.diagnose
+    # @pytest.mark.diagnose
     @utilities.slow_test
     def test_mpes(self):
         self.solve('mpes')
