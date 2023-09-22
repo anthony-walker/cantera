@@ -26,6 +26,9 @@ void InterfaceKinetics::resizeReactions()
     // resize buffer
     m_rbuf0.resize(nReactions());
     m_rbuf1.resize(nReactions());
+    m_rbuf2.resize(nReactions());
+    m_sbuf0.resize(nTotalSpecies());
+    m_state.resize(thermo().stateSize());
 
     for (auto& rates : m_interfaceRates) {
         rates->resize(nTotalSpecies(), nReactions(), nPhases());
@@ -398,16 +401,20 @@ bool InterfaceKinetics::addReaction(shared_ptr<Reaction> r_base, bool resize)
     m_rxnPhaseIsReactant.emplace_back(nPhases(), false);
     m_rxnPhaseIsProduct.emplace_back(nPhases(), false);
 
+    double dn = 0;
     for (const auto& [name, stoich] : r_base->reactants) {
         size_t k = kineticsSpeciesIndex(name);
         size_t p = speciesPhaseIndex(k);
         m_rxnPhaseIsReactant[i][p] = true;
+        dn -= stoich;
     }
     for (const auto& [name, stoich] : r_base->products) {
         size_t k = kineticsSpeciesIndex(name);
         size_t p = speciesPhaseIndex(k);
         m_rxnPhaseIsProduct[i][p] = true;
+        dn += stoich;
     }
+    m_dn.push_back(dn);
 
     // Set index of rate to number of reaction within kinetics
     shared_ptr<ReactionRate> rate = r_base->rate();
@@ -680,6 +687,22 @@ void InterfaceKinetics::assertDerivativesValid(const string& name)
     }
 }
 
+void InterfaceKinetics::getNetRatesOfProgress_ddP(double* drop)
+{
+    assertDerivativesValid("InterfaceKinetics::getNetRatesOfProgress_ddP");
+    updateROP();
+    process_ddP(m_ropnet, drop);
+}
+
+void InterfaceKinetics::process_ddP(const vector<double>& in, double* drop)
+{
+    // apply pressure derivative
+    copy(in.begin(), in.end(), drop);
+    for (auto& rates : m_interfaceRates) {
+        rates->processRateConstants_ddP(drop, m_rfn.data(), m_jac_rtol_delta);
+    }
+}
+
 void InterfaceKinetics::applyEquilibriumConstants(double* rop)
 {
     // For reverse rates computed from thermochemistry, multiply the forward
@@ -687,6 +710,64 @@ void InterfaceKinetics::applyEquilibriumConstants(double* rop)
     for (size_t i = 0; i < nReactions(); ++i) {
         rop[i] *= m_rkcn[i];
     }
+}
+
+void InterfaceKinetics::getNetRatesOfProgress_ddT(double* drop)
+{
+    assertDerivativesValid("InterfaceKinetics::getNetRatesOfProgress_ddT");
+    updateROP();
+    process_ddT(m_ropnet, drop);
+    Eigen::Map<Eigen::VectorXd> dNetRop(drop, nReactions());
+
+    // reverse rop times scaled inverse equilibrium constant derivatives
+    Eigen::Map<Eigen::VectorXd> dNetRop2(m_rbuf2.data(), nReactions());
+    copy(m_ropr.begin(), m_ropr.end(), m_rbuf2.begin());
+    processEquilibriumConstants_ddT(dNetRop2.data());
+    dNetRop -= dNetRop2;
+}
+
+void InterfaceKinetics::process_ddT(const vector<double>& in, double* drop)
+{
+    // apply temperature derivative
+    copy(in.begin(), in.end(), drop);
+    for (auto& rates : m_interfaceRates) {
+        rates->processRateConstants_ddT(drop, m_rfn.data(), m_jac_rtol_delta);
+    }
+}
+
+void InterfaceKinetics::processEquilibriumConstants_ddT(double* drkcn)
+{
+    double T = thermo().temperature();
+    double P = thermo().pressure();
+    double rrt = 1. / thermo().RT();
+
+    vector<double>& grt = m_sbuf0;
+    vector<double>& delta_gibbs0 = m_rbuf1;
+    fill(delta_gibbs0.begin(), delta_gibbs0.end(), 0.0);
+
+    // compute perturbed Delta G^0 for all reversible reactions
+    thermo().saveState(m_state);
+    thermo().setState_TP(T * (1. + m_jac_rtol_delta), P);
+    thermo().getStandardChemPotentials(grt.data());
+    getRevReactionDelta(grt.data(), delta_gibbs0.data());
+
+    // apply scaling for derivative of inverse equilibrium constant
+    double Tinv = 1. / T;
+    double rrt_dTinv = rrt * Tinv / m_jac_rtol_delta;
+    double rrtt = rrt * Tinv;
+    for (size_t i = 0; i < m_revindex.size(); i++) {
+        size_t irxn = m_revindex[i];
+        double factor = delta_gibbs0[irxn] - m_delta_gibbs0[irxn];
+        factor *= rrt_dTinv;
+        factor += m_dn[irxn] * Tinv - m_delta_gibbs0[irxn] * rrtt;
+        drkcn[irxn] *= factor;
+    }
+
+    for (size_t i = 0; i < m_irrev.size(); ++i) {
+        drkcn[m_irrev[i]] = 0.0;
+    }
+
+    thermo().restoreState(m_state);
 }
 
 }

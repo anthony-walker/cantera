@@ -296,6 +296,8 @@ public:
     Eigen::SparseMatrix<double> fwdRatesOfProgress_ddCi() override;
     Eigen::SparseMatrix<double> revRatesOfProgress_ddCi() override;
     Eigen::SparseMatrix<double> netRatesOfProgress_ddCi() override;
+    virtual void getNetRatesOfProgress_ddT(double* drop) override;
+    virtual void getNetRatesOfProgress_ddP(double* drop) override;
 
 protected:
     //! @name Internal service methods
@@ -321,7 +323,24 @@ protected:
     //! @param name  method name used for error output
     //! @throw CanteraError if coverage dependence or electrochemical reactions are
     //! included
-    void assertDerivativesValid(const string& name);
+    void assertDerivativesValid(const std::string& name);
+
+    //! Multiply rate with scaled temperature derivatives of the inverse
+    //! equilibrium constant
+    /*!
+     *  This (scaled) derivative is handled by a finite difference.
+     */
+    void processEquilibriumConstants_ddT(double* drkcn);
+
+    //! Process temperature derivative
+    //! @param in  rate expression used for the derivative calculation
+    //! @param drop  pointer to output buffer
+    void process_ddT(const vector<double>& in, double* drop);
+
+    //! Process pressure derivative
+    //! @param in  rate expression used for the derivative calculation
+    //! @param drop  pointer to output buffer
+    void process_ddP(const vector<double>& in, double* drop);
 
     //! @}
 
@@ -499,6 +518,8 @@ protected:
     bool m_has_electrochemistry = false;
     //! A flag stating if the object has coverage dependent rates
     bool m_has_coverage_dependence = false;
+    //! Vector of changes of number of moles
+    vector<double> m_dn;
 };
 
 }
