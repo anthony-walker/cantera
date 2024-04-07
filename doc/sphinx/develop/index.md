@@ -51,6 +51,26 @@ reactor-integration
 This section is a work in progress.
 ```
 
+It is important to include robust tests for new features to reduce the potential
+inclusion of bugs. When testing in the python framework, `cantera/test/python`,
+individual tests can ran individually by using the `diagnose` marker and flag.
+In the python code, it looks like the following.
+
+```python
+import pytest
+import cantera as ct
+from . import utilities
+
+class TestMyNewFeature(utilities.CanteraTest):
+
+    @pytest.mark.diagnose
+    def my_new_feature_assert_true(self):
+        assert True
+```
+
+The python framework is then run with `scons test-python --diagnose` which will
+skip any tests not decorated with `@pytest.mark.diagnose`.
+
 - [](doc-formatting)
 
 ```{toctree}
